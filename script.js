@@ -284,14 +284,20 @@ anwesenheitSchuetzeSelect.innerHTML += `
 
     let gesamt = 0;
 
-anwesenheiten.forEach(anwesenheit => {
-
+anwesenheiten.forEach((anwesenheit, index) => {
     anwesenheitenTabelle.innerHTML += `
         <tr>
             <td>${anwesenheit.tag}</td>
             <td>${anwesenheit.schuetze}</td>
             <td>${anwesenheit.status}</td>
             <td>${anwesenheit.minuten}</td>
+            <td>
+    <button
+        class="delete-button"
+        onclick="anwesenheitLoeschen(${index})">
+        Löschen
+    </button>
+</td>
         </tr>
     `;
 
@@ -425,4 +431,16 @@ function automatischeStrafeErstellen(strafart, schuetzeIndex, tag, kommentar) {
         datum: new Date().toLocaleDateString("de-DE")
     });
 }
+function anwesenheitLoeschen(index) {
+
+    if (!confirm("Anwesenheit wirklich löschen?")) {
+        return;
+    }
+
+    anwesenheiten.splice(index, 1);
+
+    speichern();
+    appAktualisieren();
+}
+
 appAktualisieren();
