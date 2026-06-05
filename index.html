@@ -67,6 +67,56 @@
         <button onclick="strafeSpeichern()">Strafe speichern</button>
     </section>
 
+<section class="card hidden" id="anwesenheitBereich">
+
+    <h2>Anwesenheit erfassen</h2>
+
+    <select id="tagSelect">
+        <option value="Freitag">Freitag</option>
+        <option value="Samstag">Samstag</option>
+        <option value="Sonntag">Sonntag</option>
+        <option value="Montag">Montag</option>
+        <option value="Dienstag">Dienstag</option>
+    </select>
+
+    <select id="anwesenheitSchuetzeSelect">
+        <option value="">Schütze auswählen</option>
+    </select>
+
+    <select id="statusSelect">
+        <option value="Anwesend">Anwesend</option>
+        <option value="Zu spät">Zu spät</option>
+        <option value="Entschuldigt">Entschuldigt</option>
+        <option value="Fehlend">Fehlend</option>
+    </select>
+
+    <input
+        id="verspaetungMinuten"
+        type="number"
+        placeholder="Verspätung in Minuten">
+
+    <button onclick="anwesenheitSpeichern()">
+        Anwesenheit speichern
+    </button>
+
+<h3>Anwesenheitsübersicht</h3>
+
+<table>
+    <thead>
+        <tr>
+            <th>Tag</th>
+            <th>Schütze</th>
+            <th>Status</th>
+            <th>Minuten</th>
+        </tr>
+    </thead>
+
+    <tbody id="anwesenheitenTabelle">
+    </tbody>
+</table>
+
+</section>
+
     <section class="card">
         <h2>Übersicht</h2>
         <h3 id="gesamtbetrag">Gesamtsumme: 0 €</h3>
@@ -79,6 +129,7 @@
                     <th>Strafe</th>
                     <th>Betrag</th>
                     <th>Kommentar</th>
+                    <th>Aktion</th>
                 </tr>
             </thead>
             <tbody id="strafenTabelle"></tbody>

@@ -8,13 +8,16 @@ let logo = localStorage.getItem("logo") || "";
 let schuetzen = JSON.parse(localStorage.getItem("schuetzen")) || [];
 let strafarten = JSON.parse(localStorage.getItem("strafarten")) || [];
 let strafen = JSON.parse(localStorage.getItem("strafen")) || [];
-
+let anwesenheiten = JSON.parse(
+    localStorage.getItem("anwesenheiten")
+) || [];
 function speichern() {
     localStorage.setItem("zugname", zugname);
     localStorage.setItem("logo", logo);
     localStorage.setItem("schuetzen", JSON.stringify(schuetzen));
     localStorage.setItem("strafarten", JSON.stringify(strafarten));
     localStorage.setItem("strafen", JSON.stringify(strafen));
+    localStorage.setItem("anwesenheiten", JSON.stringify(anwesenheiten));
 }
 
 function adminEinloggen() {
@@ -158,22 +161,35 @@ function strafeSpeichern() {
     const schuetzeIndex = document.getElementById("schuetzeSelect").value;
     const strafartIndex = document.getElementById("strafartSelect").value;
     const betrag = Number(document.getElementById("betrag").value);
+
     const kommentar = document.getElementById("kommentar").value.trim();
 
     if (schuetzeIndex === "" || strafartIndex === "" || !betrag) {
         alert("Bitte Schütze, Strafart und Betrag auswählen.");
         return;
     }
+ const schuetze = schuetzen[schuetzeIndex];
 
-    strafen.push({
-      schuetze: schuetzen[schuetzeIndex].name,
-        strafart: strafarten[strafartIndex].bezeichnung,
-        betrag: betrag,
-        kommentar: kommentar,
-        datum: new Date().toLocaleDateString("de-DE")
-    });
+let endbetrag = betrag;
+
+if (
+    schuetze.rolle === "Spieß" ||
+    schuetze.rolle === "Oberleutnant" ||
+    schuetze.rolle === "Leutnant"
+) {
+    endbetrag = betrag * 2;
+}
+   strafen.push({
+    schuetze: schuetzen[schuetzeIndex].name,
+    strafart: strafarten[strafartIndex].bezeichnung,
+    basisbetrag: betrag,
+    betrag: endbetrag,
+    kommentar: kommentar,
+    datum: new Date().toLocaleDateString("de-DE")
+});
 
     document.getElementById("kommentar").value = "";
+   
     document.getElementById("betrag").value = "";
 
     speichern();
@@ -194,7 +210,7 @@ function appAktualisieren() {
 
     document.getElementById("adminBereich").classList.toggle("hidden", !istAdmin);
     document.getElementById("strafeBereich").classList.toggle("hidden", !istAdmin);
-
+document.getElementById("anwesenheitBereich").classList.toggle("hidden", !istAdmin);
     document.getElementById("loginStatus").innerText = istAdmin
         ? "Ansicht: Admin"
         : "Ansicht: Schütze";
@@ -204,12 +220,16 @@ function appAktualisieren() {
     const schuetzeSelect = document.getElementById("schuetzeSelect");
     const strafartSelect = document.getElementById("strafartSelect");
     const strafenTabelle = document.getElementById("strafenTabelle");
+const anwesenheitenTabelle =
+document.getElementById("anwesenheitenTabelle");
 
     schuetzenListe.innerHTML = "";
     strafartenListe.innerHTML = "";
     schuetzeSelect.innerHTML = '<option value="">Schütze auswählen</option>';
+    anwesenheitSchuetzeSelect.innerHTML = '<option value="">Schütze auswählen</option>';
     strafartSelect.innerHTML = '<option value="">Strafart auswählen</option>';
     strafenTabelle.innerHTML = "";
+    anwesenheitenTabelle.innerHTML = "";
 
    schuetzen.forEach((schuetze, index) => {
     schuetzenListe.innerHTML += `
@@ -236,10 +256,16 @@ function appAktualisieren() {
     `;
 
     schuetzeSelect.innerHTML += `
-        <option value="${index}">
-            ${schuetze.name}
-        </option>
-    `;
+    <option value="${index}">
+        ${schuetze.name}
+    </option>
+`;
+
+anwesenheitSchuetzeSelect.innerHTML += `
+    <option value="${index}">
+        ${schuetze.name}
+    </option>
+`;
 });
     strafarten.forEach((strafart, index) => {
         strafartenListe.innerHTML += `
@@ -258,19 +284,39 @@ function appAktualisieren() {
 
     let gesamt = 0;
 
-    strafen.forEach(strafe => {
-        gesamt += strafe.betrag;
+anwesenheiten.forEach(anwesenheit => {
 
-        strafenTabelle.innerHTML += `
-            <tr>
-                <td>${strafe.datum}</td>
-                <td>${strafe.schuetze}</td>
-                <td>${strafe.strafart}</td>
-                <td>${strafe.betrag} €</td>
-                <td>${strafe.kommentar || "-"}</td>
-            </tr>
-        `;
-    });
+    anwesenheitenTabelle.innerHTML += `
+        <tr>
+            <td>${anwesenheit.tag}</td>
+            <td>${anwesenheit.schuetze}</td>
+            <td>${anwesenheit.status}</td>
+            <td>${anwesenheit.minuten}</td>
+        </tr>
+    `;
+
+});
+
+ strafen.forEach((strafe, index) => {
+    gesamt += strafe.betrag;
+
+    strafenTabelle.innerHTML += `
+        <tr>
+            <td>${strafe.datum}</td>
+            <td>${strafe.schuetze}</td>
+            <td>${strafe.strafart}</td>
+            <td>${strafe.betrag} €</td>
+            <td>${strafe.kommentar || "-"}</td>
+            <td>
+                <button
+                    class="delete-button"
+                    onclick="strafeLoeschen(${index})">
+                    Löschen
+                </button>
+            </td>
+        </tr>
+    `;
+});
 
     document.getElementById("gesamtbetrag").innerText = `Gesamtsumme: ${gesamt} €`;
 }
@@ -292,6 +338,44 @@ function mitgliedBearbeiten(index) {
     if (!neuerName) return;
 
     schuetzen[index].name = neuerName;
+
+    speichern();
+    appAktualisieren();
+}
+
+function strafeLoeschen(index) {
+
+    if (!confirm("Strafe wirklich löschen?")) {
+        return;
+    }
+
+    strafen.splice(index, 1);
+
+    speichern();
+    appAktualisieren();
+}
+
+function anwesenheitSpeichern() {
+    const tag = document.getElementById("tagSelect").value;
+    const schuetzeIndex = document.getElementById("anwesenheitSchuetzeSelect").value;
+    const status = document.getElementById("statusSelect").value;
+    const minuten = Number(document.getElementById("verspaetungMinuten").value) || 0;
+
+    if (schuetzeIndex === "") {
+        alert("Bitte einen Schützen auswählen.");
+        return;
+    }
+
+    anwesenheiten.push({
+        id: Date.now(),
+        tag: tag,
+        schuetzeId: schuetzen[schuetzeIndex].id,
+        schuetze: schuetzen[schuetzeIndex].name,
+        status: status,
+        minuten: minuten
+    });
+
+    document.getElementById("verspaetungMinuten").value = "";
 
     speichern();
     appAktualisieren();
