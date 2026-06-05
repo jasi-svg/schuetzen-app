@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Digitaler Strafenkatalog</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="app">
+
+    <header>
+        <img id="logoAnzeige" class="logo" src="" alt="">
+        <h1 id="zugnameAnzeige">Digitaler Strafenkatalog</h1>
+    </header>
+
+    <section class="card">
+        <h2>Admin-Login</h2>
+        <input id="adminCode" type="password" placeholder="Admin-Code eingeben">
+        <button onclick="adminEinloggen()">Einloggen</button>
+        <button onclick="adminAusloggen()">Ausloggen</button>
+        <p id="loginStatus">Ansicht: Schütze</p>
+    </section>
+
+    <section id="adminBereich" class="card hidden">
+        <h2>Einstellungen</h2>
+
+        <h3>Zugname</h3>
+        <input id="zugnameInput" type="text" placeholder="z. B. Jägerzug Immergrün">
+        <button onclick="zugnameSpeichern()">Zugname speichern</button>
+
+        <h3>Zuglogo</h3>
+        <input id="logoInput" type="file" accept="image/*">
+        <button onclick="logoSpeichern()">Logo speichern</button>
+
+        <h3>Schützen hinzufügen</h3>
+        <input id="neuerSchuetze" type="text" placeholder="Name des Schützen">
+        <button onclick="schuetzeHinzufuegen()">Schütze hinzufügen</button>
+        <ul id="schuetzenListe"></ul>
+
+        <h3>Strafart hinzufügen</h3>
+        <input id="neueStrafart" type="text" placeholder="z. B. Zu spät erschienen">
+        <input id="neuerBetrag" type="number" placeholder="Betrag in €">
+        <button onclick="strafartHinzufuegen()">Strafart hinzufügen</button>
+        <ul id="strafartenListe"></ul>
+    </section>
+
+    <section id="strafeBereich" class="card hidden">
+        <h2>Strafe erfassen</h2>
+
+        <select id="schuetzeSelect"></select>
+        <select id="strafartSelect" onchange="betragAktualisieren()"></select>
+        <input id="betrag" type="number" placeholder="Betrag">
+        <input id="kommentar" type="text" placeholder="Kommentar optional">
+
+        <button onclick="strafeSpeichern()">Strafe speichern</button>
+    </section>
+
+    <section class="card">
+        <h2>Übersicht</h2>
+        <h3 id="gesamtbetrag">Gesamtsumme: 0 €</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Datum</th>
+                    <th>Schütze</th>
+                    <th>Strafe</th>
+                    <th>Betrag</th>
+                    <th>Kommentar</th>
+                </tr>
+            </thead>
+            <tbody id="strafenTabelle"></tbody>
+        </table>
+    </section>
+
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
