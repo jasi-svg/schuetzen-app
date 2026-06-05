@@ -291,7 +291,6 @@ anwesenheiten.forEach((anwesenheit, index) => {
             <td>${anwesenheit.schuetze}</td>
             <td>${anwesenheit.status}</td>
             <td>${anwesenheit.minuten}</td>
-            <td>
     <td>
     <button onclick="anwesenheitBearbeiten(${index})">
         Bearbeiten
@@ -456,9 +455,16 @@ function anwesenheitBearbeiten(index) {
 
     if (!neuerStatus) return;
 
+    const neueMinuten = prompt(
+        "Verspätung in Minuten:",
+        anwesenheiten[index].minuten
+    );
+
     anwesenheiten[index].status = neuerStatus;
+    anwesenheiten[index].minuten = Number(neueMinuten) || 0;
 
     speichern();
     appAktualisieren();
 }
+
 appAktualisieren();
