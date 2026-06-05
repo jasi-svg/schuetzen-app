@@ -365,6 +365,15 @@ function anwesenheitSpeichern() {
         alert("Bitte einen Schützen auswählen.");
         return;
     }
+    const bereitsVorhanden = anwesenheiten.some(anwesenheit =>
+    anwesenheit.tag === tag &&
+    anwesenheit.schuetzeId === schuetzen[schuetzeIndex].id
+);
+
+if (bereitsVorhanden) {
+    alert("Für diesen Schützen wurde an diesem Tag bereits eine Anwesenheit erfasst.");
+    return;
+}
 
     anwesenheiten.push({
         id: Date.now(),
@@ -374,6 +383,37 @@ function anwesenheitSpeichern() {
         status: status,
         minuten: minuten
     });
+
+    if (status === "Zu spät" || status === "Fehlend") {
+
+    const passendeStrafart = strafarten.find(strafart =>
+        strafart.bezeichnung.toLowerCase().includes("zu spät")
+    );
+
+    if (passendeStrafart) {
+
+        const schuetze = schuetzen[schuetzeIndex];
+
+        let endbetrag = passendeStrafart.betrag;
+
+        if (
+            schuetze.rolle === "Spieß" ||
+            schuetze.rolle === "Oberleutnant" ||
+            schuetze.rolle === "Leutnant"
+        ) {
+            endbetrag = passendeStrafart.betrag * 2;
+        }
+
+        strafen.push({
+            schuetze: schuetze.name,
+            strafart: passendeStrafart.bezeichnung,
+            basisbetrag: passendeStrafart.betrag,
+            betrag: endbetrag,
+            kommentar: `Automatisch aus Anwesenheit: ${tag}, ${status}`,
+            datum: new Date().toLocaleDateString("de-DE")
+        });
+    }
+}
 
     document.getElementById("verspaetungMinuten").value = "";
 
