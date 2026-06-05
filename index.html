@@ -34,10 +34,20 @@
         <input id="logoInput" type="file" accept="image/*">
         <button onclick="logoSpeichern()">Logo speichern</button>
 
-        <h3>Schützen hinzufügen</h3>
-        <input id="neuerSchuetze" type="text" placeholder="Name des Schützen">
-        <button onclick="schuetzeHinzufuegen()">Schütze hinzufügen</button>
-        <ul id="schuetzenListe"></ul>
+        <h3>Mitglied hinzufügen</h3>
+
+<input id="neuerSchuetze" type="text" placeholder="Name des Mitglieds">
+
+<select id="rolleSelect">
+    <option value="Schütze">Schütze</option>
+    <option value="Spieß">Spieß</option>
+    <option value="Oberleutnant">Oberleutnant</option>
+    <option value="Leutnant">Leutnant</option>
+</select>
+
+<button onclick="schuetzeHinzufuegen()">Mitglied hinzufügen</button>
+
+<ul id="schuetzenListe"></ul>
 
         <h3>Strafart hinzufügen</h3>
         <input id="neueStrafart" type="text" placeholder="z. B. Zu spät erschienen">
