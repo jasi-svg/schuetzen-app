@@ -384,40 +384,45 @@ if (bereitsVorhanden) {
         minuten: minuten
     });
 
-    if (status === "Zu spät" || status === "Fehlend") {
+   if (status === "Zu spät") {
 
     const passendeStrafart = strafarten.find(strafart =>
         strafart.bezeichnung.toLowerCase().includes("zu spät")
     );
 
     if (passendeStrafart) {
-
-        const schuetze = schuetzen[schuetzeIndex];
-
-        let endbetrag = passendeStrafart.betrag;
-
-        if (
-            schuetze.rolle === "Spieß" ||
-            schuetze.rolle === "Oberleutnant" ||
-            schuetze.rolle === "Leutnant"
-        ) {
-            endbetrag = passendeStrafart.betrag * 2;
-        }
-
-        strafen.push({
-            schuetze: schuetze.name,
-            strafart: passendeStrafart.bezeichnung,
-            basisbetrag: passendeStrafart.betrag,
-            betrag: endbetrag,
-            kommentar: `Automatisch aus Anwesenheit: ${tag}, ${status}`,
-            datum: new Date().toLocaleDateString("de-DE")
-        });
+        automatischeStrafeErstellen(passendeStrafart, schuetzeIndex, tag, `${minuten} Minuten verspätet`);
     }
-}
+} 
+
 
     document.getElementById("verspaetungMinuten").value = "";
 
     speichern();
     appAktualisieren();
+}
+
+function automatischeStrafeErstellen(strafart, schuetzeIndex, tag, kommentar) {
+
+    const schuetze = schuetzen[schuetzeIndex];
+
+    let endbetrag = strafart.betrag;
+
+    if (
+        schuetze.rolle === "Spieß" ||
+        schuetze.rolle === "Oberleutnant" ||
+        schuetze.rolle === "Leutnant"
+    ) {
+        endbetrag = strafart.betrag * 2;
+    }
+
+    strafen.push({
+        schuetze: schuetze.name,
+        strafart: strafart.bezeichnung,
+        basisbetrag: strafart.betrag,
+        betrag: endbetrag,
+        kommentar: kommentar,
+        datum: new Date().toLocaleDateString("de-DE")
+    });
 }
 appAktualisieren();
