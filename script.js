@@ -68,18 +68,23 @@ function logoSpeichern() {
 }
 
 function schuetzeHinzufuegen() {
-    const name = document.getElementById("neuerSchuetze").value.trim();
 
-    if (!name) {
-        alert("Bitte einen Namen eingeben.");
-        return;
-    }
+    const name = document.getElementById("neuerSchuetze").value;
+    const rolle = document.getElementById("rolleSelect").value;
 
-    schuetzen.push(name);
-    document.getElementById("neuerSchuetze").value = "";
+    if (!name) return;
+
+    schuetzen.push({
+        id: Date.now(),
+        name: name,
+        rolle: rolle,
+        aktiv: true
+    });
 
     speichern();
     appAktualisieren();
+
+    document.getElementById("neuerSchuetze").value = "";
 }
 
 function schuetzeLoeschen(index) {
@@ -139,7 +144,7 @@ function strafeSpeichern() {
     }
 
     strafen.push({
-        schuetze: schuetzen[schuetzeIndex],
+      schuetze: schuetzen[schuetzeIndex].name,
         strafart: strafarten[strafartIndex].bezeichnung,
         betrag: betrag,
         kommentar: kommentar,
@@ -184,17 +189,24 @@ function appAktualisieren() {
     strafartSelect.innerHTML = '<option value="">Strafart auswählen</option>';
     strafenTabelle.innerHTML = "";
 
-    schuetzen.forEach((name, index) => {
-        schuetzenListe.innerHTML += `
-            <li>
-                ${name}
-                <button class="delete-button" onclick="schuetzeLoeschen(${index})">Löschen</button>
-            </li>
-        `;
+   schuetzen.forEach((schuetze, index) => {
+    schuetzenListe.innerHTML += `
+        <li>
+            <strong>${schuetze.name}</strong>
+            <br>
+            Rolle: ${schuetze.rolle}
+            <br>
+            Status: ${schuetze.aktiv ? "Aktiv" : "Inaktiv"}
+            <button class="delete-button" onclick="schuetzeLoeschen(${index})">Löschen</button>
+        </li>
+    `;
 
-        schuetzeSelect.innerHTML += `<option value="${index}">${name}</option>`;
-    });
-
+    schuetzeSelect.innerHTML += `
+        <option value="${index}">
+            ${schuetze.name}
+        </option>
+    `;
+});
     strafarten.forEach((strafart, index) => {
         strafartenListe.innerHTML += `
             <li>
