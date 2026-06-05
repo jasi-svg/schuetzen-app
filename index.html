@@ -17,110 +17,181 @@
 
     <section class="card">
         <h2>Admin-Login</h2>
+
         <input id="adminCode" type="password" placeholder="Admin-Code eingeben">
+
         <button onclick="adminEinloggen()">Einloggen</button>
         <button onclick="adminAusloggen()">Ausloggen</button>
+
         <p id="loginStatus">Ansicht: Schütze</p>
     </section>
 
     <section id="adminBereich" class="card hidden">
+
         <h2>Einstellungen</h2>
 
         <h3>Zugname</h3>
-        <input id="zugnameInput" type="text" placeholder="z. B. Jägerzug Immergrün">
-        <button onclick="zugnameSpeichern()">Zugname speichern</button>
+
+        <input
+            id="zugnameInput"
+            type="text"
+            placeholder="z. B. Jägerzug Immergrün">
+
+        <button onclick="zugnameSpeichern()">
+            Zugname speichern
+        </button>
 
         <h3>Zuglogo</h3>
-        <input id="logoInput" type="file" accept="image/*">
-        <button onclick="logoSpeichern()">Logo speichern</button>
+
+        <input
+            id="logoInput"
+            type="file"
+            accept="image/*">
+
+        <button onclick="logoSpeichern()">
+            Logo speichern
+        </button>
 
         <h3>Mitglied hinzufügen</h3>
 
-<input id="neuerSchuetze" type="text" placeholder="Name des Mitglieds">
+        <input
+            id="neuerSchuetze"
+            type="text"
+            placeholder="Name des Mitglieds">
 
-<select id="rolleSelect">
-    <option value="Schütze">Schütze</option>
-    <option value="Spieß">Spieß</option>
-    <option value="Oberleutnant">Oberleutnant</option>
-    <option value="Leutnant">Leutnant</option>
-</select>
+        <select id="rolleSelect">
+            <option value="Schütze">Schütze</option>
+            <option value="Spieß">Spieß</option>
+            <option value="Oberleutnant">Oberleutnant</option>
+            <option value="Leutnant">Leutnant</option>
+        </select>
 
-<button onclick="schuetzeHinzufuegen()">Mitglied hinzufügen</button>
+        <button onclick="schuetzeHinzufuegen()">
+            Mitglied hinzufügen
+        </button>
 
-<ul id="schuetzenListe"></ul>
+        <ul id="schuetzenListe"></ul>
 
         <h3>Strafart hinzufügen</h3>
-        <input id="neueStrafart" type="text" placeholder="z. B. Zu spät erschienen">
-        <input id="neuerBetrag" type="number" placeholder="Betrag in €">
-        <button onclick="strafartHinzufuegen()">Strafart hinzufügen</button>
+
+        <input
+            id="neueStrafart"
+            type="text"
+            placeholder="z. B. Zu spät erschienen">
+
+        <input
+            id="neuerBetrag"
+            type="number"
+            placeholder="Betrag in €">
+
+        <button onclick="strafartHinzufuegen()">
+            Strafart hinzufügen
+        </button>
+
         <ul id="strafartenListe"></ul>
+
     </section>
 
     <section id="strafeBereich" class="card hidden">
+
         <h2>Strafe erfassen</h2>
 
         <select id="schuetzeSelect"></select>
-        <select id="strafartSelect" onchange="betragAktualisieren()"></select>
-        <input id="betrag" type="number" placeholder="Betrag">
-        <input id="kommentar" type="text" placeholder="Kommentar optional">
 
-        <button onclick="strafeSpeichern()">Strafe speichern</button>
+        <select
+            id="strafartSelect"
+            onchange="betragAktualisieren()">
+        </select>
+
+        <input
+            id="betrag"
+            type="number"
+            placeholder="Betrag">
+
+        <input
+            id="kommentar"
+            type="text"
+            placeholder="Kommentar optional">
+
+        <button onclick="strafeSpeichern()">
+            Strafe speichern
+        </button>
+
     </section>
 
-<section class="card hidden" id="anwesenheitBereich">
+    <section class="card hidden" id="anwesenheitBereich">
 
-    <h2>Anwesenheit erfassen</h2>
+        <h2>Anwesenheit erfassen</h2>
 
-    <select id="tagSelect">
-        <option value="Freitag">Freitag</option>
-        <option value="Samstag">Samstag</option>
-        <option value="Sonntag">Sonntag</option>
-        <option value="Montag">Montag</option>
-        <option value="Dienstag">Dienstag</option>
-    </select>
+        <select id="tagSelect">
+            <option value="Freitag">Freitag</option>
+            <option value="Samstag">Samstag</option>
+            <option value="Sonntag">Sonntag</option>
+            <option value="Montag">Montag</option>
+            <option value="Dienstag">Dienstag</option>
+        </select>
 
-    <select id="anwesenheitSchuetzeSelect">
-        <option value="">Schütze auswählen</option>
-    </select>
+        <select id="anwesenheitSchuetzeSelect">
+            <option value="">Schütze auswählen</option>
+        </select>
 
-    <select id="statusSelect">
-        <option value="Anwesend">Anwesend</option>
-        <option value="Zu spät">Zu spät</option>
-        <option value="Entschuldigt">Entschuldigt</option>
-        <option value="Fehlend">Fehlend</option>
-    </select>
+        <select id="statusSelect">
+            <option value="Anwesend">Anwesend</option>
+            <option value="Zu spät">Zu spät</option>
+            <option value="Entschuldigt">Entschuldigt</option>
+            <option value="Fehlend">Fehlend</option>
+        </select>
 
-    <input
-        id="verspaetungMinuten"
-        type="number"
-        placeholder="Verspätung in Minuten">
+        <input
+            id="verspaetungMinuten"
+            type="number"
+            placeholder="Verspätung in Minuten">
 
-    <button onclick="anwesenheitSpeichern()">
-        Anwesenheit speichern
-    </button>
+        <button onclick="anwesenheitSpeichern()">
+            Anwesenheit speichern
+        </button>
 
-<h3>Anwesenheitsübersicht</h3>
+        <h3>Anwesenheitsübersicht</h3>
 
-<table>
-    <thead>
-        <tr>
-            <th>Tag</th>
-            <th>Schütze</th>
-            <th>Status</th>
-            <th>Minuten</th>
-            <th>Aktion</th>
-        </tr>
-    </thead>
+        <table>
+            <thead>
+                <tr>
+                    <th>Tag</th>
+                    <th>Schütze</th>
+                    <th>Status</th>
+                    <th>Minuten</th>
+                    <th>Aktion</th>
+                </tr>
+            </thead>
 
-    <tbody id="anwesenheitenTabelle">
-    </tbody>
-</table>
+            <tbody id="anwesenheitenTabelle"></tbody>
+        </table>
 
-</section>
+        <h3>Statistik pro Schütze</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Schütze</th>
+                    <th>Anwesend</th>
+                    <th>Zu spät</th>
+                    <th>Entschuldigt</th>
+                    <th>Fehlend</th>
+                </tr>
+            </thead>
+
+            <tbody id="statistikTabelle"></tbody>
+        </table>
+
+    </section>
 
     <section class="card">
+
         <h2>Übersicht</h2>
-        <h3 id="gesamtbetrag">Gesamtsumme: 0 €</h3>
+
+        <h3 id="gesamtbetrag">
+            Gesamtsumme: 0 €
+        </h3>
 
         <table>
             <thead>
@@ -133,12 +204,15 @@
                     <th>Aktion</th>
                 </tr>
             </thead>
+
             <tbody id="strafenTabelle"></tbody>
         </table>
+
     </section>
 
 </div>
 
 <script src="script.js"></script>
+
 </body>
 </html>

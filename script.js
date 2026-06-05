@@ -222,6 +222,8 @@ document.getElementById("anwesenheitBereich").classList.toggle("hidden", !istAdm
     const strafenTabelle = document.getElementById("strafenTabelle");
 const anwesenheitenTabelle =
 document.getElementById("anwesenheitenTabelle");
+const statistikTabelle =
+    document.getElementById("statistikTabelle");
 
     schuetzenListe.innerHTML = "";
     strafartenListe.innerHTML = "";
@@ -230,6 +232,7 @@ document.getElementById("anwesenheitenTabelle");
     strafartSelect.innerHTML = '<option value="">Strafart auswählen</option>';
     strafenTabelle.innerHTML = "";
     anwesenheitenTabelle.innerHTML = "";
+statistikTabelle.innerHTML = "";
 
    schuetzen.forEach((schuetze, index) => {
     schuetzenListe.innerHTML += `
@@ -306,7 +309,38 @@ anwesenheiten.forEach((anwesenheit, index) => {
     `;
 
 });
+schuetzen.forEach(schuetze => {
 
+    const anwesend = anwesenheiten.filter(
+        a => a.schuetzeId === schuetze.id &&
+             a.status === "Anwesend"
+    ).length;
+
+    const zuSpaet = anwesenheiten.filter(
+        a => a.schuetzeId === schuetze.id &&
+             a.status === "Zu spät"
+    ).length;
+
+    const entschuldigt = anwesenheiten.filter(
+        a => a.schuetzeId === schuetze.id &&
+             a.status === "Entschuldigt"
+    ).length;
+
+    const fehlend = anwesenheiten.filter(
+        a => a.schuetzeId === schuetze.id &&
+             a.status === "Fehlend"
+    ).length;
+
+    statistikTabelle.innerHTML += `
+        <tr>
+            <td>${schuetze.name}</td>
+            <td>${anwesend}</td>
+            <td>${zuSpaet}</td>
+            <td>${entschuldigt}</td>
+            <td>${fehlend}</td>
+        </tr>
+    `;
+});
  strafen.forEach((strafe, index) => {
     gesamt += strafe.betrag;
 
