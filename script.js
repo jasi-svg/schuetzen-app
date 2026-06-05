@@ -292,6 +292,11 @@ anwesenheiten.forEach((anwesenheit, index) => {
             <td>${anwesenheit.status}</td>
             <td>${anwesenheit.minuten}</td>
             <td>
+    <td>
+    <button onclick="anwesenheitBearbeiten(${index})">
+        Bearbeiten
+    </button>
+
     <button
         class="delete-button"
         onclick="anwesenheitLoeschen(${index})">
@@ -442,5 +447,18 @@ function anwesenheitLoeschen(index) {
     speichern();
     appAktualisieren();
 }
+function anwesenheitBearbeiten(index) {
 
+    const neuerStatus = prompt(
+        "Neuer Status (Anwesend, Zu spät, Entschuldigt, Fehlend):",
+        anwesenheiten[index].status
+    );
+
+    if (!neuerStatus) return;
+
+    anwesenheiten[index].status = neuerStatus;
+
+    speichern();
+    appAktualisieren();
+}
 appAktualisieren();
