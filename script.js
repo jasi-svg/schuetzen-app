@@ -214,13 +214,25 @@ function appAktualisieren() {
    schuetzen.forEach((schuetze, index) => {
     schuetzenListe.innerHTML += `
         <li>
-            <strong>${schuetze.name}</strong>
-            <br>
-            Rolle: ${schuetze.rolle}
-            <br>
-            Status: ${schuetze.aktiv ? "Aktiv" : "Inaktiv"}
-            <button class="delete-button" onclick="schuetzeLoeschen(${index})">Löschen</button>
-        </li>
+    <strong>${schuetze.name}</strong>
+    <br>
+    Rolle: ${schuetze.rolle}
+    <br>
+    Status: ${schuetze.aktiv ? "Aktiv" : "Inaktiv"}
+    <br><br>
+
+    <button onclick="mitgliedBearbeiten(${index})">
+        Bearbeiten
+    </button>
+
+    <button onclick="mitgliedStatusWechseln(${index})">
+        ${schuetze.aktiv ? "Inaktiv setzen" : "Aktiv setzen"}
+    </button>
+
+    <button class="delete-button" onclick="schuetzeLoeschen(${index})">
+        Löschen
+    </button>
+</li>
     `;
 
     schuetzeSelect.innerHTML += `
@@ -262,5 +274,26 @@ function appAktualisieren() {
 
     document.getElementById("gesamtbetrag").innerText = `Gesamtsumme: ${gesamt} €`;
 }
+function mitgliedStatusWechseln(index) {
 
+    schuetzen[index].aktiv = !schuetzen[index].aktiv;
+
+    speichern();
+    appAktualisieren();
+}
+
+function mitgliedBearbeiten(index) {
+
+    const neuerName = prompt(
+        "Neuer Name:",
+        schuetzen[index].name
+    );
+
+    if (!neuerName) return;
+
+    schuetzen[index].name = neuerName;
+
+    speichern();
+    appAktualisieren();
+}
 appAktualisieren();
