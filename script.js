@@ -71,7 +71,29 @@ function schuetzeHinzufuegen() {
 
     const name = document.getElementById("neuerSchuetze").value;
     const rolle = document.getElementById("rolleSelect").value;
+if (
+    rolle === "Spieß" &&
+    schuetzen.some(s => s.rolle === "Spieß")
+) {
+    alert("Es darf nur einen Spieß geben.");
+    return;
+}
 
+if (
+    rolle === "Oberleutnant" &&
+    schuetzen.some(s => s.rolle === "Oberleutnant")
+) {
+    alert("Es darf nur einen Oberleutnant geben.");
+    return;
+}
+
+if (
+    rolle === "Leutnant" &&
+    schuetzen.some(s => s.rolle === "Leutnant")
+) {
+    alert("Es darf nur einen Leutnant geben.");
+    return;
+}
     if (!name) return;
 
     schuetzen.push({
