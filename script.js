@@ -8,9 +8,8 @@ let logo = localStorage.getItem("logo") || "";
 let schuetzen = JSON.parse(localStorage.getItem("schuetzen")) || [];
 let strafarten = JSON.parse(localStorage.getItem("strafarten")) || [];
 let strafen = JSON.parse(localStorage.getItem("strafen")) || [];
-let anwesenheiten = JSON.parse(
-    localStorage.getItem("anwesenheiten")
-) || [];
+let anwesenheiten = JSON.parse(localStorage.getItem("anwesenheiten")) || [];
+
 function speichern() {
     localStorage.setItem("zugname", zugname);
     localStorage.setItem("logo", logo);
@@ -47,6 +46,7 @@ function zugnameSpeichern() {
 
     zugname = neuerName;
     document.getElementById("zugnameInput").value = "";
+
     speichern();
     appAktualisieren();
 }
@@ -71,51 +71,45 @@ function logoSpeichern() {
 }
 
 function schuetzeHinzufuegen() {
-
-    const name = document.getElementById("neuerSchuetze").value;
+    const name = document.getElementById("neuerSchuetze").value.trim();
     const rolle = document.getElementById("rolleSelect").value;
-if (
-    rolle === "Spieß" &&
-    schuetzen.some(s => s.rolle === "Spieß")
-) {
-    alert("Es darf nur einen Spieß geben.");
-    return;
-}
 
-if (
-    rolle === "Oberleutnant" &&
-    schuetzen.some(s => s.rolle === "Oberleutnant")
-) {
-    alert("Es darf nur einen Oberleutnant geben.");
-    return;
-}
-
-if (
-    rolle === "Leutnant" &&
-    schuetzen.some(s => s.rolle === "Leutnant")
-) {
-    alert("Es darf nur einen Leutnant geben.");
-    return;
-}
     if (!name) return;
+
+    if (rolle === "Spieß" && schuetzen.some(s => s.rolle === "Spieß")) {
+        alert("Es darf nur einen Spieß geben.");
+        return;
+    }
+
+    if (rolle === "Oberleutnant" && schuetzen.some(s => s.rolle === "Oberleutnant")) {
+        alert("Es darf nur einen Oberleutnant geben.");
+        return;
+    }
+
+    if (rolle === "Leutnant" && schuetzen.some(s => s.rolle === "Leutnant")) {
+        alert("Es darf nur einen Leutnant geben.");
+        return;
+    }
 
     schuetzen.push({
         id: Date.now(),
         name: name,
         rolle: rolle,
-        aktiv: true
+        aktiv: true,
+        bild: ""
     });
+
+    document.getElementById("neuerSchuetze").value = "";
 
     speichern();
     appAktualisieren();
-
-    document.getElementById("neuerSchuetze").value = "";
 }
 
 function schuetzeLoeschen(index) {
     if (!confirm("Schützen wirklich löschen?")) return;
 
     schuetzen.splice(index, 1);
+
     speichern();
     appAktualisieren();
 }
@@ -145,6 +139,7 @@ function strafartLoeschen(index) {
     if (!confirm("Strafart wirklich löschen?")) return;
 
     strafarten.splice(index, 1);
+
     speichern();
     appAktualisieren();
 }
@@ -161,35 +156,36 @@ function strafeSpeichern() {
     const schuetzeIndex = document.getElementById("schuetzeSelect").value;
     const strafartIndex = document.getElementById("strafartSelect").value;
     const betrag = Number(document.getElementById("betrag").value);
-
     const kommentar = document.getElementById("kommentar").value.trim();
 
     if (schuetzeIndex === "" || strafartIndex === "" || !betrag) {
         alert("Bitte Schütze, Strafart und Betrag auswählen.");
         return;
     }
- const schuetze = schuetzen[schuetzeIndex];
 
-let endbetrag = betrag;
+    const schuetze = schuetzen[schuetzeIndex];
 
-if (
-    schuetze.rolle === "Spieß" ||
-    schuetze.rolle === "Oberleutnant" ||
-    schuetze.rolle === "Leutnant"
-) {
-    endbetrag = betrag * 2;
-}
-   strafen.push({
-    schuetze: schuetzen[schuetzeIndex].name,
-    strafart: strafarten[strafartIndex].bezeichnung,
-    basisbetrag: betrag,
-    betrag: endbetrag,
-    kommentar: kommentar,
-    datum: new Date().toLocaleDateString("de-DE")
-});
+    let endbetrag = betrag;
+
+    if (
+        schuetze.rolle === "Spieß" ||
+        schuetze.rolle === "Oberleutnant" ||
+        schuetze.rolle === "Leutnant"
+    ) {
+        endbetrag = betrag * 2;
+    }
+
+    strafen.push({
+        schuetze: schuetze.name,
+        strafart: strafarten[strafartIndex].bezeichnung,
+        basisbetrag: betrag,
+        betrag: endbetrag,
+        kommentar: kommentar,
+        datum: new Date().toLocaleDateString("de-DE"),
+        bezahlt: false
+    });
 
     document.getElementById("kommentar").value = "";
-   
     document.getElementById("betrag").value = "";
 
     speichern();
@@ -210,7 +206,8 @@ function appAktualisieren() {
 
     document.getElementById("adminBereich").classList.toggle("hidden", !istAdmin);
     document.getElementById("strafeBereich").classList.toggle("hidden", !istAdmin);
-document.getElementById("anwesenheitBereich").classList.toggle("hidden", !istAdmin);
+    document.getElementById("anwesenheitBereich").classList.toggle("hidden", !istAdmin);
+
     document.getElementById("loginStatus").innerText = istAdmin
         ? "Ansicht: Admin"
         : "Ansicht: Schütze";
@@ -220,10 +217,14 @@ document.getElementById("anwesenheitBereich").classList.toggle("hidden", !istAdm
     const schuetzeSelect = document.getElementById("schuetzeSelect");
     const strafartSelect = document.getElementById("strafartSelect");
     const strafenTabelle = document.getElementById("strafenTabelle");
-const anwesenheitenTabelle =
-document.getElementById("anwesenheitenTabelle");
-const statistikTabelle =
-    document.getElementById("statistikTabelle");
+    const anwesenheitSchuetzeSelect = document.getElementById("anwesenheitSchuetzeSelect");
+    const anwesenheitenTabelle = document.getElementById("anwesenheitenTabelle");
+    const statistikTabelle = document.getElementById("statistikTabelle");
+
+    const dashboardGesamt = document.getElementById("dashboardGesamt");
+    const dashboardAnzahlStrafen = document.getElementById("dashboardAnzahlStrafen");
+    const dashboardAnwesenheiten = document.getElementById("dashboardAnwesenheiten");
+    const zugsauTabelle = document.getElementById("zugsauTabelle");
 
     schuetzenListe.innerHTML = "";
     strafartenListe.innerHTML = "";
@@ -232,49 +233,63 @@ const statistikTabelle =
     strafartSelect.innerHTML = '<option value="">Strafart auswählen</option>';
     strafenTabelle.innerHTML = "";
     anwesenheitenTabelle.innerHTML = "";
-statistikTabelle.innerHTML = "";
+    statistikTabelle.innerHTML = "";
+    zugsauTabelle.innerHTML = "";
 
-   schuetzen.forEach((schuetze, index) => {
-    schuetzenListe.innerHTML += `
-        <li>
-    <strong>${schuetze.name}</strong>
-    <br>
-    Rolle: ${schuetze.rolle}
-    <br>
-    Status: ${schuetze.aktiv ? "Aktiv" : "Inaktiv"}
-    <br><br>
+    schuetzen.forEach((schuetze, index) => {
+        schuetzenListe.innerHTML += `
+            <li>
+                ${
+                    schuetze.bild
+                    ? `<img src="${schuetze.bild}" class="profilbild">`
+                    : ""
+                }
 
-    <button onclick="mitgliedBearbeiten(${index})">
-        Bearbeiten
-    </button>
+                <strong>${schuetze.name}</strong>
+                <br>
+                Rolle: ${schuetze.rolle}
+                <br>
+                Status: ${schuetze.aktiv ? "Aktiv" : "Inaktiv"}
+                <br><br>
 
-    <button onclick="mitgliedStatusWechseln(${index})">
-        ${schuetze.aktiv ? "Inaktiv setzen" : "Aktiv setzen"}
-    </button>
+                <button onclick="profilbildHochladen(${index})">
+                    Profilbild
+                </button>
 
-    <button class="delete-button" onclick="schuetzeLoeschen(${index})">
-        Löschen
-    </button>
-</li>
-    `;
+                <button onclick="mitgliedBearbeiten(${index})">
+                    Bearbeiten
+                </button>
 
-    schuetzeSelect.innerHTML += `
-    <option value="${index}">
-        ${schuetze.name}
-    </option>
-`;
+                <button onclick="mitgliedStatusWechseln(${index})">
+                    ${schuetze.aktiv ? "Deaktivieren" : "Aktivieren"}
+                </button>
 
-anwesenheitSchuetzeSelect.innerHTML += `
-    <option value="${index}">
-        ${schuetze.name}
-    </option>
-`;
-});
+                <button class="delete-button" onclick="schuetzeLoeschen(${index})">
+                    Löschen
+                </button>
+            </li>
+        `;
+
+        schuetzeSelect.innerHTML += `
+            <option value="${index}">
+                ${schuetze.name}
+            </option>
+        `;
+
+        anwesenheitSchuetzeSelect.innerHTML += `
+            <option value="${index}">
+                ${schuetze.name}
+            </option>
+        `;
+    });
+
     strafarten.forEach((strafart, index) => {
         strafartenListe.innerHTML += `
             <li>
                 ${strafart.bezeichnung} – ${strafart.betrag} €
-                <button class="delete-button" onclick="strafartLoeschen(${index})">Löschen</button>
+                <button class="delete-button" onclick="strafartLoeschen(${index})">
+                    Löschen
+                </button>
             </li>
         `;
 
@@ -285,87 +300,119 @@ anwesenheitSchuetzeSelect.innerHTML += `
         `;
     });
 
+    anwesenheiten.forEach((anwesenheit, index) => {
+        anwesenheitenTabelle.innerHTML += `
+            <tr>
+                <td>${anwesenheit.tag}</td>
+                <td>${anwesenheit.schuetze}</td>
+                <td>${anwesenheit.status}</td>
+                <td>${anwesenheit.minuten}</td>
+                <td>
+                    <button onclick="anwesenheitBearbeiten(${index})">
+                        Bearbeiten
+                    </button>
+
+                    <button class="delete-button" onclick="anwesenheitLoeschen(${index})">
+                        Löschen
+                    </button>
+                </td>
+            </tr>
+        `;
+    });
+
+    schuetzen.forEach(schuetze => {
+        const anwesend = anwesenheiten.filter(
+            a => a.schuetzeId === schuetze.id && a.status === "Anwesend"
+        ).length;
+
+        const zuSpaet = anwesenheiten.filter(
+            a => a.schuetzeId === schuetze.id && a.status === "Zu spät"
+        ).length;
+
+        const entschuldigt = anwesenheiten.filter(
+            a => a.schuetzeId === schuetze.id && a.status === "Entschuldigt"
+        ).length;
+
+        const fehlend = anwesenheiten.filter(
+            a => a.schuetzeId === schuetze.id && a.status === "Fehlend"
+        ).length;
+
+        statistikTabelle.innerHTML += `
+            <tr>
+                <td>${schuetze.name}</td>
+                <td>${anwesend}</td>
+                <td>${zuSpaet}</td>
+                <td>${entschuldigt}</td>
+                <td>${fehlend}</td>
+            </tr>
+        `;
+    });
+
     let gesamt = 0;
 
-anwesenheiten.forEach((anwesenheit, index) => {
-    anwesenheitenTabelle.innerHTML += `
-        <tr>
-            <td>${anwesenheit.tag}</td>
-            <td>${anwesenheit.schuetze}</td>
-            <td>${anwesenheit.status}</td>
-            <td>${anwesenheit.minuten}</td>
-    <td>
-    <button onclick="anwesenheitBearbeiten(${index})">
-        Bearbeiten
-    </button>
+    strafen.forEach((strafe, index) => {
+        if (strafe.bezahlt === undefined) {
+            strafe.bezahlt = false;
+        }
 
-    <button
-        class="delete-button"
-        onclick="anwesenheitLoeschen(${index})">
-        Löschen
-    </button>
-</td>
-        </tr>
-    `;
+        gesamt += strafe.betrag;
 
-});
-schuetzen.forEach(schuetze => {
+        strafenTabelle.innerHTML += `
+            <tr>
+                <td>${strafe.datum}</td>
+                <td>${strafe.schuetze}</td>
+                <td>${strafe.strafart}</td>
+                <td>${strafe.betrag} €</td>
+                <td>${strafe.kommentar || "-"}</td>
+                <td>${strafe.bezahlt ? "Bezahlt" : "Offen"}</td>
+                <td>
+                    <button onclick="bezahlstatusWechseln(${index})">
+                        ${strafe.bezahlt ? "Auf offen setzen" : "Als bezahlt markieren"}
+                    </button>
 
-    const anwesend = anwesenheiten.filter(
-        a => a.schuetzeId === schuetze.id &&
-             a.status === "Anwesend"
-    ).length;
-
-    const zuSpaet = anwesenheiten.filter(
-        a => a.schuetzeId === schuetze.id &&
-             a.status === "Zu spät"
-    ).length;
-
-    const entschuldigt = anwesenheiten.filter(
-        a => a.schuetzeId === schuetze.id &&
-             a.status === "Entschuldigt"
-    ).length;
-
-    const fehlend = anwesenheiten.filter(
-        a => a.schuetzeId === schuetze.id &&
-             a.status === "Fehlend"
-    ).length;
-
-    statistikTabelle.innerHTML += `
-        <tr>
-            <td>${schuetze.name}</td>
-            <td>${anwesend}</td>
-            <td>${zuSpaet}</td>
-            <td>${entschuldigt}</td>
-            <td>${fehlend}</td>
-        </tr>
-    `;
-});
- strafen.forEach((strafe, index) => {
-    gesamt += strafe.betrag;
-
-    strafenTabelle.innerHTML += `
-        <tr>
-            <td>${strafe.datum}</td>
-            <td>${strafe.schuetze}</td>
-            <td>${strafe.strafart}</td>
-            <td>${strafe.betrag} €</td>
-            <td>${strafe.kommentar || "-"}</td>
-            <td>
-                <button
-                    class="delete-button"
-                    onclick="strafeLoeschen(${index})">
-                    Löschen
-                </button>
-            </td>
-        </tr>
-    `;
-});
+                    <button class="delete-button" onclick="strafeLoeschen(${index})">
+                        Löschen
+                    </button>
+                </td>
+            </tr>
+        `;
+    });
 
     document.getElementById("gesamtbetrag").innerText = `Gesamtsumme: ${gesamt} €`;
-}
-function mitgliedStatusWechseln(index) {
 
+    dashboardGesamt.innerText = `${gesamt} €`;
+    dashboardAnzahlStrafen.innerText = strafen.length;
+    dashboardAnwesenheiten.innerText = anwesenheiten.length;
+
+    const ranking = [];
+
+    schuetzen.forEach(schuetze => {
+        const summe = strafen
+            .filter(strafe => strafe.schuetze === schuetze.name)
+            .reduce((sum, strafe) => sum + strafe.betrag, 0);
+
+        if (summe > 0) {
+            ranking.push({
+                name: schuetze.name,
+                summe: summe
+            });
+        }
+    });
+
+    ranking.sort((a, b) => b.summe - a.summe);
+
+    ranking.forEach((eintrag, index) => {
+        zugsauTabelle.innerHTML += `
+            <tr>
+                <td>${index + 1}</td>
+                <td>${eintrag.name}</td>
+                <td>${eintrag.summe} €</td>
+            </tr>
+        `;
+    });
+}
+
+function mitgliedStatusWechseln(index) {
     schuetzen[index].aktiv = !schuetzen[index].aktiv;
 
     speichern();
@@ -373,7 +420,6 @@ function mitgliedStatusWechseln(index) {
 }
 
 function mitgliedBearbeiten(index) {
-
     const neuerName = prompt(
         "Neuer Name:",
         schuetzen[index].name
@@ -388,10 +434,7 @@ function mitgliedBearbeiten(index) {
 }
 
 function strafeLoeschen(index) {
-
-    if (!confirm("Strafe wirklich löschen?")) {
-        return;
-    }
+    if (!confirm("Strafe wirklich löschen?")) return;
 
     strafen.splice(index, 1);
 
@@ -409,15 +452,16 @@ function anwesenheitSpeichern() {
         alert("Bitte einen Schützen auswählen.");
         return;
     }
-    const bereitsVorhanden = anwesenheiten.some(anwesenheit =>
-    anwesenheit.tag === tag &&
-    anwesenheit.schuetzeId === schuetzen[schuetzeIndex].id
-);
 
-if (bereitsVorhanden) {
-    alert("Für diesen Schützen wurde an diesem Tag bereits eine Anwesenheit erfasst.");
-    return;
-}
+    const bereitsVorhanden = anwesenheiten.some(anwesenheit =>
+        anwesenheit.tag === tag &&
+        anwesenheit.schuetzeId === schuetzen[schuetzeIndex].id
+    );
+
+    if (bereitsVorhanden) {
+        alert("Für diesen Schützen wurde an diesem Tag bereits eine Anwesenheit erfasst.");
+        return;
+    }
 
     anwesenheiten.push({
         id: Date.now(),
@@ -428,17 +472,20 @@ if (bereitsVorhanden) {
         minuten: minuten
     });
 
-   if (status === "Zu spät") {
+    if (status === "Zu spät") {
+        const passendeStrafart = strafarten.find(strafart =>
+            strafart.bezeichnung.toLowerCase().includes("zu spät")
+        );
 
-    const passendeStrafart = strafarten.find(strafart =>
-        strafart.bezeichnung.toLowerCase().includes("zu spät")
-    );
-
-    if (passendeStrafart) {
-        automatischeStrafeErstellen(passendeStrafart, schuetzeIndex, tag, `${minuten} Minuten verspätet`);
+        if (passendeStrafart) {
+            automatischeStrafeErstellen(
+                passendeStrafart,
+                schuetzeIndex,
+                tag,
+                `${minuten} Minuten verspätet`
+            );
+        }
     }
-} 
-
 
     document.getElementById("verspaetungMinuten").value = "";
 
@@ -447,7 +494,6 @@ if (bereitsVorhanden) {
 }
 
 function automatischeStrafeErstellen(strafart, schuetzeIndex, tag, kommentar) {
-
     const schuetze = schuetzen[schuetzeIndex];
 
     let endbetrag = strafart.betrag;
@@ -466,22 +512,21 @@ function automatischeStrafeErstellen(strafart, schuetzeIndex, tag, kommentar) {
         basisbetrag: strafart.betrag,
         betrag: endbetrag,
         kommentar: kommentar,
-        datum: new Date().toLocaleDateString("de-DE")
+        datum: new Date().toLocaleDateString("de-DE"),
+        bezahlt: false
     });
 }
-function anwesenheitLoeschen(index) {
 
-    if (!confirm("Anwesenheit wirklich löschen?")) {
-        return;
-    }
+function anwesenheitLoeschen(index) {
+    if (!confirm("Anwesenheit wirklich löschen?")) return;
 
     anwesenheiten.splice(index, 1);
 
     speichern();
     appAktualisieren();
 }
-function anwesenheitBearbeiten(index) {
 
+function anwesenheitBearbeiten(index) {
     const neuerStatus = prompt(
         "Neuer Status (Anwesend, Zu spät, Entschuldigt, Fehlend):",
         anwesenheiten[index].status
@@ -496,6 +541,38 @@ function anwesenheitBearbeiten(index) {
 
     anwesenheiten[index].status = neuerStatus;
     anwesenheiten[index].minuten = Number(neueMinuten) || 0;
+
+    speichern();
+    appAktualisieren();
+}
+
+function profilbildHochladen(index) {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*";
+
+    input.onchange = function () {
+        const datei = input.files[0];
+
+        if (!datei) return;
+
+        const reader = new FileReader();
+
+        reader.onload = function () {
+            schuetzen[index].bild = reader.result;
+
+            speichern();
+            appAktualisieren();
+        };
+
+        reader.readAsDataURL(datei);
+    };
+
+    input.click();
+}
+
+function bezahlstatusWechseln(index) {
+    strafen[index].bezahlt = !strafen[index].bezahlt;
 
     speichern();
     appAktualisieren();

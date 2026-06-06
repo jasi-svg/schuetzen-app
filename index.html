@@ -25,7 +25,39 @@
 
         <p id="loginStatus">Ansicht: Schütze</p>
     </section>
+<section class="card">
+    <h2>Dashboard</h2>
 
+    <div class="dashboard">
+        <div>
+            <strong>Gesamtstrafen</strong>
+            <p id="dashboardGesamt">0 €</p>
+        </div>
+
+        <div>
+            <strong>Anzahl Strafen</strong>
+            <p id="dashboardAnzahlStrafen">0</p>
+        </div>
+
+        <div>
+            <strong>Anwesenheiten</strong>
+            <p id="dashboardAnwesenheiten">0</p>
+        </div>
+    </div>
+
+    <h3>🐷 Zugsau-Ranking</h3>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Platz</th>
+                <th>Schütze</th>
+                <th>Strafsumme</th>
+            </tr>
+        </thead>
+        <tbody id="zugsauTabelle"></tbody>
+    </table>
+</section>
     <section id="adminBereich" class="card hidden">
 
         <h2>Einstellungen</h2>
@@ -201,6 +233,7 @@
                     <th>Strafe</th>
                     <th>Betrag</th>
                     <th>Kommentar</th>
+                    <th>Status</th>
                     <th>Aktion</th>
                 </tr>
             </thead>
