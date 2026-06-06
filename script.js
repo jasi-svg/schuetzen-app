@@ -1,5 +1,5 @@
 let aktuellerBenutzer = JSON.parse(localStorage.getItem("aktuellerBenutzer")) || null;
-
+let aktuelleSeite = "dashboard";
 let zugname = localStorage.getItem("zugname") || "Digitaler Strafenkatalog";
 let logo = localStorage.getItem("logo") || "";
 
@@ -543,9 +543,11 @@ function appAktualisieren() {
     const istEingeloggt = aktuellerBenutzer !== null;
     const istBearbeiter = darfBearbeiten();
 
-document.getElementById("mitgliederSeite").classList.toggle("hidden", !istBearbeiter);
-document.getElementById("strafenSeite").classList.toggle("hidden", !istBearbeiter);
-document.getElementById("anwesenheitSeite").classList.toggle("hidden", !istBearbeiter);
+if (!istBearbeiter) {
+    document.getElementById("mitgliederSeite").classList.add("hidden");
+    document.getElementById("strafenSeite").classList.add("hidden");
+    document.getElementById("anwesenheitSeite").classList.add("hidden");
+}
 
     document.getElementById("loginStatus").innerText = istEingeloggt
         ? `Eingeloggt als: ${aktuellerBenutzer.name} (${aktuellerBenutzer.rolle})`
@@ -1075,43 +1077,40 @@ function schuetzenakteAnzeigen(index) {
 }
 function seiteAnzeigen(seite) {
 
+    aktuelleSeite = seite;
+
     document
         .querySelectorAll(".app-seite")
         .forEach(element => {
             element.classList.add("hidden");
         });
 
-    if (seite === "dashboard") {
-        document
-            .getElementById("dashboardSeite")
-            .classList.remove("hidden");
+    const seitenMap = {
+        dashboard: "dashboardSeite",
+        profil: "profilSeite",
+        mitglieder: "mitgliederSeite",
+        strafen: "strafenSeite",
+        anwesenheit: "anwesenheitSeite",
+        akten: "aktenSeite"
+    };
+
+    const zielId = seitenMap[seite];
+
+    if (!zielId) {
+        return;
     }
 
-    if (seite === "mitglieder") {
-        document
-            .getElementById("mitgliederSeite")
-            .classList.remove("hidden");
+    const zielElement = document.getElementById(zielId);
+
+    if (!zielElement) {
+        alert(`Seite nicht gefunden: ${zielId}`);
+        return;
     }
 
-    if (seite === "strafen") {
-        document
-            .getElementById("strafenSeite")
-            .classList.remove("hidden");
-    }
-
-    if (seite === "anwesenheit") {
-        document
-            .getElementById("anwesenheitSeite")
-            .classList.remove("hidden");
-    }
-
-    if (seite === "akten") {
-        document
-            .getElementById("aktenSeite")
-            .classList.remove("hidden");
-    }
+    zielElement.classList.remove("hidden");
 }
+
 datenMigration();
 appAktualisieren();
 
-seiteAnzeigen("dashboard");
+seiteAnzeigen(aktuelleSeite);
