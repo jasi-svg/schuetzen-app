@@ -15,34 +15,43 @@
         <h1 id="zugnameAnzeige">Digitaler Strafenkatalog</h1>
     </header>
 <nav class="navigation">
-
-    <button onclick="seiteAnzeigen('dashboard')">
-        Dashboard
-    </button>
-
-<button onclick="seiteAnzeigen('profil')">
-    Profil
+<div class="sidebar-logo">
+    ⚖️ Strafenkatalog
+</div>
+<button id="nav-dashboard"
+        onclick="seiteAnzeigen('dashboard')">
+    🏠 Dashboard
 </button>
 
-    <button onclick="seiteAnzeigen('mitglieder')">
-        Mitglieder
-    </button>
+<button id="nav-profil"
+        onclick="seiteAnzeigen('profil')">
+    👤 Profil
+</button>
 
-    <button onclick="seiteAnzeigen('strafen')">
-        Strafen
-    </button>
+<button id="nav-mitglieder"
+        onclick="seiteAnzeigen('mitglieder')">
+    👥 Mitglieder
+</button>
 
-    <button onclick="seiteAnzeigen('anwesenheit')">
-        Anwesenheit
-    </button>
+<button id="nav-strafen"
+        onclick="seiteAnzeigen('strafen')">
+    💰 Strafen
+</button>
 
-    <button onclick="seiteAnzeigen('akten')">
-        Akten
-    </button>
+<button id="nav-anwesenheit"
+        onclick="seiteAnzeigen('anwesenheit')">
+    📅 Anwesenheit
+</button>
 
-    <button onclick="seiteAnzeigen('einstellungen')">
-        Einstellungen
-    </button>
+<button id="nav-akten"
+        onclick="seiteAnzeigen('akten')">
+    🏆 Akten
+</button>
+
+<button id="nav-einstellungen"
+        onclick="seiteAnzeigen('einstellungen')">
+    ⚙️ Einstellungen
+</button>
 
 </nav>
    <section class="card">
@@ -68,32 +77,37 @@
 <section class="card app-seite" id="dashboardSeite">
     <h2>Dashboard</h2>
 
-        <div class="dashboard">
-            <div>
-                <strong>Gesamtstrafen</strong>
-                <p id="dashboardGesamt">0 €</p>
-            </div>
+<div class="dashboard">
+    <div class="dashboard-card">
+        <span class="dashboard-icon">💰</span>
+        <p id="dashboardGesamt">0 €</p>
+        <strong>Gesamtstrafen</strong>
+    </div>
 
-            <div>
-                <strong>Bezahlt</strong>
-                <p id="dashboardBezahlt">0 €</p>
-            </div>
+    <div class="dashboard-card">
+        <span class="dashboard-icon">✅</span>
+        <p id="dashboardBezahlt">0 €</p>
+        <strong>Bezahlt</strong>
+    </div>
 
-            <div>
-                <strong>Offen</strong>
-                <p id="dashboardOffen">0 €</p>
-            </div>
+    <div class="dashboard-card">
+        <span class="dashboard-icon">🔥</span>
+        <p id="dashboardOffen">0 €</p>
+        <strong>Offen</strong>
+    </div>
 
-            <div>
-                <strong>Anzahl Strafen</strong>
-                <p id="dashboardAnzahlStrafen">0</p>
-            </div>
+    <div class="dashboard-card">
+        <span class="dashboard-icon">🐷</span>
+        <p id="dashboardAnzahlStrafen">0</p>
+        <strong>Anzahl Strafen</strong>
+    </div>
 
-            <div>
-                <strong>Anwesenheiten</strong>
-                <p id="dashboardAnwesenheiten">0</p>
-            </div>
-        </div>
+    <div class="dashboard-card">
+        <span class="dashboard-icon">📅</span>
+        <p id="dashboardAnwesenheiten">0</p>
+        <strong>Anwesenheiten</strong>
+    </div>
+</div>
 
         <h3>🐷 Zugsau-Ranking</h3>
 
@@ -123,17 +137,10 @@
 </section>
 
 <section id="mitgliederSeite" class="card app-seite hidden">
-    <h2>Einstellungen</h2>
-
-    <h3>Zugname</h3>
-    <input id="zugnameInput" type="text" placeholder="z. B. Jägerzug Immergrün">
-    <button onclick="zugnameSpeichern()">Zugname speichern</button>
-
-    <h3>Zuglogo</h3>
-    <input id="logoInput" type="file" accept="image/*">
-    <button onclick="logoSpeichern()">Logo speichern</button>
+    <h2>Mitglieder</h2>
 
     <h3>Mitglied hinzufügen</h3>
+
     <input id="neuerSchuetze" type="text" placeholder="Name des Mitglieds">
     <input id="benutzernameInput" type="text" placeholder="Benutzername">
     <input id="passwortInput" type="password" placeholder="Passwort">
@@ -148,6 +155,18 @@
     <button onclick="schuetzeHinzufuegen()">Mitglied hinzufügen</button>
 
     <ul id="schuetzenListe"></ul>
+</section>
+
+<section id="einstellungenSeite" class="card app-seite hidden">
+    <h2>Einstellungen</h2>
+
+    <h3>Zugname</h3>
+    <input id="zugnameInput" type="text" placeholder="z. B. Jägerzug Immergrün">
+    <button onclick="zugnameSpeichern()">Zugname speichern</button>
+
+    <h3>Zuglogo</h3>
+    <input id="logoInput" type="file" accept="image/*">
+    <button onclick="logoSpeichern()">Logo speichern</button>
 
     <h3>Strafart hinzufügen</h3>
     <input id="neueStrafart" type="text" placeholder="z. B. Zu spät erschienen">

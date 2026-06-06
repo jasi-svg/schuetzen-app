@@ -829,42 +829,63 @@ const letzteStrafen = strafen
     .slice(-5)
     .reverse();
 
-    profilInhalt.innerHTML = `
+ profilInhalt.innerHTML = `
+    <div class="profil-card">
         ${
             eigenerSchuetze?.bild
                 ? `<img src="${eigenerSchuetze.bild}" class="profilbild">`
                 : ""
         }
 
-        <p><strong>Name:</strong> ${aktuellerBenutzer.name}</p>
+        <div class="profil-card-content">
+            <h3>${aktuellerBenutzer.name}</h3>
+            <p>${aktuellerBenutzer.rolle}</p>
+            <p>${offeneStrafen > 0 ? "🔥 Noch offene Strafen" : "✅ Schuldenfrei"}</p>
+        </div>
+    </div>
 
-        <p><strong>Rolle:</strong> ${aktuellerBenutzer.rolle}</p>
+    <div class="profil-stats">
+        <div class="profil-stat">
+            <strong>${gesamtStrafen} €</strong>
+            <span>Strafen gesamt</span>
+        </div>
 
-        <p><strong>Strafen gesamt:</strong> ${gesamtStrafen} €</p>
+        <div class="profil-stat">
+            <strong>${offeneStrafen} €</strong>
+            <span>Offen</span>
+        </div>
 
-        <p><strong>Offen:</strong> ${offeneStrafen} €</p>
+        <div class="profil-stat">
+            <strong>${anwesend}</strong>
+            <span>Anwesend</span>
+        </div>
 
-        <p><strong>Anwesend:</strong> ${anwesend}</p>
+        <div class="profil-stat">
+            <strong>${zuSpaet}</strong>
+            <span>Zu spät</span>
+        </div>
 
-        <p><strong>Zu spät:</strong> ${zuSpaet}</p>
+        <div class="profil-stat">
+            <strong>${fehlend}</strong>
+            <span>Fehlend</span>
+        </div>
+    </div>
 
-<p><strong>Fehlend:</strong> ${fehlend}</p>
+    <h3>Letzte Strafen</h3>
 
-<h3>Letzte Strafen</h3>
-
-<ul>
-    ${
-        letzteStrafen.length > 0
-            ? letzteStrafen.map(strafe => `
-                <li>
-                    ${strafe.strafart} |
-                    ${strafe.betrag} € |
-                    ${strafe.bezahlt ? "Bezahlt" : "Offen"}
-                </li>
-            `).join("")
-            : "<li>Keine Strafen vorhanden.</li>"
-    }
-</ul>
+    <ul>
+        ${
+            letzteStrafen.length > 0
+                ? letzteStrafen.map(strafe => `
+                    <li>
+                        ${strafe.strafart} |
+                        ${strafe.betrag} € |
+                        ${strafe.bezahlt ? "Bezahlt" : "Offen"}
+                    </li>
+                `).join("")
+                : "<li>Keine Strafen vorhanden.</li>"
+        }
+    </ul>
 `;
 }
 
@@ -1076,7 +1097,11 @@ function schuetzenakteAnzeigen(index) {
     });
 }
 function seiteAnzeigen(seite) {
-
+document
+    .querySelectorAll(".navigation button")
+    .forEach(button => {
+        button.classList.remove("active");
+    });
     aktuelleSeite = seite;
 
     document
@@ -1085,14 +1110,17 @@ function seiteAnzeigen(seite) {
             element.classList.add("hidden");
         });
 
-    const seitenMap = {
-        dashboard: "dashboardSeite",
-        profil: "profilSeite",
-        mitglieder: "mitgliederSeite",
-        strafen: "strafenSeite",
-        anwesenheit: "anwesenheitSeite",
-        akten: "aktenSeite"
-    };
+const seitenMap = {
+    dashboard: "dashboardSeite",
+    profil: "profilSeite",
+    mitglieder: "mitgliederSeite",
+    strafen: "strafenSeite",
+    anwesenheit: "anwesenheitSeite",
+    akten: "aktenSeite",
+    einstellungen: "einstellungenSeite"
+
+
+};
 
     const zielId = seitenMap[seite];
 
@@ -1108,8 +1136,14 @@ function seiteAnzeigen(seite) {
     }
 
     zielElement.classList.remove("hidden");
-}
 
+    const aktiverButton =
+    document.getElementById(`nav-${seite}`);
+
+if (aktiverButton) {
+    aktiverButton.classList.add("active");
+}
+}
 datenMigration();
 appAktualisieren();
 
