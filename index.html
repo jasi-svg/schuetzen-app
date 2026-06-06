@@ -15,81 +15,99 @@
         <h1 id="zugnameAnzeige">Digitaler Strafenkatalog</h1>
     </header>
 
-    <section class="card">
-        <h2>Admin-Login</h2>
+   <section class="card">
+    <h2>Login</h2>
 
-        <input id="adminCode" type="password" placeholder="Admin-Code eingeben">
+    <input id="loginName" type="text" placeholder="Benutzername">
+    <input id="loginPasswort" type="password" placeholder="Passwort">
 
-        <button onclick="adminEinloggen()">Einloggen</button>
-        <button onclick="adminAusloggen()">Ausloggen</button>
+    <button onclick="einloggen()">Einloggen</button>
+    <button onclick="ausloggen()">Ausloggen</button>
 
-        <p id="loginStatus">Ansicht: Schütze</p>
-    </section>
-<section class="card">
-    <h2>Dashboard</h2>
-
-    <div class="dashboard">
-        <div>
-            <strong>Gesamtstrafen</strong>
-            <p id="dashboardGesamt">0 €</p>
-        </div>
-
-        <div>
-            <strong>Anzahl Strafen</strong>
-            <p id="dashboardAnzahlStrafen">0</p>
-        </div>
-
-        <div>
-            <strong>Anwesenheiten</strong>
-            <p id="dashboardAnwesenheiten">0</p>
-        </div>
-    </div>
-
-    <h3>🐷 Zugsau-Ranking</h3>
-
-    <table>
-        <thead>
-            <tr>
-                <th>Platz</th>
-                <th>Schütze</th>
-                <th>Strafsumme</th>
-            </tr>
-        </thead>
-        <tbody id="zugsauTabelle"></tbody>
-    </table>
+    <p id="loginStatus">Nicht eingeloggt</p>
 </section>
-    <section id="adminBereich" class="card hidden">
 
+<section class="card" id="profilBereich">
+    <h2>Mein Profil</h2>
+
+    <div id="profilInhalt">
+        Bitte einloggen.
+    </div>
+</section>
+
+    <section class="card">
+        <h2>Dashboard</h2>
+
+        <div class="dashboard">
+            <div>
+                <strong>Gesamtstrafen</strong>
+                <p id="dashboardGesamt">0 €</p>
+            </div>
+
+            <div>
+                <strong>Bezahlt</strong>
+                <p id="dashboardBezahlt">0 €</p>
+            </div>
+
+            <div>
+                <strong>Offen</strong>
+                <p id="dashboardOffen">0 €</p>
+            </div>
+
+            <div>
+                <strong>Anzahl Strafen</strong>
+                <p id="dashboardAnzahlStrafen">0</p>
+            </div>
+
+            <div>
+                <strong>Anwesenheiten</strong>
+                <p id="dashboardAnwesenheiten">0</p>
+            </div>
+        </div>
+
+        <h3>🐷 Zugsau-Ranking</h3>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Platz</th>
+                    <th>Schütze</th>
+                    <th>Strafsumme</th>
+                </tr>
+            </thead>
+            <tbody id="zugsauTabelle"></tbody>
+        </table>
+    </section>
+
+    <section class="card">
+        <h2>Offene Beträge</h2>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Schütze</th>
+                    <th>Offen</th>
+                </tr>
+            </thead>
+            <tbody id="schuldenTabelle"></tbody>
+        </table>
+    </section>
+
+    <section id="adminBereich" class="card hidden">
         <h2>Einstellungen</h2>
 
         <h3>Zugname</h3>
-
-        <input
-            id="zugnameInput"
-            type="text"
-            placeholder="z. B. Jägerzug Immergrün">
-
-        <button onclick="zugnameSpeichern()">
-            Zugname speichern
-        </button>
+        <input id="zugnameInput" type="text" placeholder="z. B. Jägerzug Immergrün">
+        <button onclick="zugnameSpeichern()">Zugname speichern</button>
 
         <h3>Zuglogo</h3>
-
-        <input
-            id="logoInput"
-            type="file"
-            accept="image/*">
-
-        <button onclick="logoSpeichern()">
-            Logo speichern
-        </button>
+        <input id="logoInput" type="file" accept="image/*">
+        <button onclick="logoSpeichern()">Logo speichern</button>
 
         <h3>Mitglied hinzufügen</h3>
-
-        <input
-            id="neuerSchuetze"
-            type="text"
-            placeholder="Name des Mitglieds">
+        <input id="neuerSchuetze" type="text" placeholder="Name des Mitglieds">
+        <input id="benutzernameInput" type="text" placeholder="Benutzername">
+<input id="passwortInput" type="password" placeholder="Passwort">
 
         <select id="rolleSelect">
             <option value="Schütze">Schütze</option>
@@ -98,61 +116,30 @@
             <option value="Leutnant">Leutnant</option>
         </select>
 
-        <button onclick="schuetzeHinzufuegen()">
-            Mitglied hinzufügen
-        </button>
+        <button onclick="schuetzeHinzufuegen()">Mitglied hinzufügen</button>
 
         <ul id="schuetzenListe"></ul>
 
         <h3>Strafart hinzufügen</h3>
-
-        <input
-            id="neueStrafart"
-            type="text"
-            placeholder="z. B. Zu spät erschienen">
-
-        <input
-            id="neuerBetrag"
-            type="number"
-            placeholder="Betrag in €">
-
-        <button onclick="strafartHinzufuegen()">
-            Strafart hinzufügen
-        </button>
+        <input id="neueStrafart" type="text" placeholder="z. B. Zu spät erschienen">
+        <input id="neuerBetrag" type="number" placeholder="Betrag in €">
+        <button onclick="strafartHinzufuegen()">Strafart hinzufügen</button>
 
         <ul id="strafartenListe"></ul>
-
     </section>
 
     <section id="strafeBereich" class="card hidden">
-
         <h2>Strafe erfassen</h2>
 
         <select id="schuetzeSelect"></select>
+        <select id="strafartSelect" onchange="betragAktualisieren()"></select>
+        <input id="betrag" type="number" placeholder="Betrag">
+        <input id="kommentar" type="text" placeholder="Kommentar optional">
 
-        <select
-            id="strafartSelect"
-            onchange="betragAktualisieren()">
-        </select>
-
-        <input
-            id="betrag"
-            type="number"
-            placeholder="Betrag">
-
-        <input
-            id="kommentar"
-            type="text"
-            placeholder="Kommentar optional">
-
-        <button onclick="strafeSpeichern()">
-            Strafe speichern
-        </button>
-
+        <button onclick="strafeSpeichern()">Strafe speichern</button>
     </section>
 
     <section class="card hidden" id="anwesenheitBereich">
-
         <h2>Anwesenheit erfassen</h2>
 
         <select id="tagSelect">
@@ -174,14 +161,9 @@
             <option value="Fehlend">Fehlend</option>
         </select>
 
-        <input
-            id="verspaetungMinuten"
-            type="number"
-            placeholder="Verspätung in Minuten">
+        <input id="verspaetungMinuten" type="number" placeholder="Verspätung in Minuten">
 
-        <button onclick="anwesenheitSpeichern()">
-            Anwesenheit speichern
-        </button>
+        <button onclick="anwesenheitSpeichern()">Anwesenheit speichern</button>
 
         <h3>Anwesenheitsübersicht</h3>
 
@@ -195,7 +177,6 @@
                     <th>Aktion</th>
                 </tr>
             </thead>
-
             <tbody id="anwesenheitenTabelle"></tbody>
         </table>
 
@@ -211,19 +192,19 @@
                     <th>Fehlend</th>
                 </tr>
             </thead>
-
             <tbody id="statistikTabelle"></tbody>
         </table>
-
     </section>
 
+<section class="card hidden" id="schuetzenakteBereich">
+    <h2>Schützenakte</h2>
+
+    <div id="schuetzenakteInhalt"></div>
+</section>
+
     <section class="card">
-
         <h2>Übersicht</h2>
-
-        <h3 id="gesamtbetrag">
-            Gesamtsumme: 0 €
-        </h3>
+        <h3 id="gesamtbetrag">Gesamtsumme: 0 €</h3>
 
         <table>
             <thead>
@@ -237,15 +218,12 @@
                     <th>Aktion</th>
                 </tr>
             </thead>
-
             <tbody id="strafenTabelle"></tbody>
         </table>
-
     </section>
 
 </div>
 
 <script src="script.js"></script>
-
 </body>
 </html>
