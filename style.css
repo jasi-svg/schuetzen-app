@@ -156,3 +156,45 @@ ul li {
         font-size: 14px;
     }
 }
+.status-anwesend {
+    color: green;
+    font-weight: bold;
+}
+
+.status-zuspaet {
+    color: orange;
+    font-weight: bold;
+}
+
+.status-entschuldigt {
+    color: steelblue;
+    font-weight: bold;
+}
+
+.status-fehlend {
+    color: red;
+    font-weight: bold;
+}
+
+.status-bezahlt {
+    color: green;
+    font-weight: bold;
+}
+
+.status-offen {
+    color: red;
+    font-weight: bold;
+}
+.navigation {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin: 20px 0;
+}
+
+.navigation button {
+    padding: 10px 16px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+}

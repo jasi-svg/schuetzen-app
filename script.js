@@ -543,9 +543,9 @@ function appAktualisieren() {
     const istEingeloggt = aktuellerBenutzer !== null;
     const istBearbeiter = darfBearbeiten();
 
-    document.getElementById("adminBereich").classList.toggle("hidden", !istBearbeiter);
-    document.getElementById("strafeBereich").classList.toggle("hidden", !istBearbeiter);
-    document.getElementById("anwesenheitBereich").classList.toggle("hidden", !istBearbeiter);
+document.getElementById("mitgliederSeite").classList.toggle("hidden", !istBearbeiter);
+document.getElementById("strafenSeite").classList.toggle("hidden", !istBearbeiter);
+document.getElementById("anwesenheitSeite").classList.toggle("hidden", !istBearbeiter);
 
     document.getElementById("loginStatus").innerText = istEingeloggt
         ? `Eingeloggt als: ${aktuellerBenutzer.name} (${aktuellerBenutzer.rolle})`
@@ -740,8 +740,13 @@ const letzteStrafen = strafen
                 <td>${strafe.strafart}</td>
                 <td>${strafe.betrag} €</td>
                 <td>${strafe.kommentar || "-"}</td>
-                <td>${strafe.bezahlt ? "Bezahlt" : "Offen"}</td>
-                <td>
+<td class="${
+    strafe.bezahlt
+        ? "status-bezahlt"
+        : "status-offen"
+}">
+    ${strafe.bezahlt ? "Bezahlt" : "Offen"}
+</td>
                     ${
                         istBearbeiter
                         ? `
@@ -922,7 +927,7 @@ const letzteStrafen = strafen
 function schuetzenakteAnzeigen(index) {
     const schuetze = schuetzen[index];
 
-    const schuetzenakteBereich = document.getElementById("schuetzenakteBereich");
+    const schuetzenakteBereich = document.getElementById("aktenSeite");
     const schuetzenakteInhalt = document.getElementById("schuetzenakteInhalt");
 
     const strafenDesSchuetzen = strafen.filter(
@@ -985,36 +990,81 @@ function schuetzenakteAnzeigen(index) {
         <p><strong>Entschuldigt:</strong> ${entschuldigt}</p>
         <p><strong>Fehlend:</strong> ${fehlend}</p>
 
-        <h3>Strafhistorie</h3>
-        <ul>
-            ${
-                strafenDesSchuetzen.length > 0
-                    ? strafenDesSchuetzen.map(strafe => `
-                        <li>
-                            ${strafe.datum} |
-                            ${strafe.strafart} |
-                            ${strafe.betrag} € |
-                            ${strafe.bezahlt ? "Bezahlt" : "Offen"}
-                        </li>
-                    `).join("")
-                    : "<li>Keine Strafen vorhanden.</li>"
-            }
-        </ul>
+<h3>Strafhistorie</h3>
 
-        <h3>Anwesenheitshistorie</h3>
-        <ul>
-            ${
-                anwesenheitenDesSchuetzen.length > 0
-                    ? anwesenheitenDesSchuetzen.map(anwesenheit => `
-                        <li>
-                            ${anwesenheit.tag} |
-                            ${anwesenheit.status} |
-                            ${anwesenheit.minuten} Minuten
-                        </li>
-                    `).join("")
-                    : "<li>Keine Anwesenheiten vorhanden.</li>"
-            }
-        </ul>
+<table>
+    <thead>
+        <tr>
+            <th>Datum</th>
+            <th>Strafe</th>
+            <th>Betrag</th>
+            <th>Status</th>
+        </tr>
+    </thead>
+
+    <tbody>
+        ${
+            strafenDesSchuetzen.length > 0
+                ? strafenDesSchuetzen.map(strafe => `
+                    <tr>
+                        <td>${strafe.datum}</td>
+                        <td>${strafe.strafart}</td>
+                        <td>${strafe.betrag} €</td>
+                        <td>${strafe.bezahlt ? "Bezahlt" : "Offen"}</td>
+                    </tr>
+                `).join("")
+                : `
+                    <tr>
+                        <td colspan="4">
+                            Keine Strafen vorhanden
+                        </td>
+                    </tr>
+                `
+        }
+    </tbody>
+</table>
+
+      <h3>Anwesenheitshistorie</h3>
+
+<table>
+    <thead>
+        <tr>
+            <th>Tag</th>
+            <th>Status</th>
+            <th>Minuten</th>
+        </tr>
+    </thead>
+
+    <tbody>
+        ${
+            anwesenheitenDesSchuetzen.length > 0
+                ? anwesenheitenDesSchuetzen.map(anwesenheit => `
+                    <tr>
+                        <td>${anwesenheit.tag}</td>
+<td class="${
+    anwesenheit.status === "Anwesend"
+        ? "status-anwesend"
+        : anwesenheit.status === "Zu spät"
+        ? "status-zuspaet"
+        : anwesenheit.status === "Entschuldigt"
+        ? "status-entschuldigt"
+        : "status-fehlend"
+}">
+    ${anwesenheit.status}
+</td>
+                        <td>${anwesenheit.minuten}</td>
+                    </tr>
+                `).join("")
+                : `
+                    <tr>
+                        <td colspan="3">
+                            Keine Anwesenheiten vorhanden
+                        </td>
+                    </tr>
+                `
+        }
+    </tbody>
+</table>
     `;
 
     schuetzenakteBereich.classList.remove("hidden");
@@ -1023,5 +1073,45 @@ function schuetzenakteAnzeigen(index) {
         behavior: "smooth"
     });
 }
+function seiteAnzeigen(seite) {
+
+    document
+        .querySelectorAll(".app-seite")
+        .forEach(element => {
+            element.classList.add("hidden");
+        });
+
+    if (seite === "dashboard") {
+        document
+            .getElementById("dashboardSeite")
+            .classList.remove("hidden");
+    }
+
+    if (seite === "mitglieder") {
+        document
+            .getElementById("mitgliederSeite")
+            .classList.remove("hidden");
+    }
+
+    if (seite === "strafen") {
+        document
+            .getElementById("strafenSeite")
+            .classList.remove("hidden");
+    }
+
+    if (seite === "anwesenheit") {
+        document
+            .getElementById("anwesenheitSeite")
+            .classList.remove("hidden");
+    }
+
+    if (seite === "akten") {
+        document
+            .getElementById("aktenSeite")
+            .classList.remove("hidden");
+    }
+}
 datenMigration();
 appAktualisieren();
+
+seiteAnzeigen("dashboard");

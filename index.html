@@ -14,7 +14,33 @@
         <img id="logoAnzeige" class="logo" src="" alt="">
         <h1 id="zugnameAnzeige">Digitaler Strafenkatalog</h1>
     </header>
+<nav class="navigation">
 
+    <button onclick="seiteAnzeigen('dashboard')">
+        Dashboard
+    </button>
+
+    <button onclick="seiteAnzeigen('mitglieder')">
+        Mitglieder
+    </button>
+
+    <button onclick="seiteAnzeigen('strafen')">
+        Strafen
+    </button>
+
+    <button onclick="seiteAnzeigen('anwesenheit')">
+        Anwesenheit
+    </button>
+
+    <button onclick="seiteAnzeigen('akten')">
+        Akten
+    </button>
+
+    <button onclick="seiteAnzeigen('einstellungen')">
+        Einstellungen
+    </button>
+
+</nav>
    <section class="card">
     <h2>Login</h2>
 
@@ -35,8 +61,8 @@
     </div>
 </section>
 
-    <section class="card">
-        <h2>Dashboard</h2>
+<section class="card app-seite" id="dashboardSeite">
+    <h2>Dashboard</h2>
 
         <div class="dashboard">
             <div>
@@ -93,8 +119,8 @@
         </table>
     </section>
 
-    <section id="adminBereich" class="card hidden">
-        <h2>Einstellungen</h2>
+<section id="mitgliederSeite" class="card app-seite hidden">
+            <h2>Einstellungen</h2>
 
         <h3>Zugname</h3>
         <input id="zugnameInput" type="text" placeholder="z. B. Jägerzug Immergrün">
@@ -128,7 +154,7 @@
         <ul id="strafartenListe"></ul>
     </section>
 
-    <section id="strafeBereich" class="card hidden">
+<section id="strafenSeite" class="card app-seite hidden">
         <h2>Strafe erfassen</h2>
 
         <select id="schuetzeSelect"></select>
@@ -139,7 +165,7 @@
         <button onclick="strafeSpeichern()">Strafe speichern</button>
     </section>
 
-    <section class="card hidden" id="anwesenheitBereich">
+<section class="card app-seite hidden" id="anwesenheitSeite">
         <h2>Anwesenheit erfassen</h2>
 
         <select id="tagSelect">
@@ -196,7 +222,7 @@
         </table>
     </section>
 
-<section class="card hidden" id="schuetzenakteBereich">
+<section class="card app-seite hidden" id="aktenSeite">
     <h2>Schützenakte</h2>
 
     <div id="schuetzenakteInhalt"></div>
