@@ -1,81 +1,307 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Digitaler Strafenkatalog</title>
-    <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#102b23">
+<title>Digitaler Strafenkatalog</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700;9..144,900&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<div class="app">
+<!-- Wappen als wiederverwendbares Symbol (Platzhalter, später austauschbar) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <linearGradient id="goldGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e4c97f"/><stop offset="1" stop-color="#c8a04a"/></linearGradient>
+  <g id="appWappen">
+    <path d="M30 17 L38 25 L50 14 L62 25 L70 17 L68 31 L32 31 Z" fill="url(#goldGrad)"/>
+    <circle cx="38" cy="25" r="2" fill="#163b30"/><circle cx="50" cy="16" r="2" fill="#163b30"/><circle cx="62" cy="25" r="2" fill="#163b30"/>
+    <clipPath id="wappenClip"><path d="M50 30 L84 40 V64 C84 86 69 99 50 107 C31 99 16 86 16 64 V40 Z"/></clipPath>
+    <g clip-path="url(#wappenClip)"><rect x="0" width="50" height="120" fill="#163b30"/><rect x="50" width="50" height="120" fill="#2d6a4f"/></g>
+    <path d="M50 30 L84 40 V64 C84 86 69 99 50 107 C31 99 16 86 16 64 V40 Z" fill="none" stroke="#c8a04a" stroke-width="3"/>
+    <path d="M50 52 L52.6 60 L61 60 L54 65 L56.5 73 L50 68 L43.5 73 L46 65 L39 60 L47.4 60 Z" fill="url(#goldGrad)"/>
+  </g>
+</defs></svg>
 
-    <header>
-        <img id="logoAnzeige" class="logo" src="" alt="">
-        <h1 id="zugnameAnzeige">Digitaler Strafenkatalog</h1>
-    </header>
+<div id="toastContainer" class="toast-container"></div>
 
-    <section class="card">
-        <h2>Admin-Login</h2>
-        <input id="adminCode" type="password" placeholder="Admin-Code eingeben">
-        <button onclick="adminEinloggen()">Einloggen</button>
-        <button onclick="adminAusloggen()">Ausloggen</button>
-        <p id="loginStatus">Ansicht: Schütze</p>
-    </section>
+<!-- Mobile Topbar -->
+<header class="topbar">
+  <div class="topbar-brand">
+    <svg class="brand-svg" viewBox="0 0 100 116"><use href="#appWappen"/></svg>
+    <span id="topbarZugname">Strafenkatalog</span>
+  </div>
+  <button class="topbar-menu" onclick="menueOeffnen()" aria-label="Menü">☰</button>
+</header>
 
-    <section id="adminBereich" class="card hidden">
-        <h2>Einstellungen</h2>
+<!-- Vollbild-Menü (mobil) -->
+<div id="menueOverlay" class="menue-overlay hidden">
+  <div class="menue-sheet">
+    <div class="menue-head">
+      <span>Menü</span>
+      <button onclick="menueSchliessen()" aria-label="Schließen">×</button>
+    </div>
+    <button class="menue-link" onclick="seiteAnzeigen('dashboard')">🏠 Dashboard</button>
+    <button class="menue-link" onclick="seiteAnzeigen('strafen')">💰 Strafen</button>
+    <button class="menue-link" onclick="seiteAnzeigen('kalender')">📅 Kalender</button>
+    <button class="menue-link" onclick="seiteAnzeigen('ranking')">🏆 Ranking</button>
+    <button class="menue-link" onclick="seiteAnzeigen('profil')">👤 Profil</button>
+    <button class="menue-link" onclick="seiteAnzeigen('mitglieder')">👥 Mitglieder</button>
+    <button class="menue-link" onclick="seiteAnzeigen('anwesenheit')">✅ Anwesenheit</button>
+    <button class="menue-link" onclick="seiteAnzeigen('akten')">📁 Akten</button>
+    <button class="menue-link" onclick="seiteAnzeigen('einstellungen')">⚙️ Einstellungen</button>
+  </div>
+</div>
 
-        <h3>Zugname</h3>
-        <input id="zugnameInput" type="text" placeholder="z. B. Jägerzug Immergrün">
-        <button onclick="zugnameSpeichern()">Zugname speichern</button>
+<!-- Profil-Bearbeiten-Modal -->
+<div id="profilEditModal" class="modal hidden">
+  <div class="modal-content">
+    <button class="modal-close" onclick="closeProfilEditModal()">×</button>
+    <h2>Profil bearbeiten</h2>
+    <label>Name</label>
+    <input id="editName" type="text" placeholder="Name">
+    <label>E-Mail (optional)</label>
+    <input id="editEmail" type="email" placeholder="name@beispiel.de">
+    <hr class="trenner">
+    <label>Passwort ändern (optional)</label>
+    <input id="editOldPassword" type="password" placeholder="Altes Passwort">
+    <input id="editNewPassword" type="password" placeholder="Neues Passwort">
+    <div class="modal-buttons">
+      <button class="btn-gold" onclick="saveProfilEdit()">Speichern</button>
+      <button class="btn-ghost" onclick="closeProfilEditModal()">Abbrechen</button>
+    </div>
+  </div>
+</div>
 
-        <h3>Zuglogo</h3>
-        <input id="logoInput" type="file" accept="image/*">
-        <button onclick="logoSpeichern()">Logo speichern</button>
+<!-- Desktop Sidebar -->
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-brand">
+    <svg class="brand-svg" viewBox="0 0 100 116"><use href="#appWappen"/></svg>
+    <div><b id="sidebarZugname">Strafenkatalog</b><small>Schützenzug</small></div>
+  </div>
+  <button id="nav-dashboard" class="nav-item" onclick="seiteAnzeigen('dashboard')"><span class="ic">🏠</span> Dashboard</button>
+  <button id="nav-strafen" class="nav-item" onclick="seiteAnzeigen('strafen')"><span class="ic">💰</span> Strafen</button>
+  <button id="nav-kalender" class="nav-item" onclick="seiteAnzeigen('kalender')"><span class="ic">📅</span> Kalender</button>
+  <button id="nav-ranking" class="nav-item" onclick="seiteAnzeigen('ranking')"><span class="ic">🏆</span> Ranking</button>
+  <button id="nav-profil" class="nav-item" onclick="seiteAnzeigen('profil')"><span class="ic">👤</span> Profil</button>
+  <button id="nav-mitglieder" class="nav-item" onclick="seiteAnzeigen('mitglieder')"><span class="ic">👥</span> Mitglieder</button>
+  <button id="nav-anwesenheit" class="nav-item" onclick="seiteAnzeigen('anwesenheit')"><span class="ic">✅</span> Anwesenheit</button>
+  <button id="nav-akten" class="nav-item" onclick="seiteAnzeigen('akten')"><span class="ic">📁</span> Akten</button>
+  <button id="nav-einstellungen" class="nav-item" onclick="seiteAnzeigen('einstellungen')"><span class="ic">⚙️</span> Einstellungen</button>
+  <div class="sidebar-foot">
+    <div id="sidebarLogin" class="sidebar-login"></div>
+  </div>
+</nav>
 
-        <h3>Schützen hinzufügen</h3>
-        <input id="neuerSchuetze" type="text" placeholder="Name des Schützen">
-        <button onclick="schuetzeHinzufuegen()">Schütze hinzufügen</button>
-        <ul id="schuetzenListe"></ul>
+<main class="app">
 
-        <h3>Strafart hinzufügen</h3>
+  <!-- Login-Karte (nur wenn ausgeloggt) -->
+  <section class="card login-card" id="loginCard">
+    <h2>Anmelden</h2>
+    <p class="muted" id="loginHinweis"></p>
+    <input id="loginName" type="text" placeholder="Benutzername">
+    <input id="loginPasswort" type="password" placeholder="Passwort">
+    <button class="btn-gold" onclick="einloggen()">Einloggen</button>
+  </section>
+
+  <!-- DASHBOARD -->
+  <section class="card app-seite" id="dashboardSeite">
+    <div class="seite-head"><h2>Dashboard</h2><span id="dashboardDatum" class="muted"></span></div>
+    <div class="dashboard">
+      <div class="dashboard-card"><span class="dashboard-icon">💰</span><p id="dashboardGesamt">0 €</p><strong>Gesamt</strong></div>
+      <div class="dashboard-card"><span class="dashboard-icon">✅</span><p id="dashboardBezahlt">0 €</p><strong>Bezahlt</strong></div>
+      <div class="dashboard-card offen"><span class="dashboard-icon">🔥</span><p id="dashboardOffen">0 €</p><strong>Offen</strong></div>
+      <div class="dashboard-card"><span class="dashboard-icon">🐷</span><p id="dashboardAnzahlStrafen">0</p><strong>Strafen</strong></div>
+      <div class="dashboard-card"><span class="dashboard-icon">📅</span><p id="dashboardAnwesenheiten">0</p><strong>Anwesenheiten</strong></div>
+    </div>
+
+    <h3>Nächstes Antreten</h3>
+    <div id="dashboardNaechsterTermin"></div>
+
+    <h3>🐷 Zugsau-Podium</h3>
+    <div id="dashboardPodium" class="podium"></div>
+  </section>
+
+  <!-- PROFIL -->
+  <section class="card app-seite hidden" id="profilSeite">
+    <div class="seite-head"><h2>Mein Profil</h2></div>
+    <div id="profilInhalt">Bitte einloggen.</div>
+  </section>
+
+  <!-- STRAFEN -->
+  <section class="card app-seite hidden" id="strafenSeite">
+    <div class="seite-head"><h2>Strafe erfassen</h2></div>
+    <div class="form-grid">
+      <select id="schuetzeSelect"></select>
+      <select id="strafartSelect" onchange="betragAktualisieren()"></select>
+      <input id="betrag" type="number" placeholder="Betrag in €">
+      <input id="kommentar" type="text" placeholder="Kommentar (optional)">
+    </div>
+    <button class="btn-gold" onclick="strafeSpeichern()">Strafe speichern</button>
+
+    <div class="tabelle-head">
+      <h3 id="gesamtbetrag">Gesamtsumme: 0 €</h3>
+      <input id="strafenSuche" type="text" class="suche" placeholder="🔍 Suchen (Name, Strafe …)" oninput="appAktualisieren()">
+    </div>
+    <div class="tabelle-scroll">
+      <table>
+        <thead><tr><th>Datum</th><th>Schütze</th><th>Strafe</th><th>Betrag</th><th>Kommentar</th><th>Status</th><th>Aktion</th></tr></thead>
+        <tbody id="strafenTabelle"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- KALENDER -->
+  <section class="card app-seite hidden" id="kalenderSeite">
+    <div class="seite-head"><h2>Kalender · Antretszeiten</h2></div>
+    <div id="kalenderNaechster"></div>
+
+    <div id="kalenderFormBereich" class="unterkarte hidden">
+      <h3>Termin hinzufügen</h3>
+      <div class="form-grid">
+        <input id="terminTitel" type="text" placeholder="z. B. Festzug durchs Dorf">
+        <input id="terminDatum" type="date">
+        <input id="terminZeit" type="time">
+        <input id="terminOrt" type="text" placeholder="Ort (z. B. Festplatz)">
+        <input id="terminHinweis" type="text" placeholder="Hinweis (z. B. Uniform & Hut)">
+        <label class="check"><input id="terminAntreten" type="checkbox" checked> Antreten (Pflichttermin)</label>
+      </div>
+      <button class="btn-gold" onclick="terminSpeichern()">Termin speichern</button>
+    </div>
+
+    <h3>Alle Termine</h3>
+    <div id="kalenderListe"></div>
+  </section>
+
+  <!-- RANKING -->
+  <section class="card app-seite hidden" id="rankingSeite">
+    <div class="seite-head"><h2>🏆 Ranking</h2></div>
+    <h3>🐷 Zugsau-Podium</h3>
+    <div id="rankingPodium" class="podium"></div>
+    <h3>Gesamtes Strafen-Ranking</h3>
+    <div class="tabelle-scroll">
+      <table><thead><tr><th>Platz</th><th>Schütze</th><th>Strafsumme</th></tr></thead><tbody id="zugsauTabelle"></tbody></table>
+    </div>
+    <h3>Offene Beträge</h3>
+    <div class="tabelle-scroll">
+      <table><thead><tr><th>Schütze</th><th>Offen</th></tr></thead><tbody id="schuldenTabelle"></tbody></table>
+    </div>
+  </section>
+
+  <!-- MITGLIEDER -->
+  <section class="card app-seite hidden" id="mitgliederSeite">
+    <div class="seite-head"><h2>Mitglieder</h2></div>
+    <div class="unterkarte">
+      <h3>Mitglied hinzufügen</h3>
+      <div class="form-grid">
+        <input id="neuerSchuetze" type="text" placeholder="Name">
+        <input id="benutzernameInput" type="text" placeholder="Benutzername">
+        <input id="passwortInput" type="password" placeholder="Passwort">
+        <select id="rolleSelect">
+          <option value="Schütze">Schütze</option>
+          <option value="Spieß">Spieß</option>
+          <option value="Oberleutnant">Oberleutnant</option>
+          <option value="Leutnant">Leutnant</option>
+        </select>
+      </div>
+      <button class="btn-gold" onclick="schuetzeHinzufuegen()">Mitglied hinzufügen</button>
+    </div>
+    <ul id="schuetzenListe" class="mitglieder-liste"></ul>
+  </section>
+
+  <!-- ANWESENHEIT -->
+  <section class="card app-seite hidden" id="anwesenheitSeite">
+    <div class="seite-head"><h2>Anwesenheit erfassen</h2></div>
+    <div class="form-grid">
+      <select id="tagSelect">
+        <option value="Freitag">Freitag</option><option value="Samstag">Samstag</option>
+        <option value="Sonntag">Sonntag</option><option value="Montag">Montag</option><option value="Dienstag">Dienstag</option>
+      </select>
+      <select id="anwesenheitSchuetzeSelect"><option value="">Schütze auswählen</option></select>
+      <select id="statusSelect">
+        <option value="Anwesend">Anwesend</option><option value="Zu spät">Zu spät</option>
+        <option value="Entschuldigt">Entschuldigt</option><option value="Fehlend">Fehlend</option>
+      </select>
+      <input id="verspaetungMinuten" type="number" placeholder="Verspätung in Minuten">
+    </div>
+    <button class="btn-gold" onclick="anwesenheitSpeichern()">Anwesenheit speichern</button>
+
+    <h3>Anwesenheitsübersicht</h3>
+    <div class="tabelle-scroll">
+      <table><thead><tr><th>Tag</th><th>Schütze</th><th>Status</th><th>Minuten</th><th>Aktion</th></tr></thead><tbody id="anwesenheitenTabelle"></tbody></table>
+    </div>
+    <h3>Statistik pro Schütze</h3>
+    <div class="tabelle-scroll">
+      <table><thead><tr><th>Schütze</th><th>Anwesend</th><th>Zu spät</th><th>Entsch.</th><th>Fehlend</th></tr></thead><tbody id="statistikTabelle"></tbody></table>
+    </div>
+  </section>
+
+  <!-- AKTEN -->
+  <section class="card app-seite hidden" id="aktenSeite">
+    <div class="seite-head"><h2>Schützenakte</h2></div>
+    <p class="muted">Wähle ein Mitglied über die Mitglieder-Seite („Akte"), um die vollständige Akte zu sehen.</p>
+    <div id="schuetzenakteInhalt"></div>
+  </section>
+
+  <!-- EINSTELLUNGEN -->
+  <section class="card app-seite hidden" id="einstellungenSeite">
+    <div class="seite-head"><h2>Einstellungen</h2></div>
+
+    <div class="unterkarte">
+      <h3>Zugname</h3>
+      <input id="zugnameInput" type="text" placeholder="z. B. Jägerzug Immergrün">
+      <button class="btn-gold" onclick="zugnameSpeichern()">Zugname speichern</button>
+    </div>
+
+    <div class="unterkarte">
+      <h3>Zuglogo</h3>
+      <input id="logoInput" type="file" accept="image/*">
+      <button class="btn-gold" onclick="logoSpeichern()">Logo speichern</button>
+    </div>
+
+    <div class="unterkarte">
+      <h3>Strafart hinzufügen</h3>
+      <div class="form-grid">
         <input id="neueStrafart" type="text" placeholder="z. B. Zu spät erschienen">
         <input id="neuerBetrag" type="number" placeholder="Betrag in €">
-        <button onclick="strafartHinzufuegen()">Strafart hinzufügen</button>
-        <ul id="strafartenListe"></ul>
-    </section>
+      </div>
+      <button class="btn-gold" onclick="strafartHinzufuegen()">Strafart hinzufügen</button>
+      <ul id="strafartenListe" class="strafart-liste"></ul>
+    </div>
 
-    <section id="strafeBereich" class="card hidden">
-        <h2>Strafe erfassen</h2>
+    <div class="unterkarte">
+      <h3>Backup &amp; Export</h3>
+      <div class="btn-row">
+        <button onclick="exportDataAsJSON()">📥 Backup (JSON)</button>
+        <button onclick="exportDataAsCSV()">📊 Strafen (CSV)</button>
+        <button onclick="autoBackup()">💾 Schnell-Backup</button>
+      </div>
+      <label>Backup einspielen (JSON)</label>
+      <input id="importInput" type="file" accept=".json">
+      <button onclick="importDataFromJSON()">📤 Importieren</button>
+    </div>
 
-        <select id="schuetzeSelect"></select>
-        <select id="strafartSelect" onchange="betragAktualisieren()"></select>
-        <input id="betrag" type="number" placeholder="Betrag">
-        <input id="kommentar" type="text" placeholder="Kommentar optional">
+    <div class="unterkarte danger">
+      <h3>⚠️ Gefahrenzone</h3>
+      <button class="delete-button" onclick="clearAllData()">Alle Daten löschen</button>
+    </div>
+  </section>
 
-        <button onclick="strafeSpeichern()">Strafe speichern</button>
-    </section>
+</main>
 
-    <section class="card">
-        <h2>Übersicht</h2>
-        <h3 id="gesamtbetrag">Gesamtsumme: 0 €</h3>
-
-        <table>
-            <thead>
-                <tr>
-                    <th>Datum</th>
-                    <th>Schütze</th>
-                    <th>Strafe</th>
-                    <th>Betrag</th>
-                    <th>Kommentar</th>
-                </tr>
-            </thead>
-            <tbody id="strafenTabelle"></tbody>
-        </table>
-    </section>
-
-</div>
+<!-- Untere Leiste (mobil) -->
+<nav class="tabbar">
+  <button id="tab-dashboard" class="tab" onclick="seiteAnzeigen('dashboard')"><span class="pill"><span class="tic">🏠</span></span>Start</button>
+  <button id="tab-strafen" class="tab" onclick="seiteAnzeigen('strafen')"><span class="pill"><span class="tic">💰</span></span>Strafen</button>
+  <button class="tab add" onclick="schnellStrafe()"><span class="pill"><span class="tic">＋</span></span></button>
+  <button id="tab-kalender" class="tab" onclick="seiteAnzeigen('kalender')"><span class="pill"><span class="tic">📅</span></span>Kalender</button>
+  <button id="tab-profil" class="tab" onclick="seiteAnzeigen('profil')"><span class="pill"><span class="tic">👤</span></span>Profil</button>
+</nav>
 
 <script src="script.js"></script>
 </body>
