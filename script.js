@@ -1,4 +1,4 @@
-﻿/* ============================================================
+/* ============================================================
    DIGITALER STRAFENKATALOG · App-Logik
    Speicherung: localStorage (ein Gerät). Daten bleiben kompatibel
    zur bisherigen Version (gleiche Schlüssel & Felder).
@@ -10,6 +10,7 @@ let strafarten = [];
 let strafen = [];
 let anwesenheiten = [];
 let termine = [];
+let saisons = [];
 let aktuellerBenutzer = null;
 let zugname = 'Digitaler Strafenkatalog';
 let logo = '';
@@ -30,6 +31,7 @@ function speichern(){
   localStorage.setItem('strafen', JSON.stringify(strafen));
   localStorage.setItem('anwesenheiten', JSON.stringify(anwesenheiten));
   localStorage.setItem('termine', JSON.stringify(termine));
+  localStorage.setItem('saisons', JSON.stringify(saisons));
   localStorage.setItem('zugname', zugname);
   localStorage.setItem('logo', logo);
   localStorage.setItem('aktuellerBenutzer', aktuellerBenutzer ? aktuellerBenutzer.id : '');
@@ -42,9 +44,16 @@ function datenLaden(){
     strafen       = JSON.parse(localStorage.getItem('strafen'))       || [];
     anwesenheiten = JSON.parse(localStorage.getItem('anwesenheiten')) || [];
     termine       = JSON.parse(localStorage.getItem('termine'))       || [];
+    saisons       = JSON.parse(localStorage.getItem('saisons'))       || [];
     zugname       = localStorage.getItem('zugname') || 'Digitaler Strafenkatalog';
     logo          = localStorage.getItem('logo') || '';
   }catch(e){ console.error('Laden fehlgeschlagen', e); }
+
+  // Zahlungsfelder bei älteren Strafen nachrüsten
+  strafen.forEach(x => {
+    if(x.bezahltArt == null) x.bezahltArt = '';
+    if(x.bezahltDatum == null) x.bezahltDatum = '';
+  });
 
   // Felder nachrüsten (Abwärtskompatibilität)
   schuetzen.forEach(s => {
@@ -262,10 +271,32 @@ function strafeLoeschen(id){
   if(!darfBearbeiten()){ showToast('Keine Berechtigung','error'); return; }
   strafen = strafen.filter(x => x.id !== id); speichern(); showToast('Strafe gelöscht','warning'); appAktualisieren();
 }
+let zahlungStrafeId = null;
 function strafeBezahltToggle(id){
   if(!darfBearbeiten()){ showToast('Keine Berechtigung','error'); return; }
   const st = strafen.find(x => x.id === id); if(!st) return;
-  st.bezahlt = !st.bezahlt; speichern(); appAktualisieren();
+  if(st.bezahlt){
+    // bereits bezahlt -> wieder auf offen, Vermerk entfernen
+    st.bezahlt = false; st.bezahltArt = ''; st.bezahltDatum = '';
+    speichern(); appAktualisieren();
+  } else {
+    // Bezahl-Fenster öffnen, um Art + Datum zu erfassen
+    zahlungStrafeId = id;
+    document.getElementById('zahlungArt').value = 'Bar';
+    document.getElementById('zahlungDatum').value = new Date().toISOString().slice(0,10);
+    document.getElementById('zahlungModal').classList.remove('hidden');
+  }
+}
+function closeZahlungModal(){ zahlungStrafeId = null; document.getElementById('zahlungModal').classList.add('hidden'); }
+function zahlungSpeichern(){
+  const st = strafen.find(x => x.id === zahlungStrafeId); if(!st){ closeZahlungModal(); return; }
+  st.bezahlt = true;
+  st.bezahltArt = document.getElementById('zahlungArt').value;
+  st.bezahltDatum = document.getElementById('zahlungDatum').value || new Date().toISOString().slice(0,10);
+  speichern();
+  closeZahlungModal();
+  showToast('Als bezahlt vermerkt ('+st.bezahltArt+')');
+  appAktualisieren();
 }
 
 /* ============================================================
@@ -420,6 +451,7 @@ function appAktualisieren(){
   renderStrafarten();
   renderAnwesenheit();
   renderSelects();
+  renderSaisons();
   // Einstellungen-Felder
   document.getElementById('zugnameInput').value = zugname;
 }
@@ -506,7 +538,8 @@ function renderStrafen(){
   document.getElementById('strafenTabelle').innerHTML = liste.map(x =>
     '<tr><td>'+x.datum+'</td><td>'+escapeHtml(x.schuetze)+'</td><td>'+escapeHtml(x.strafart)+'</td>'+
     '<td>'+euro(x.betrag)+'</td><td>'+escapeHtml(x.kommentar||'')+'</td>'+
-    '<td><span class="'+(x.bezahlt?'status-bezahlt':'status-offen')+'">'+(x.bezahlt?'Bezahlt':'Offen')+'</span></td>'+
+    '<td><span class="'+(x.bezahlt?'status-bezahlt':'status-offen')+'">'+(x.bezahlt?'Bezahlt':'Offen')+'</span>'+
+      (x.bezahlt && x.bezahltArt ? '<br><span class="muted">'+escapeHtml(x.bezahltArt)+(x.bezahltDatum?' · '+datumKurz(x.bezahltDatum).tag+'.'+(datumKurz(x.bezahltDatum).monat):'')+'</span>' : '')+'</td>'+
     '<td>'+ (darf
       ? '<button class="mini-btn" onclick="strafeBezahltToggle(\''+x.id+'\')">'+(x.bezahlt?'↩︎':'✓')+'</button> '+
         '<button class="mini-btn delete-button" onclick="strafeLoeschen(\''+x.id+'\')">🗑</button>'
@@ -636,7 +669,7 @@ function logoSpeichern(){
 /* ============================================================
    BACKUP / EXPORT / IMPORT
    ============================================================ */
-function alleDaten(){ return { schuetzen, strafarten, strafen, anwesenheiten, termine, zugname, logo, stand:new Date().toISOString() }; }
+function alleDaten(){ return { schuetzen, strafarten, strafen, anwesenheiten, termine, saisons, zugname, logo, stand:new Date().toISOString() }; }
 function downloadDatei(inhalt, name, typ){
   const blob = new Blob([inhalt], {type:typ});
   const a = document.createElement('a');
@@ -646,8 +679,8 @@ function downloadDatei(inhalt, name, typ){
 function exportDataAsJSON(){ downloadDatei(JSON.stringify(alleDaten(),null,2), 'strafenkatalog-backup.json', 'application/json'); showToast('Backup erstellt'); }
 function autoBackup(){ exportDataAsJSON(); }
 function exportDataAsCSV(){
-  const kopf = ['Datum','Schütze','Strafart','Betrag','Kommentar','Status'];
-  const zeilen = strafen.map(x=>[x.datum,x.schuetze,x.strafart,String(x.betrag).replace('.',','),(x.kommentar||''),x.bezahlt?'Bezahlt':'Offen']
+  const kopf = ['Datum','Schütze','Strafart','Betrag','Kommentar','Status','Zahlungsart','Bezahlt am'];
+  const zeilen = strafen.map(x=>[x.datum,x.schuetze,x.strafart,String(x.betrag).replace('.',','),(x.kommentar||''),x.bezahlt?'Bezahlt':'Offen',(x.bezahltArt||''),(x.bezahltDatum||'')]
     .map(f=>'"'+String(f).replace(/"/g,'""')+'"').join(';'));
   downloadDatei('\uFEFF'+[kopf.join(';'),...zeilen].join('\n'), 'strafen.csv', 'text/csv');
   showToast('CSV exportiert');
@@ -661,7 +694,7 @@ function importDataFromJSON(){
     try{
       const d = JSON.parse(e.target.result);
       schuetzen = d.schuetzen||[]; strafarten = d.strafarten||[]; strafen = d.strafen||[];
-      anwesenheiten = d.anwesenheiten||[]; termine = d.termine||[];
+      anwesenheiten = d.anwesenheiten||[]; termine = d.termine||[]; saisons = d.saisons||[];
       zugname = d.zugname||zugname; logo = d.logo||'';
       aktuellerBenutzer = null;
       speichern(); showToast('Backup eingespielt'); appAktualisieren(); seiteAnzeigen('dashboard');
@@ -673,10 +706,92 @@ function clearAllData(){
   if(!confirm('Wirklich ALLE Daten unwiderruflich löschen?')) return;
   if(!confirm('Ganz sicher? Es gibt kein Zurück.')) return;
   localStorage.clear();
-  schuetzen=[]; strafarten=[]; strafen=[]; anwesenheiten=[]; termine=[];
+  schuetzen=[]; strafarten=[]; strafen=[]; anwesenheiten=[]; termine=[]; saisons=[];
   aktuellerBenutzer=null; zugname='Digitaler Strafenkatalog'; logo='';
   datenLaden(); appAktualisieren(); seiteAnzeigen('dashboard');
   showToast('Alle Daten gelöscht','warning');
+}
+
+/* ============================================================
+   SAISON-ABSCHLUSS (Archiv)
+   Schließt die laufende Saison ab: Strafen & Anwesenheiten werden
+   als Schnappschuss archiviert und danach geleert. Mitglieder,
+   Strafarten und Termine bleiben erhalten.
+   ============================================================ */
+function saisonAbschliessen(){
+  if(!darfBearbeiten()){ showToast('Nur Offiziere dürfen die Saison abschließen','error'); return; }
+  if(strafen.length === 0 && anwesenheiten.length === 0){ showToast('Es gibt nichts zum Abschließen','info'); return; }
+  const vorschlag = 'Saison ' + new Date().getFullYear();
+  const name = prompt('Name der Saison (zum Archivieren):', vorschlag);
+  if(name === null) return; // abgebrochen
+  if(!confirm('Saison „'+name+'" abschließen?\n\nAlle aktuellen Strafen und Anwesenheiten werden archiviert und danach geleert. Mitglieder und Strafarten bleiben.')) return;
+
+  const gesamt = strafen.reduce((a,x)=>a+x.betrag,0);
+  const bezahlt = strafen.filter(x=>x.bezahlt).reduce((a,x)=>a+x.betrag,0);
+  const sau = rankingListe().filter(r=>r.gesamt>0)[0];
+
+  saisons.push({
+    id: neueId(),
+    name: name.trim() || vorschlag,
+    abgeschlossenAm: new Date().toISOString().slice(0,10),
+    strafen: JSON.parse(JSON.stringify(strafen)),
+    anwesenheiten: JSON.parse(JSON.stringify(anwesenheiten)),
+    summary: {
+      gesamt, bezahlt, offen: gesamt-bezahlt,
+      anzahlStrafen: strafen.length,
+      anzahlAnwesenheiten: anwesenheiten.filter(a=>a.status==='Anwesend').length,
+      zugsau: sau ? { name: sau.s.name, sum: sau.gesamt } : null
+    }
+  });
+
+  strafen = [];
+  anwesenheiten = [];
+  speichern();
+  showToast('Saison „'+name+'" archiviert – neue Saison gestartet 🎉');
+  appAktualisieren();
+  seiteAnzeigen('dashboard');
+}
+
+function saisonLoeschen(id){
+  if(!darfBearbeiten()){ showToast('Keine Berechtigung','error'); return; }
+  const s = saisons.find(x=>x.id===id); if(!s) return;
+  if(!confirm('Archiv „'+s.name+'" endgültig löschen?')) return;
+  saisons = saisons.filter(x=>x.id!==id);
+  speichern(); showToast('Archiv gelöscht','warning'); appAktualisieren();
+}
+
+function saisonDetails(id){
+  const s = saisons.find(x=>x.id===id); if(!s) return;
+  // Ranking dieser Saison aus dem Schnappschuss berechnen
+  const summe = {};
+  s.strafen.forEach(x=>{ summe[x.schuetze] = (summe[x.schuetze]||0) + x.betrag; });
+  const rang = Object.entries(summe).sort((a,b)=>b[1]-a[1]);
+  let zeilen = rang.map((r,i)=>'<tr><td>'+(i+1)+'</td><td>'+escapeHtml(r[0])+'</td><td>'+euro(r[1])+'</td></tr>').join('') || '<tr><td colspan="3" class="leer">Keine Strafen.</td></tr>';
+  document.getElementById('saisonModalTitel').textContent = s.name;
+  document.getElementById('saisonModalInhalt').innerHTML =
+    '<p class="muted">Abgeschlossen am '+s.abgeschlossenAm+'</p>'+
+    '<div class="sk-stats" style="margin:12px 0">'+
+      '<div class="sk-stat" style="background:var(--creme);border-color:var(--linie)"><b style="color:var(--gruen-900)">'+euro(s.summary.gesamt)+'</b><span style="color:var(--grau)">Gesamt</span></div>'+
+      '<div class="sk-stat" style="background:var(--creme);border-color:var(--linie)"><b style="color:var(--gruen-900)">'+euro(s.summary.offen)+'</b><span style="color:var(--grau)">Offen</span></div>'+
+      '<div class="sk-stat" style="background:var(--creme);border-color:var(--linie)"><b style="color:var(--gruen-900)">'+s.summary.anzahlStrafen+'</b><span style="color:var(--grau)">Strafen</span></div>'+
+    '</div>'+
+    '<div class="tabelle-scroll"><table><thead><tr><th>Platz</th><th>Schütze</th><th>Strafsumme</th></tr></thead><tbody>'+zeilen+'</tbody></table></div>';
+  document.getElementById('saisonModal').classList.remove('hidden');
+}
+function closeSaisonModal(){ document.getElementById('saisonModal').classList.add('hidden'); }
+
+function renderSaisons(){
+  const ziel = document.getElementById('saisonListe');
+  if(!ziel) return;
+  if(saisons.length === 0){ ziel.innerHTML = '<p class="leer">Noch keine abgeschlossenen Saisons.</p>'; return; }
+  const darf = darfBearbeiten();
+  ziel.innerHTML = saisons.slice().reverse().map(s=>
+    '<div class="kal-row"><div class="kal-info"><b>'+escapeHtml(s.name)+'</b>'+
+    '<span>'+s.abgeschlossenAm+' · '+euro(s.summary.gesamt)+' · '+s.summary.anzahlStrafen+' Strafen'+
+    (s.summary.zugsau?' · 🐷 '+escapeHtml(s.summary.zugsau.name):'')+'</span></div>'+
+    '<button class="mini-btn" onclick="saisonDetails(\''+s.id+'\')">Details</button>'+
+    (darf?' <button class="mini-btn delete-button" onclick="saisonLoeschen(\''+s.id+'\')">🗑</button>':'')+'</div>'
+  ).join('');
 }
 
 /* ============================================================

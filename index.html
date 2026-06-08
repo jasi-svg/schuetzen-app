@@ -78,6 +78,36 @@
   </div>
 </div>
 
+<!-- Bezahl-Modal: Zahlungsart + Datum erfassen -->
+<div id="zahlungModal" class="modal hidden">
+  <div class="modal-content">
+    <button class="modal-close" onclick="closeZahlungModal()">×</button>
+    <h2>Als bezahlt vermerken</h2>
+    <label>Zahlungsart</label>
+    <select id="zahlungArt">
+      <option value="Bar">Bar</option>
+      <option value="PayPal">PayPal</option>
+      <option value="Überweisung">Überweisung</option>
+      <option value="Sonstiges">Sonstiges</option>
+    </select>
+    <label>Bezahlt am</label>
+    <input id="zahlungDatum" type="date">
+    <div class="modal-buttons">
+      <button class="btn-gold" onclick="zahlungSpeichern()">Speichern</button>
+      <button class="btn-ghost" onclick="closeZahlungModal()">Abbrechen</button>
+    </div>
+  </div>
+</div>
+
+<!-- Saison-Detail-Modal -->
+<div id="saisonModal" class="modal hidden">
+  <div class="modal-content">
+    <button class="modal-close" onclick="closeSaisonModal()">×</button>
+    <h2 id="saisonModalTitel">Saison</h2>
+    <div id="saisonModalInhalt"></div>
+  </div>
+</div>
+
 <!-- Desktop Sidebar -->
 <nav class="sidebar" id="sidebar">
   <div class="sidebar-brand">
@@ -284,6 +314,14 @@
       <label>Backup einspielen (JSON)</label>
       <input id="importInput" type="file" accept=".json">
       <button onclick="importDataFromJSON()">📤 Importieren</button>
+    </div>
+
+    <div class="unterkarte">
+      <h3>🏁 Saison</h3>
+      <p class="muted">Schließt die laufende Saison ab: Strafen &amp; Anwesenheiten werden archiviert und danach geleert. Mitglieder, Strafarten und Termine bleiben erhalten.</p>
+      <button class="btn-gold" onclick="saisonAbschliessen()">Saison abschließen &amp; neu starten</button>
+      <h4 style="margin-top:16px">Archiv</h4>
+      <div id="saisonListe"></div>
     </div>
 
     <div class="unterkarte danger">
