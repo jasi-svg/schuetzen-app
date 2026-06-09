@@ -242,13 +242,56 @@ async function checkAppState(){
     };
     zugname = sbClubName;
 
-    datenLaden();
     zustandSetzen('app');
-    appAktualisieren();
     seiteAnzeigen('dashboard');
+    await clubDatenLaden();
   } catch(e){
     console.error('checkAppState:', e);
     zustandSetzen('auth');
+  }
+}
+
+/* ============================================================
+   CLUB-DATEN LADEN (Supabase)
+   ============================================================ */
+async function clubDatenLaden(){
+  try{
+    const [membersRes, startenRes, strafenRes, anwRes, termineRes, saisonsRes] = await Promise.all([
+      sb.from('members').select('*'),
+      sb.from('strafarten').select('*'),
+      sb.from('strafen').select('*'),
+      sb.from('anwesenheiten').select('*'),
+      sb.from('termine').select('*'),
+      sb.from('saisons').select('*')
+    ]);
+
+    schuetzen = (membersRes.data || []).map(m => ({
+      id: m.id, name: m.name, rolle: m.role,
+      bild: m.bild || '', email: m.email || '',
+      aktiv: m.aktiv ?? true, user_id: m.user_id
+    }));
+
+    strafarten = startenRes.data || [];
+
+    strafen = (strafenRes.data || []).map(x => ({
+      ...x,
+      schuetzeId: x.member_id,
+      bezahltArt: x.bezahlt_art || '',
+      bezahltDatum: x.bezahlt_datum || ''
+    }));
+
+    anwesenheiten = (anwRes.data || []).map(x => ({
+      ...x,
+      schuetzeId: x.member_id
+    }));
+
+    termine  = termineRes.data  || [];
+    saisons  = saisonsRes.data  || [];
+
+    appAktualisieren();
+  } catch(e){
+    console.error('clubDatenLaden:', e);
+    showToast('Vereinsdaten konnten nicht geladen werden', 'error');
   }
 }
 
