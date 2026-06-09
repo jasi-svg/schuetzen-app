@@ -25,6 +25,7 @@ let aktuellerBenutzer = null;
 let zugname = 'Digitaler Strafenkatalog';
 let logo = '';
 let aktuelleSeite = 'dashboard';
+let customBadgeTypes = [];
 
 /* ---------- Hilfen ---------- */
 function neueId(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
@@ -84,7 +85,8 @@ function datenLaden(){
 const seitenMap = {
   dashboard:'dashboardSeite', profil:'profilSeite', strafen:'strafenSeite',
   kalender:'kalenderSeite', ranking:'rankingSeite', mitglieder:'mitgliederSeite',
-  anwesenheit:'anwesenheitSeite', akten:'aktenSeite', einstellungen:'einstellungenSeite'
+  anwesenheit:'anwesenheitSeite', akten:'aktenSeite', einstellungen:'einstellungenSeite',
+  hilfe:'hilfeSeite'
 };
 
 function seiteAnzeigen(seite){
@@ -272,19 +274,23 @@ async function checkAppState(){
    ============================================================ */
 async function clubDatenLaden(){
   try{
-    const [membersRes, startenRes, strafenRes, anwRes, termineRes, saisonsRes] = await Promise.all([
+    const [membersRes, startenRes, strafenRes, anwRes, termineRes, saisonsRes, clubRes] = await Promise.all([
       sb.from('members').select('*'),
       sb.from('strafarten').select('*'),
       sb.from('strafen').select('*'),
       sb.from('anwesenheiten').select('*'),
       sb.from('termine').select('*'),
-      sb.from('saisons').select('*')
+      sb.from('saisons').select('*'),
+      sb.from('clubs').select('custom_badge_types').eq('id', sbClubId).single()
     ]);
+
+    customBadgeTypes = clubRes.data?.custom_badge_types || [];
 
     schuetzen = (membersRes.data || []).map(m => ({
       id: m.id, name: m.name, rolle: m.role,
       bild: m.bild || '', email: m.email || '',
-      aktiv: m.aktiv ?? true, user_id: m.user_id
+      aktiv: m.aktiv ?? true, user_id: m.user_id,
+      awarded_custom_badges: m.awarded_custom_badges || []
     }));
 
     strafarten = startenRes.data || [];
@@ -312,6 +318,80 @@ async function clubDatenLaden(){
     console.error('clubDatenLaden:', e);
     showToast('Vereinsdaten konnten nicht geladen werden', 'error');
   }
+}
+
+/* ============================================================
+   INDIVIDUELLE ABZEICHEN
+   ============================================================ */
+async function customBadgeHinzufuegen(){
+  if(!darfBearbeiten()){ showToast('Keine Berechtigung','error'); return; }
+  const emoji = document.getElementById('customBadgeEmoji').value.trim();
+  const name  = document.getElementById('customBadgeName').value.trim();
+  if(!emoji || !name){ showToast('Emoji und Name eingeben','error'); return; }
+  const neueTypes = [...customBadgeTypes, { id: neueId(), emoji, name }];
+  const { error } = await sb.from('clubs').update({ custom_badge_types: neueTypes }).eq('id', sbClubId);
+  if(error){ showToast('Fehler: ' + error.message, 'error'); return; }
+  document.getElementById('customBadgeEmoji').value = '';
+  document.getElementById('customBadgeName').value = '';
+  showToast('Abzeichen-Typ „'+name+'" erstellt');
+  await clubDatenLaden();
+}
+
+async function customBadgeLoeschen(id){
+  if(!darfBearbeiten()){ showToast('Keine Berechtigung','error'); return; }
+  const neueTypes = customBadgeTypes.filter(b => b.id !== id);
+  const { error } = await sb.from('clubs').update({ custom_badge_types: neueTypes }).eq('id', sbClubId);
+  if(error){ showToast('Fehler: ' + error.message, 'error'); return; }
+  showToast('Abzeichen-Typ gelöscht','warning');
+  await clubDatenLaden();
+}
+
+async function customBadgeVerleihen(memberId, badgeId){
+  if(!darfBearbeiten()){ showToast('Keine Berechtigung','error'); return; }
+  const s = findSchuetze(memberId); if(!s) return;
+  const vorhanden = (s.awarded_custom_badges||[]).some(b => b.badge_id === badgeId);
+  if(vorhanden){ showToast('Bereits vergeben','info'); return; }
+  const neu = [...(s.awarded_custom_badges||[]), { badge_id: badgeId, awarded_at: new Date().toISOString(), note: '' }];
+  const { error } = await sb.from('members').update({ awarded_custom_badges: neu }).eq('id', memberId);
+  if(error){ showToast('Fehler: ' + error.message, 'error'); return; }
+  showToast('Abzeichen vergeben!');
+  await clubDatenLaden();
+}
+
+async function customBadgeEntziehen(memberId, badgeId){
+  if(!darfBearbeiten()){ showToast('Keine Berechtigung','error'); return; }
+  const s = findSchuetze(memberId); if(!s) return;
+  const neu = (s.awarded_custom_badges||[]).filter(b => b.badge_id !== badgeId);
+  const { error } = await sb.from('members').update({ awarded_custom_badges: neu }).eq('id', memberId);
+  if(error){ showToast('Fehler: ' + error.message, 'error'); return; }
+  showToast('Abzeichen entzogen','warning');
+  await clubDatenLaden();
+}
+
+function abzeichenModalOeffnen(memberId){
+  const s = findSchuetze(memberId); if(!s) return;
+  const modal = document.getElementById('abzeichenModal');
+  const inhalt = document.getElementById('abzeichenModalInhalt');
+  if(!customBadgeTypes.length){
+    inhalt.innerHTML = '<p class="leer">Noch keine Abzeichen-Typen erstellt. Gehe zu Einstellungen → Individuelle Abzeichen.</p>';
+  } else {
+    const vergeben = s.awarded_custom_badges || [];
+    inhalt.innerHTML = '<p><b>'+escapeHtml(s.name)+'</b></p>' +
+      customBadgeTypes.map(b => {
+        const hat = vergeben.some(v => v.badge_id === b.id);
+        return '<div class="badge-modal-row">'+
+          '<span>'+escapeHtml(b.emoji)+' '+escapeHtml(b.name)+'</span>'+
+          (hat
+            ? '<button class="mini-btn delete-button" onclick="customBadgeEntziehen(\''+memberId+'\',\''+b.id+'\');abzeichenModalSchliessen()">Entziehen</button>'
+            : '<button class="mini-btn btn-gold" onclick="customBadgeVerleihen(\''+memberId+'\',\''+b.id+'\');abzeichenModalSchliessen()">Vergeben</button>'
+          )+'</div>';
+      }).join('');
+  }
+  modal.classList.remove('hidden');
+}
+
+function abzeichenModalSchliessen(){
+  document.getElementById('abzeichenModal')?.classList.add('hidden');
 }
 
 /* ============================================================
@@ -640,14 +720,14 @@ function titelFuer(s){
 }
 
 const ABZEICHEN = [
-  { e:'👑', name:'König',        pruef:(st,p)=> p===0 && st.gesamt>0 },
-  { e:'🐷', name:'Zugsau',       pruef:(st,p)=> p>=0 && p<=2 && st.gesamt>0 },
-  { e:'🍺', name:'Bierkönig',    pruef:(st)=> st.anzahl>0 && st.anzahl===maxAnzahl() },
-  { e:'🔥', name:'Serienmeister',pruef:(st)=> st.anwesend>=5 },
-  { e:'🏅', name:'Ehrenmann',    pruef:(st)=> st.offen===0 && st.bezahlt>0 },
-  { e:'📅', name:'Stammgast',    pruef:(st)=> st.anwGesamt>=10 },
-  { e:'💎', name:'Makellos',     pruef:(st)=> st.anzahl===0 && st.anwGesamt>=3 },
-  { e:'💰', name:'Zahlmeister',  pruef:(st)=> st.bezahlt>0 }
+  { e:'👑', name:'König',         tipp:'Du hast die höchste Strafsumme im ganzen Zug.',                                  pruef:(st,p)=> p===0 && st.gesamt>0 },
+  { e:'🐷', name:'Zugsau',        tipp:'Du bist unter den Top 3 mit der höchsten Strafsumme.',                           pruef:(st,p)=> p>=0 && p<=2 && st.gesamt>0 },
+  { e:'🍺', name:'Bierkönig',     tipp:'Du hast die meisten Einzel-Strafen kassiert.',                                   pruef:(st)=> st.anzahl>0 && st.anzahl===maxAnzahl() },
+  { e:'🔥', name:'Serienmeister', tipp:'Du warst 5-mal oder öfter pünktlich anwesend.',                                  pruef:(st)=> st.anwesend>=5 },
+  { e:'🏅', name:'Ehrenmann',     tipp:'Alle deine Strafen sind bezahlt – kein einziger offener Betrag.',                pruef:(st)=> st.offen===0 && st.bezahlt>0 },
+  { e:'📅', name:'Stammgast',     tipp:'Du warst 10-mal oder öfter anwesend.',                                           pruef:(st)=> st.anwGesamt>=10 },
+  { e:'💎', name:'Makellos',      tipp:'Noch keine einzige Strafe und mindestens 3-mal anwesend.',                       pruef:(st)=> st.anzahl===0 && st.anwGesamt>=3 },
+  { e:'💰', name:'Zahlmeister',   tipp:'Du hast mindestens eine Strafe vollständig bezahlt.',                            pruef:(st)=> st.bezahlt>0 }
 ];
 function abzeichenFuer(s){
   const rang = rankingListe();
@@ -706,6 +786,8 @@ function appAktualisieren(){
   renderAnwesenheit();
   renderSelects();
   renderSaisons();
+  renderCustomBadgeSettings();
+  renderHilfe();
   // Einstellungen-Felder
   document.getElementById('zugnameInput').value = zugname;
 }
@@ -778,8 +860,25 @@ function renderProfil(){
       '<label class="btn-ghost mini-btn" style="cursor:pointer;display:inline-flex;align-items:center">Profilbild ändern<input type="file" accept="image/*" style="display:none" onchange="eigenesBildHochladen(this)"></label>'+
     '</div>'+
     '<h3>Deine Abzeichen</h3>'+
-    '<div class="badges-grid">'+ badges.map(b=>'<div class="badge '+(b.hat?'on':'off')+'">'+b.e+'<span>'+b.name+'</span></div>').join('') +'</div>'+
+    '<div class="badges-grid">'+ badges.map(b=>'<div class="badge '+(b.hat?'on':'off')+'">'+b.e+
+      '<span class="badge-name">'+b.name+'</span>'+
+      '<span class="badge-tipp">'+(b.hat ? b.tipp : 'So verdienst du es: '+b.tipp)+'</span>'+
+    '</div>').join('') +'</div>'+
+    '<div id="customBadgesProfilBereich"></div>'+
     '<h3>Letzte Strafen</h3>'+ letzte;
+
+  // Individuelle Abzeichen nachträglich füllen
+  const bereich = document.getElementById('customBadgesProfilBereich');
+  if(bereich){
+    const vergeben = (s.awarded_custom_badges || []);
+    const matchedTypes = customBadgeTypes.filter(b => vergeben.some(v => v.badge_id === b.id));
+    if(matchedTypes.length){
+      bereich.innerHTML = '<h3>Individuelle Abzeichen</h3>'+
+        '<div class="badges-grid">'+
+          matchedTypes.map(b=>'<div class="badge on">'+escapeHtml(b.emoji)+'<span class="badge-name">'+escapeHtml(b.name)+'</span></div>').join('')+
+        '</div>';
+    }
+  }
 }
 
 function renderStrafen(){
@@ -841,7 +940,8 @@ function renderMitglieder(){
     const avatar = s.bild ? '<img class="mini-avatar" src="'+s.bild+'" alt="">' : '<div class="mini-avatar">'+escapeHtml(initialen)+'</div>';
     let akt = '<button class="mini-btn" onclick="schuetzenakteOeffnen(\''+s.id+'\')">Akte</button>';
     if(darf){
-      akt += ' <label class="mini-btn btn-ghost" style="cursor:pointer;display:inline-flex;align-items:center">Bild<input type="file" accept="image/*" style="display:none" onchange="mitgliedBildHochladen(\''+s.id+'\',this)"></label>'+
+      akt += ' <button class="mini-btn" onclick="abzeichenModalOeffnen(\''+s.id+'\')">🎖️ Abzeichen</button>'+
+        ' <label class="mini-btn btn-ghost" style="cursor:pointer;display:inline-flex;align-items:center">Bild<input type="file" accept="image/*" style="display:none" onchange="mitgliedBildHochladen(\''+s.id+'\',this)"></label>'+
         ' <button class="mini-btn" onclick="schuetzeAktivToggle(\''+s.id+'\')">'+(s.aktiv?'Deaktiv.':'Aktiv.')+'</button>'+
         ' <button class="mini-btn delete-button" onclick="schuetzeLoeschen(\''+s.id+'\')">🗑</button>';
     }
@@ -1061,6 +1161,70 @@ function renderSaisons(){
     '<button class="mini-btn" onclick="saisonDetails(\''+s.id+'\')">Details</button>'+
     (darf?' <button class="mini-btn delete-button" onclick="saisonLoeschen(\''+s.id+'\')">🗑</button>':'')+'</div>';
   }).join('');
+}
+
+function renderCustomBadgeSettings(){
+  const ziel = document.getElementById('customBadgeListe');
+  if(!ziel) return;
+  const darf = darfBearbeiten();
+  const bereich = document.getElementById('customBadgeErstellen');
+  if(bereich) bereich.classList.toggle('hidden', !darf);
+  if(!customBadgeTypes.length){
+    ziel.innerHTML = '<li class="leer">Noch keine individuellen Abzeichen angelegt.</li>';
+    return;
+  }
+  ziel.innerHTML = customBadgeTypes.map(b =>
+    '<li><div><b>'+escapeHtml(b.emoji)+' '+escapeHtml(b.name)+'</b></div>'+
+    '<div class="aktionen">'+(darf ? '<button class="mini-btn delete-button" onclick="customBadgeLoeschen(\''+b.id+'\')">🗑</button>' : '')+'</div></li>'
+  ).join('');
+}
+
+function renderHilfe(){
+  const ziel = document.getElementById('hilfeInhalt');
+  if(!ziel) return;
+  const istOff = istOffizier(aktuellerBenutzer);
+  if(istOff){
+    ziel.innerHTML =
+      '<div class="hilfe-bereich">'+
+      '<h3>👮 Deine Rechte als Offizier</h3>'+
+      '<ul>'+
+      '<li>Mitglieder anlegen und verwalten</li>'+
+      '<li>Strafen erfassen, bearbeiten und als bezahlt markieren</li>'+
+      '<li>Anwesenheit eintragen</li>'+
+      '<li>Termine anlegen</li>'+
+      '<li>Saison abschließen & archivieren</li>'+
+      '<li>Individuelle Abzeichen erstellen und vergeben</li>'+
+      '<li>Einstellungen bearbeiten (Zugname, Logo, Strafarten)</li>'+
+      '</ul>'+
+      '<h3>🔑 Einladungscode</h3>'+
+      '<p>Den Einladungscode für neue Schützen findest du in der linken Seitenleiste (Desktop) oder im Menü unter deinem Namen. Gib ihn an neue Mitglieder weiter, damit sie dem Zug beitreten können.</p>'+
+      '<h3>⏰ Automatische Verspätungsstrafe</h3>'+
+      '<p>Wer als „Zu spät" eingetragen wird, erhält automatisch eine Strafe von <b>5 €</b>. Diese wird direkt beim Speichern der Anwesenheit erfasst.</p>'+
+      '<h3>💸 Offiziere zahlen doppelt</h3>'+
+      '<p>Für Offiziere gilt: Strafen werden mit dem <b>doppelten Betrag</b> berechnet. So ist es im System hinterlegt – faire Führung heißt höhere Verantwortung!</p>'+
+      '</div>';
+  } else {
+    const badgeListe = ABZEICHEN.map(b =>
+      '<li><b>'+b.e+' '+b.name+'</b> – '+escapeHtml(b.tipp)+'</li>'
+    ).join('');
+    ziel.innerHTML =
+      '<div class="hilfe-bereich">'+
+      '<h3>👁️ Was du sehen kannst</h3>'+
+      '<ul>'+
+      '<li>Dein eigenes Profil mit Strafen & Abzeichen</li>'+
+      '<li>Eigene Strafen (Übersicht & Details)</li>'+
+      '<li>Ranking (wer hat die meisten Strafen?)</li>'+
+      '<li>Kalender (Termine lesen)</li>'+
+      '<li>Anwesenheitsübersicht (lesen)</li>'+
+      '<li>Akten anderer Schützen (öffentlich einsehbar)</li>'+
+      '</ul>'+
+      '<h3>🎖️ Automatische Abzeichen</h3>'+
+      '<p>Diese Abzeichen werden automatisch vergeben, sobald du die Kriterien erfüllst:</p>'+
+      '<ul>'+badgeListe+'</ul>'+
+      '<h3>🏅 Dein Rang</h3>'+
+      '<p>Dein Titel (z. B. „Ehrenmann", „Zugsau", „König") wird anhand deiner Strafsumme und Zahlungsmoral automatisch berechnet. Den aktuellen Rang siehst du jederzeit in deinem Profil.</p>'+
+      '</div>';
+  }
 }
 
 /* ============================================================

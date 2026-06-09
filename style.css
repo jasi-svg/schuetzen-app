@@ -256,12 +256,25 @@ table tbody tr:hover{background:var(--creme)}
 .profil-actions button{width:auto}
 
 /* ---------- Abzeichen ---------- */
-.badges-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:12px;margin:8px 0 20px}
-.badge{aspect-ratio:1;border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:28px;border:1px solid var(--linie);background:var(--creme);text-align:center;padding:6px}
-.badge span{font-size:10px;color:var(--grau);font-weight:700;margin-top:5px;line-height:1.2}
+.badges-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:12px;margin:8px 0 20px}
+.badge{border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;font-size:28px;border:1px solid var(--linie);background:var(--creme);text-align:center;padding:10px 8px 8px}
+.badge-name{font-size:11px;color:var(--grau);font-weight:700;margin-top:5px;line-height:1.2}
+.badge-tipp{font-size:9.5px;color:var(--grau);font-weight:400;margin-top:3px;line-height:1.3;opacity:.8}
 .badge.on{background:linear-gradient(150deg,#fff,var(--gold-hell));border-color:var(--gold)}
-.badge.on span{color:#9a6f12}
-.badge.off{opacity:.42}
+.badge.on .badge-name{color:#9a6f12}
+.badge.on .badge-tipp{color:#9a6f12;opacity:.85}
+.badge.off{opacity:.45}
+/* ---------- Modal ---------- */
+.modal-overlay{position:fixed;inset:0;background:rgba(16,43,35,.55);z-index:300;display:flex;align-items:center;justify-content:center;padding:16px}
+.modal-sheet{background:var(--creme);border-radius:22px;padding:20px 22px;width:100%;max-width:420px;box-shadow:var(--schatten);max-height:90vh;overflow-y:auto}
+.badge-modal-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--linie)}
+.badge-modal-row:last-child{border-bottom:none}
+/* ---------- Hilfe ---------- */
+.hilfe-bereich h3{margin:20px 0 6px;font-family:'Fraunces',serif}
+.hilfe-bereich h3:first-child{margin-top:0}
+.hilfe-bereich ul{padding-left:18px;margin-bottom:6px}
+.hilfe-bereich li{margin-bottom:4px;font-size:14px}
+.hilfe-bereich p{font-size:14px;margin-bottom:10px}
 
 /* ---------- Kalender ---------- */
 .kal-next{background:linear-gradient(150deg,var(--gruen-900),var(--gruen-700));color:var(--creme);border-radius:18px;padding:18px 20px;margin-bottom:16px;position:relative;overflow:hidden}

@@ -65,6 +65,7 @@
     <button class="menue-link" onclick="seiteAnzeigen('anwesenheit')">✅ Anwesenheit</button>
     <button class="menue-link" onclick="seiteAnzeigen('akten')">📁 Akten</button>
     <button class="menue-link" onclick="seiteAnzeigen('einstellungen')">⚙️ Einstellungen</button>
+    <button class="menue-link" onclick="seiteAnzeigen('hilfe')">❓ Hilfe</button>
   </div>
 </div>
 
@@ -134,6 +135,7 @@
   <button id="nav-anwesenheit" class="nav-item" onclick="seiteAnzeigen('anwesenheit')"><span class="ic">✅</span> Anwesenheit</button>
   <button id="nav-akten" class="nav-item" onclick="seiteAnzeigen('akten')"><span class="ic">📁</span> Akten</button>
   <button id="nav-einstellungen" class="nav-item" onclick="seiteAnzeigen('einstellungen')"><span class="ic">⚙️</span> Einstellungen</button>
+  <button id="nav-hilfe" class="nav-item" onclick="seiteAnzeigen('hilfe')"><span class="ic">❓</span> Hilfe</button>
   <div class="sidebar-foot">
     <div id="sidebarLogin" class="sidebar-login"></div>
   </div>
@@ -362,6 +364,17 @@
       <div id="saisonListe"></div>
     </div>
 
+    <div class="unterkarte" id="customBadgeErstellen">
+      <h3>🎖️ Individuelle Abzeichen</h3>
+      <p class="muted">Erstelle eigene Abzeichen, die du Schützen manuell verleihen kannst.</p>
+      <div class="form-grid">
+        <input id="customBadgeEmoji" type="text" placeholder="Emoji (z. B. 🦅)" maxlength="4" style="max-width:90px">
+        <input id="customBadgeName" type="text" placeholder="Name (z. B. Adler des Zuges)">
+      </div>
+      <button class="btn-gold" onclick="customBadgeHinzufuegen()">Abzeichen-Typ erstellen</button>
+      <ul id="customBadgeListe" class="strafart-liste" style="margin-top:12px"></ul>
+    </div>
+
     <div class="unterkarte danger">
       <h3>⚠️ Gefahrenzone</h3>
       <button class="delete-button" onclick="clearAllData()">Alle Daten löschen</button>
@@ -370,7 +383,24 @@
     <p style="text-align:center;padding-top:4px"><a href="#" onclick="datenschutzAnzeigen();return false;" style="color:var(--grau);font-size:12px;text-decoration:none">🔒 Datenschutz</a></p>
   </section>
 
+  <!-- HILFE -->
+  <section class="card app-seite hidden" id="hilfeSeite">
+    <div class="seite-head"><h2>❓ Hilfe</h2></div>
+    <div id="hilfeInhalt"></div>
+  </section>
+
 </main>
+
+<!-- ABZEICHEN-MODAL -->
+<div id="abzeichenModal" class="modal-overlay hidden" onclick="if(event.target===this)abzeichenModalSchliessen()">
+  <div class="modal-sheet">
+    <div class="seite-head">
+      <h3>🎖️ Abzeichen vergeben / entziehen</h3>
+      <button class="btn-ghost" style="width:auto" onclick="abzeichenModalSchliessen()">× Schließen</button>
+    </div>
+    <div id="abzeichenModalInhalt"></div>
+  </div>
+</div>
 
 <!-- Untere Leiste (mobil) -->
 <nav class="tabbar hidden" id="tabbar">
