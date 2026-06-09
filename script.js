@@ -298,37 +298,45 @@ async function clubDatenLaden(){
 /* ============================================================
    MITGLIEDER
    ============================================================ */
-function schuetzeHinzufuegen(){
+async function schuetzeHinzufuegen(){
   if(!darfBearbeiten()){ showToast('Nur Offiziere dürfen Mitglieder anlegen','error'); return; }
-  const name = document.getElementById('neuerSchuetze').value.trim();
-  const ben  = document.getElementById('benutzernameInput').value.trim();
-  const pw   = document.getElementById('passwortInput').value;
-  const rolle= document.getElementById('rolleSelect').value;
-  if(!name || !ben || !pw){ showToast('Name, Benutzername und Passwort sind nötig','error'); return; }
-  if(schuetzen.some(s => s.benutzername === ben)){ showToast('Benutzername bereits vergeben','error'); return; }
-  schuetzen.push({ id:neueId(), name, rolle, aktiv:true, bild:'', benutzername:ben, passwort:pw, email:'' });
-  speichern();
-  ['neuerSchuetze','benutzernameInput','passwortInput'].forEach(id=>document.getElementById(id).value='');
+  const name  = document.getElementById('neuerSchuetze').value.trim();
+  const rolle = document.getElementById('rolleSelect').value;
+  if(!name){ showToast('Name ist nötig','error'); return; }
+  const { error } = await sb.from('members').insert({
+    club_id: sbClubId, name, role: rolle, aktiv: true, bild: '', user_id: null
+  });
+  if(error){ console.error('schuetzeHinzufuegen:', error); showToast('Fehler: ' + error.message, 'error'); return; }
+  document.getElementById('neuerSchuetze').value = '';
   showToast('Mitglied „'+name+'" hinzugefügt');
-  appAktualisieren();
+  await clubDatenLaden();
 }
-function schuetzeLoeschen(id){
+async function schuetzeLoeschen(id){
   if(!darfBearbeiten()){ showToast('Keine Berechtigung','error'); return; }
   const s = findSchuetze(id); if(!s) return;
   if(!confirm('„'+s.name+'" wirklich löschen?')) return;
-  schuetzen = schuetzen.filter(x => x.id !== id);
-  if(aktuellerBenutzer && aktuellerBenutzer.id === id) aktuellerBenutzer = null;
-  speichern(); showToast('Mitglied gelöscht','warning'); appAktualisieren();
+  const { error } = await sb.from('members').delete().eq('id', id);
+  if(error){ console.error('schuetzeLoeschen:', error); showToast('Fehler: ' + error.message, 'error'); return; }
+  showToast('Mitglied gelöscht','warning');
+  await clubDatenLaden();
 }
-function schuetzeAktivToggle(id){
+async function schuetzeAktivToggle(id){
   if(!darfBearbeiten()){ showToast('Keine Berechtigung','error'); return; }
   const s = findSchuetze(id); if(!s) return;
-  s.aktiv = !s.aktiv; speichern(); appAktualisieren();
+  const { error } = await sb.from('members').update({ aktiv: !s.aktiv }).eq('id', id);
+  if(error){ console.error('schuetzeAktivToggle:', error); showToast('Fehler: ' + error.message, 'error'); return; }
+  await clubDatenLaden();
 }
 function mitgliedBildHochladen(id, input){
   const s = findSchuetze(id); if(!s || !input.files[0]) return;
   const r = new FileReader();
-  r.onload = e => { s.bild = e.target.result; speichern(); showToast('Profilbild gespeichert'); appAktualisieren(); };
+  r.onload = async e => {
+    const bild = e.target.result;
+    const { error } = await sb.from('members').update({ bild }).eq('id', id);
+    if(error){ console.error('mitgliedBildHochladen:', error); showToast('Fehler: ' + error.message, 'error'); return; }
+    showToast('Profilbild gespeichert');
+    await clubDatenLaden();
+  };
   r.readAsDataURL(input.files[0]);
 }
 
@@ -365,27 +373,36 @@ function saveProfilEdit(){
 function eigenesBildHochladen(input){
   if(!aktuellerBenutzer || !input.files[0]) return;
   const r = new FileReader();
-  r.onload = e => { aktuellerBenutzer.bild = e.target.result; speichern(); showToast('Profilbild gespeichert'); appAktualisieren(); };
+  r.onload = async e => {
+    const bild = e.target.result;
+    const { error } = await sb.from('members').update({ bild }).eq('user_id', sbSession.user.id);
+    if(error){ console.error('eigenesBildHochladen:', error); showToast('Fehler: ' + error.message, 'error'); return; }
+    aktuellerBenutzer.bild = bild;
+    showToast('Profilbild gespeichert');
+    await clubDatenLaden();
+  };
   r.readAsDataURL(input.files[0]);
 }
 
 /* ============================================================
    STRAFARTEN
    ============================================================ */
-function strafartHinzufuegen(){
+async function strafartHinzufuegen(){
   if(!darfBearbeiten()){ showToast('Nur Offiziere dürfen Strafarten anlegen','error'); return; }
-  const bez = document.getElementById('neueStrafart').value.trim();
+  const bezeichnung = document.getElementById('neueStrafart').value.trim();
   const betrag = parseFloat(document.getElementById('neuerBetrag').value);
-  if(!bez || isNaN(betrag)){ showToast('Bezeichnung und Betrag nötig','error'); return; }
-  strafarten.push({ bezeichnung:bez, betrag });
-  speichern();
+  if(!bezeichnung || isNaN(betrag)){ showToast('Bezeichnung und Betrag nötig','error'); return; }
+  const { error } = await sb.from('strafarten').insert({ club_id: sbClubId, bezeichnung, betrag });
+  if(error){ console.error('strafartHinzufuegen:', error); showToast('Fehler: ' + error.message, 'error'); return; }
   document.getElementById('neueStrafart').value=''; document.getElementById('neuerBetrag').value='';
   showToast('Strafart hinzugefügt');
-  appAktualisieren();
+  await clubDatenLaden();
 }
-function strafartLoeschen(i){
+async function strafartLoeschen(id){
   if(!darfBearbeiten()){ showToast('Keine Berechtigung','error'); return; }
-  strafarten.splice(i,1); speichern(); appAktualisieren();
+  const { error } = await sb.from('strafarten').delete().eq('id', id);
+  if(error){ console.error('strafartLoeschen:', error); showToast('Fehler: ' + error.message, 'error'); return; }
+  await clubDatenLaden();
 }
 
 /* ============================================================
@@ -398,6 +415,11 @@ function betragAktualisieren(){
 }
 async function strafeSpeichern(){
   if(!darfBearbeiten()){ showToast('Nur Offiziere dürfen Strafen erfassen','error'); return; }
+  if(!sbClubId){
+    console.error('strafeSpeichern: sbClubId ist null – Verein nicht geladen');
+    showToast('Vereins-ID fehlt, bitte Seite neu laden', 'error');
+    return;
+  }
   const sid = document.getElementById('schuetzeSelect').value;
   const ai  = document.getElementById('strafartSelect').value;
   const basis = parseFloat(document.getElementById('betrag').value);
@@ -406,12 +428,17 @@ async function strafeSpeichern(){
   if(!s || isNaN(basis)){ showToast('Schütze und Betrag wählen','error'); return; }
   const art = strafarten[ai] ? strafarten[ai].bezeichnung : 'Strafe';
   const endbetrag = istOffizier(s) ? basis*2 : basis;  // Offiziere zahlen doppelt
+  console.log('strafeSpeichern Insert:', { club_id: sbClubId, member_id: s.id, schuetze: s.name });
   const { error } = await sb.from('strafen').insert({
     club_id: sbClubId, member_id: s.id, schuetze: s.name, strafart: art,
     basisbetrag: basis, betrag: endbetrag, kommentar,
     datum: new Date().toISOString().slice(0,10), bezahlt: false
   });
-  if(error){ showToast(error.message || 'Fehler beim Speichern', 'error'); return; }
+  if(error){
+    console.error('strafeSpeichern fehlgeschlagen:', error);
+    showToast('Speichern fehlgeschlagen: ' + error.message, 'error');
+    return;
+  }
   document.getElementById('kommentar').value='';
   showToast('Strafe gespeichert' + (istOffizier(s)?' (Offizier × 2)':''));
   await clubDatenLaden();
@@ -419,7 +446,11 @@ async function strafeSpeichern(){
 async function strafeLoeschen(id){
   if(!darfBearbeiten()){ showToast('Keine Berechtigung','error'); return; }
   const { error } = await sb.from('strafen').delete().eq('id', id);
-  if(error){ showToast(error.message || 'Fehler beim Löschen', 'error'); return; }
+  if(error){
+    console.error('strafeLoeschen fehlgeschlagen:', error);
+    showToast('Löschen fehlgeschlagen: ' + error.message, 'error');
+    return;
+  }
   showToast('Strafe gelöscht','warning');
   await clubDatenLaden();
 }
@@ -430,7 +461,11 @@ async function strafeBezahltToggle(id){
   if(st.bezahlt){
     // bereits bezahlt -> wieder auf offen, Vermerk entfernen
     const { error } = await sb.from('strafen').update({ bezahlt: false, bezahlt_art: null, bezahlt_datum: null }).eq('id', id);
-    if(error){ showToast(error.message || 'Fehler', 'error'); return; }
+    if(error){
+      console.error('strafeBezahltToggle (offen) fehlgeschlagen:', error);
+      showToast('Fehler: ' + error.message, 'error');
+      return;
+    }
     await clubDatenLaden();
   } else {
     // Bezahl-Fenster öffnen, um Art + Datum zu erfassen
@@ -446,7 +481,11 @@ async function zahlungSpeichern(){
   const art   = document.getElementById('zahlungArt').value;
   const datum = document.getElementById('zahlungDatum').value || new Date().toISOString().slice(0,10);
   const { error } = await sb.from('strafen').update({ bezahlt: true, bezahlt_art: art, bezahlt_datum: datum }).eq('id', zahlungStrafeId);
-  if(error){ showToast(error.message || 'Fehler beim Speichern', 'error'); return; }
+  if(error){
+    console.error('zahlungSpeichern fehlgeschlagen:', error);
+    showToast('Zahlung speichern fehlgeschlagen: ' + error.message, 'error');
+    return;
+  }
   closeZahlungModal();
   showToast('Als bezahlt vermerkt ('+art+')');
   await clubDatenLaden();
@@ -743,16 +782,16 @@ function renderMitglieder(){
         ' <button class="mini-btn delete-button" onclick="schuetzeLoeschen(\''+s.id+'\')">🗑</button>';
     }
     return '<li class="'+(s.aktiv?'':'inaktiv')+'">'+avatar+
-      '<div><div class="mname">'+escapeHtml(s.name)+'</div><div class="mrolle">'+escapeHtml(s.rolle)+' · @'+escapeHtml(s.benutzername)+'</div></div>'+
+      '<div><div class="mname">'+escapeHtml(s.name)+'</div><div class="mrolle">'+escapeHtml(s.rolle)+(s.benutzername?' · @'+escapeHtml(s.benutzername):'')+'</div></div>'+
       '<div class="aktionen">'+akt+'</div></li>';
   }).join('');
 }
 
 function renderStrafarten(){
   const darf = darfBearbeiten();
-  document.getElementById('strafartenListe').innerHTML = strafarten.map((a,i)=>
+  document.getElementById('strafartenListe').innerHTML = strafarten.map(a=>
     '<li><div><b>'+escapeHtml(a.bezeichnung)+'</b></div><div class="aktionen">'+euro(a.betrag)+
-    (darf?' <button class="mini-btn delete-button" onclick="strafartLoeschen('+i+')">🗑</button>':'')+'</div></li>'
+    (darf?' <button class="mini-btn delete-button" onclick="strafartLoeschen(\''+a.id+'\')">🗑</button>':'')+'</div></li>'
   ).join('') || '<li class="leer">Noch keine Strafarten angelegt.</li>';
 }
 
