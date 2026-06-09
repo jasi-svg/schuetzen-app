@@ -494,36 +494,48 @@ async function zahlungSpeichern(){
 /* ============================================================
    ANWESENHEIT
    ============================================================ */
-function anwesenheitSpeichern(){
+async function anwesenheitSpeichern(){
   if(!darfBearbeiten()){ showToast('Nur Offiziere dürfen Anwesenheit erfassen','error'); return; }
-  const tag = document.getElementById('tagSelect').value;
-  const sid = document.getElementById('anwesenheitSchuetzeSelect').value;
+  const tag    = document.getElementById('tagSelect').value;
+  const sid    = document.getElementById('anwesenheitSchuetzeSelect').value;
   const status = document.getElementById('statusSelect').value;
   const minuten = parseInt(document.getElementById('verspaetungMinuten').value) || 0;
   const s = findSchuetze(sid);
   if(!s){ showToast('Bitte Schütze auswählen','error'); return; }
-  anwesenheiten.push({ id:neueId(), tag, schuetzeId:s.id, schuetze:s.name, status, minuten });
+
+  const datum = new Date().toISOString().slice(0,10);
+
+  const { error: anwErr } = await sb.from('anwesenheiten').insert({
+    club_id: sbClubId, member_id: s.id, schuetze: s.name,
+    tag, status, minuten, datum
+  });
+  if(anwErr){ console.error('anwesenheitSpeichern:', anwErr); showToast('Fehler: ' + anwErr.message, 'error'); return; }
 
   // Automatische „Zu spät"-Strafe (5 € Grundbetrag, Offiziere doppelt)
   if(status === 'Zu spät'){
     const basis = 5;
-    strafen.push({
-      id:neueId(), schuetzeId:s.id, schuetze:s.name, strafart:'Zu spät erschienen',
-      basisbetrag:basis, betrag:istOffizier(s)?basis*2:basis,
-      kommentar:(minuten?minuten+' Min. Verspätung':''),
-      datum:new Date().toISOString().slice(0,10), bezahlt:false
+    const betrag = istOffizier(s) ? basis * 2 : basis;
+    const { error: strafErr } = await sb.from('strafen').insert({
+      club_id: sbClubId, member_id: s.id, schuetze: s.name,
+      strafart: 'Zu spät erschienen', basisbetrag: basis, betrag,
+      kommentar: minuten ? minuten + ' Min. Verspätung' : '',
+      datum, bezahlt: false
     });
-    showToast('Anwesenheit + automatische Verspätungs-Strafe gespeichert','info');
+    if(strafErr){ console.error('anwesenheitSpeichern (Strafe):', strafErr); showToast('Anwesenheit gespeichert, Strafe fehlgeschlagen: ' + strafErr.message, 'error'); }
+    else { showToast('Anwesenheit + automatische Verspätungs-Strafe gespeichert', 'info'); }
   } else {
     showToast('Anwesenheit gespeichert');
   }
-  speichern();
-  document.getElementById('verspaetungMinuten').value='';
-  appAktualisieren();
+
+  document.getElementById('verspaetungMinuten').value = '';
+  await clubDatenLaden();
 }
-function anwesenheitLoeschen(id){
+async function anwesenheitLoeschen(id){
   if(!darfBearbeiten()){ showToast('Keine Berechtigung','error'); return; }
-  anwesenheiten = anwesenheiten.filter(x => x.id !== id); speichern(); showToast('Eintrag gelöscht','warning'); appAktualisieren();
+  const { error } = await sb.from('anwesenheiten').delete().eq('id', id);
+  if(error){ console.error('anwesenheitLoeschen:', error); showToast('Fehler: ' + error.message, 'error'); return; }
+  showToast('Eintrag gelöscht','warning');
+  await clubDatenLaden();
 }
 
 /* ============================================================
