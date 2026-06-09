@@ -107,6 +107,19 @@ function schnellStrafe(){ seiteAnzeigen('strafen'); document.getElementById('sch
 function datenschutzAnzeigen(){ document.getElementById('datenschutzSeite').classList.remove('hidden'); }
 function datenschutzSchliessen(){ document.getElementById('datenschutzSeite').classList.add('hidden'); }
 
+function installSeiteAnzeigen(){
+  const box = document.getElementById('installCodeBox');
+  if(box){
+    if(istOffizier(aktuellerBenutzer) && sbInviteCode){
+      box.innerHTML = '<div class="install-code-box"><div class="t">Einladungscode deines Zuges</div><div class="code">'+escapeHtml(sbInviteCode)+'</div></div>';
+    } else {
+      box.innerHTML = '';
+    }
+  }
+  document.getElementById('installSeite').classList.remove('hidden');
+}
+function installSeiteSchliessen(){ document.getElementById('installSeite').classList.add('hidden'); }
+
 /* ============================================================
    TOASTS
    ============================================================ */

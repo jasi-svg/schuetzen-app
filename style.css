@@ -320,9 +320,12 @@ table tbody tr:hover{background:var(--creme)}
 /* ---------- Auth-Hinweis ---------- */
 .auth-hinweis{font-size:12px;color:var(--grau);text-align:center;line-height:1.5;margin-top:4px}
 
-/* ---------- Globaler Datenschutz-Footer ---------- */
-.app-footer{
+/* ---------- Globale Footer-Leiste ---------- */
+.app-footer-bar{
   position:fixed;bottom:12px;right:16px;z-index:1100;
+  display:flex;gap:8px;
+}
+.app-footer-bar a{
   font-size:11px;font-weight:600;color:var(--grau);
   background:rgba(244,239,228,.92);border:1px solid var(--linie);
   border-radius:99px;padding:5px 14px;text-decoration:none;
@@ -330,7 +333,22 @@ table tbody tr:hover{background:var(--creme)}
   backdrop-filter:blur(4px);
   transition:color .15s,background .15s;
 }
-.app-footer:hover{color:var(--gruen-800);background:var(--creme)}
+.app-footer-bar a:hover{color:var(--gruen-800);background:var(--creme)}
+
+/* ---------- Installations-Hilfe ---------- */
+.install-steps{padding-left:22px;margin-bottom:10px}
+.install-steps li{margin-bottom:8px;line-height:1.5}
+.install-hinweis{
+  font-size:13px;color:var(--gruen-800);font-weight:600;
+  background:rgba(200,160,74,.12);border:1px solid rgba(200,160,74,.35);
+  border-radius:12px;padding:10px 14px;margin-top:6px;
+}
+.install-code-box{
+  background:linear-gradient(150deg,var(--gruen-900),var(--gruen-700));
+  color:var(--creme);border-radius:18px;padding:18px 20px;margin:16px 0;
+}
+.install-code-box .t{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--gold-hell);font-weight:700;margin-bottom:6px}
+.install-code-box .code{font-family:monospace;font-size:22px;letter-spacing:3px;color:var(--gold-hell);font-weight:700}
 
 /* ---------- Datenschutz-Overlay ---------- */
 .datenschutz-overlay{
@@ -357,7 +375,8 @@ table tbody tr:hover{background:var(--creme)}
   .card{padding:20px 16px;border-radius:20px}
   h2{font-size:22px}
   .seite-head{margin-bottom:14px}
-  .app-footer{bottom:calc(66px + env(safe-area-inset-bottom))}
+  .app-footer-bar{bottom:calc(66px + env(safe-area-inset-bottom));right:8px;gap:6px}
+  .app-footer-bar a{padding:4px 10px;font-size:10px}
 }
 @media(min-width:861px){
   .topbar,.tabbar,.menue-overlay{display:none !important}

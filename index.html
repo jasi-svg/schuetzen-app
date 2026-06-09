@@ -442,7 +442,53 @@
   </div>
 </div>
 
-<a class="app-footer" href="#" onclick="datenschutzAnzeigen();return false;">Datenschutz</a>
+<!-- INSTALL-HILFE-OVERLAY (ohne Login erreichbar) -->
+<div id="installSeite" class="datenschutz-overlay hidden">
+  <div class="datenschutz-sheet">
+    <div class="seite-head">
+      <h2>📲 App installieren</h2>
+      <button class="btn-ghost" style="width:auto" onclick="installSeiteSchliessen()">← Zurück</button>
+    </div>
+
+    <p>So bekommst du den Strafenkatalog als App auf dein Handy – ohne App Store, direkt aus dem Browser.</p>
+
+    <div id="installCodeBox"></div>
+
+    <hr class="trenner">
+
+    <h3>iPhone · Safari</h3>
+    <ol class="install-steps">
+      <li>Diesen Link (also diese Seite) in <strong>Safari</strong> öffnen.</li>
+      <li>Unten in der Mitte auf das <strong>Teilen-Symbol</strong> tippen (Quadrat mit Pfeil nach oben).</li>
+      <li>Im Menü nach unten scrollen und <strong>„Zum Home-Bildschirm"</strong> wählen.</li>
+      <li><strong>„Hinzufügen"</strong> tippen – fertig.</li>
+    </ol>
+
+    <h3>Android · Chrome</h3>
+    <ol class="install-steps">
+      <li>Diesen Link in <strong>Chrome</strong> öffnen.</li>
+      <li>Oben rechts auf die <strong>drei Punkte</strong> (Menü) tippen.</li>
+      <li><strong>„App installieren"</strong> oder <strong>„Zum Startbildschirm hinzufügen"</strong> wählen.</li>
+      <li>Bestätigen – fertig.</li>
+    </ol>
+
+    <hr class="trenner">
+
+    <h3>Erste Anmeldung mit Einladungscode</h3>
+    <ol class="install-steps">
+      <li>App öffnen und auf <strong>„Noch kein Konto? Registrieren"</strong> tippen.</li>
+      <li>E-Mail-Adresse und Passwort eingeben, dann <strong>„Registrieren"</strong>.</li>
+      <li>Im nächsten Schritt unter <strong>„Verein beitreten"</strong> den Einladungscode und deinen Namen eingeben.</li>
+      <li><strong>„Beitreten"</strong> tippen – du bist dabei.</li>
+    </ol>
+    <p class="install-hinweis">Den Einladungscode bekommst du von deinem Spieß.</p>
+  </div>
+</div>
+
+<footer class="app-footer-bar">
+  <a href="#" onclick="installSeiteAnzeigen();return false;">📲 App installieren</a>
+  <a href="#" onclick="datenschutzAnzeigen();return false;">Datenschutz</a>
+</footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="script.js"></script>
