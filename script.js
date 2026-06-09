@@ -285,8 +285,11 @@ async function clubDatenLaden(){
       schuetzeId: x.member_id
     }));
 
-    termine  = termineRes.data  || [];
-    saisons  = saisonsRes.data  || [];
+    termine = termineRes.data || [];
+    saisons = (saisonsRes.data || []).map(s => ({
+      ...s,
+      daten: s.daten || { strafen: [], anwesenheiten: [], summary: {} }
+    }));
 
     appAktualisieren();
   } catch(e){
@@ -352,23 +355,21 @@ function profilEditOeffnen(){
   document.getElementById('profilEditModal').classList.remove('hidden');
 }
 function closeProfilEditModal(){ document.getElementById('profilEditModal').classList.add('hidden'); }
-function saveProfilEdit(){
+async function saveProfilEdit(){
   if(!aktuellerBenutzer) return;
   const name = document.getElementById('editName').value.trim();
   const email= document.getElementById('editEmail').value.trim();
-  const altPw= document.getElementById('editOldPassword').value;
   const neuPw= document.getElementById('editNewPassword').value;
   if(!name){ showToast('Name darf nicht leer sein','error'); return; }
+  const { error: memberErr } = await sb.from('members').update({ name, email }).eq('user_id', sbSession.user.id);
+  if(memberErr){ console.error('saveProfilEdit:', memberErr); showToast('Fehler: ' + memberErr.message, 'error'); return; }
   if(neuPw){
-    if(altPw !== aktuellerBenutzer.passwort){ showToast('Altes Passwort stimmt nicht','error'); return; }
-    aktuellerBenutzer.passwort = neuPw;
+    const { error: pwErr } = await sb.auth.updateUser({ password: neuPw });
+    if(pwErr){ console.error('saveProfilEdit (Passwort):', pwErr); showToast('Passwort-Fehler: ' + pwErr.message, 'error'); return; }
   }
-  aktuellerBenutzer.name = name;
-  aktuellerBenutzer.email = email;
-  speichern();
   closeProfilEditModal();
   showToast('Profil aktualisiert');
-  appAktualisieren();
+  await clubDatenLaden();
 }
 function eigenesBildHochladen(input){
   if(!aktuellerBenutzer || !input.files[0]) return;
@@ -541,7 +542,7 @@ async function anwesenheitLoeschen(id){
 /* ============================================================
    KALENDER
    ============================================================ */
-function terminSpeichern(){
+async function terminSpeichern(){
   if(!darfBearbeiten()){ showToast('Nur Offiziere dürfen Termine anlegen','error'); return; }
   const titel = document.getElementById('terminTitel').value.trim();
   const datum = document.getElementById('terminDatum').value;
@@ -550,16 +551,21 @@ function terminSpeichern(){
   const hinweis = document.getElementById('terminHinweis').value.trim();
   const antreten = document.getElementById('terminAntreten').checked;
   if(!titel || !datum){ showToast('Titel und Datum sind nötig','error'); return; }
-  termine.push({ id:neueId(), titel, datum, zeit, ort, hinweis, antreten });
-  speichern();
+  const { error } = await sb.from('termine').insert({
+    club_id: sbClubId, titel, datum, zeit, ort, hinweis, antreten
+  });
+  if(error){ console.error('terminSpeichern:', error); showToast('Fehler: ' + error.message, 'error'); return; }
   ['terminTitel','terminOrt','terminHinweis'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('terminDatum').value=''; document.getElementById('terminZeit').value='';
   showToast('Termin gespeichert');
-  appAktualisieren();
+  await clubDatenLaden();
 }
-function terminLoeschen(id){
+async function terminLoeschen(id){
   if(!darfBearbeiten()){ showToast('Keine Berechtigung','error'); return; }
-  termine = termine.filter(t => t.id !== id); speichern(); showToast('Termin gelöscht','warning'); appAktualisieren();
+  const { error } = await sb.from('termine').delete().eq('id', id);
+  if(error){ console.error('terminLoeschen:', error); showToast('Fehler: ' + error.message, 'error'); return; }
+  showToast('Termin gelöscht','warning');
+  await clubDatenLaden();
 }
 function naechsterTermin(){
   const heute = new Date().toISOString().slice(0,10);
@@ -853,11 +859,16 @@ function schuetzenakteOeffnen(id){
 /* ============================================================
    EINSTELLUNGEN
    ============================================================ */
-function zugnameSpeichern(){
+async function zugnameSpeichern(){
   if(!darfBearbeiten()){ showToast('Keine Berechtigung','error'); return; }
-  const v = document.getElementById('zugnameInput').value.trim();
-  if(!v){ showToast('Bitte einen Namen eingeben','error'); return; }
-  zugname = v; speichern(); showToast('Zugname gespeichert'); appAktualisieren();
+  const name = document.getElementById('zugnameInput').value.trim();
+  if(!name){ showToast('Bitte einen Namen eingeben','error'); return; }
+  const { error } = await sb.from('clubs').update({ name }).eq('id', sbClubId);
+  if(error){ console.error('zugnameSpeichern:', error); showToast('Fehler: ' + error.message, 'error'); return; }
+  zugname = name;
+  sbClubName = name;
+  showToast('Zugname gespeichert');
+  await clubDatenLaden();
 }
 function logoSpeichern(){
   if(!darfBearbeiten()){ showToast('Keine Berechtigung','error'); return; }
@@ -920,22 +931,20 @@ function clearAllData(){
    als Schnappschuss archiviert und danach geleert. Mitglieder,
    Strafarten und Termine bleiben erhalten.
    ============================================================ */
-function saisonAbschliessen(){
+async function saisonAbschliessen(){
   if(!darfBearbeiten()){ showToast('Nur Offiziere dürfen die Saison abschließen','error'); return; }
   if(strafen.length === 0 && anwesenheiten.length === 0){ showToast('Es gibt nichts zum Abschließen','info'); return; }
   const vorschlag = 'Saison ' + new Date().getFullYear();
   const name = prompt('Name der Saison (zum Archivieren):', vorschlag);
-  if(name === null) return; // abgebrochen
+  if(name === null) return;
   if(!confirm('Saison „'+name+'" abschließen?\n\nAlle aktuellen Strafen und Anwesenheiten werden archiviert und danach geleert. Mitglieder und Strafarten bleiben.')) return;
 
   const gesamt = strafen.reduce((a,x)=>a+x.betrag,0);
   const bezahlt = strafen.filter(x=>x.bezahlt).reduce((a,x)=>a+x.betrag,0);
   const sau = rankingListe().filter(r=>r.gesamt>0)[0];
+  const saisonName = name.trim() || vorschlag;
 
-  saisons.push({
-    id: neueId(),
-    name: name.trim() || vorschlag,
-    abgeschlossenAm: new Date().toISOString().slice(0,10),
+  const daten = {
     strafen: JSON.parse(JSON.stringify(strafen)),
     anwesenheiten: JSON.parse(JSON.stringify(anwesenheiten)),
     summary: {
@@ -944,38 +953,48 @@ function saisonAbschliessen(){
       anzahlAnwesenheiten: anwesenheiten.filter(a=>a.status==='Anwesend').length,
       zugsau: sau ? { name: sau.s.name, sum: sau.gesamt } : null
     }
-  });
+  };
 
-  strafen = [];
-  anwesenheiten = [];
-  speichern();
-  showToast('Saison „'+name+'" archiviert – neue Saison gestartet 🎉');
-  appAktualisieren();
+  const { error: insertErr } = await sb.from('saisons').insert({
+    club_id: sbClubId,
+    name: saisonName,
+    abgeschlossen_am: new Date().toISOString().slice(0,10),
+    daten
+  });
+  if(insertErr){ console.error('saisonAbschliessen insert:', insertErr); showToast('Archivieren fehlgeschlagen: ' + insertErr.message, 'error'); return; }
+
+  await sb.from('strafen').delete().eq('club_id', sbClubId);
+  await sb.from('anwesenheiten').delete().eq('club_id', sbClubId);
+
+  showToast('Saison „'+saisonName+'" archiviert – neue Saison gestartet 🎉');
+  await clubDatenLaden();
   seiteAnzeigen('dashboard');
 }
 
-function saisonLoeschen(id){
+async function saisonLoeschen(id){
   if(!darfBearbeiten()){ showToast('Keine Berechtigung','error'); return; }
   const s = saisons.find(x=>x.id===id); if(!s) return;
   if(!confirm('Archiv „'+s.name+'" endgültig löschen?')) return;
-  saisons = saisons.filter(x=>x.id!==id);
-  speichern(); showToast('Archiv gelöscht','warning'); appAktualisieren();
+  const { error } = await sb.from('saisons').delete().eq('id', id);
+  if(error){ console.error('saisonLoeschen:', error); showToast('Fehler: ' + error.message, 'error'); return; }
+  showToast('Archiv gelöscht','warning');
+  await clubDatenLaden();
 }
 
 function saisonDetails(id){
   const s = saisons.find(x=>x.id===id); if(!s) return;
-  // Ranking dieser Saison aus dem Schnappschuss berechnen
   const summe = {};
-  s.strafen.forEach(x=>{ summe[x.schuetze] = (summe[x.schuetze]||0) + x.betrag; });
+  (s.daten.strafen || []).forEach(x=>{ summe[x.schuetze] = (summe[x.schuetze]||0) + x.betrag; });
   const rang = Object.entries(summe).sort((a,b)=>b[1]-a[1]);
   let zeilen = rang.map((r,i)=>'<tr><td>'+(i+1)+'</td><td>'+escapeHtml(r[0])+'</td><td>'+euro(r[1])+'</td></tr>').join('') || '<tr><td colspan="3" class="leer">Keine Strafen.</td></tr>';
+  const sm = s.daten.summary || {};
   document.getElementById('saisonModalTitel').textContent = s.name;
   document.getElementById('saisonModalInhalt').innerHTML =
-    '<p class="muted">Abgeschlossen am '+s.abgeschlossenAm+'</p>'+
+    '<p class="muted">Abgeschlossen am '+s.abgeschlossen_am+'</p>'+
     '<div class="sk-stats" style="margin:12px 0">'+
-      '<div class="sk-stat" style="background:var(--creme);border-color:var(--linie)"><b style="color:var(--gruen-900)">'+euro(s.summary.gesamt)+'</b><span style="color:var(--grau)">Gesamt</span></div>'+
-      '<div class="sk-stat" style="background:var(--creme);border-color:var(--linie)"><b style="color:var(--gruen-900)">'+euro(s.summary.offen)+'</b><span style="color:var(--grau)">Offen</span></div>'+
-      '<div class="sk-stat" style="background:var(--creme);border-color:var(--linie)"><b style="color:var(--gruen-900)">'+s.summary.anzahlStrafen+'</b><span style="color:var(--grau)">Strafen</span></div>'+
+      '<div class="sk-stat" style="background:var(--creme);border-color:var(--linie)"><b style="color:var(--gruen-900)">'+euro(sm.gesamt||0)+'</b><span style="color:var(--grau)">Gesamt</span></div>'+
+      '<div class="sk-stat" style="background:var(--creme);border-color:var(--linie)"><b style="color:var(--gruen-900)">'+euro(sm.offen||0)+'</b><span style="color:var(--grau)">Offen</span></div>'+
+      '<div class="sk-stat" style="background:var(--creme);border-color:var(--linie)"><b style="color:var(--gruen-900)">'+(sm.anzahlStrafen||0)+'</b><span style="color:var(--grau)">Strafen</span></div>'+
     '</div>'+
     '<div class="tabelle-scroll"><table><thead><tr><th>Platz</th><th>Schütze</th><th>Strafsumme</th></tr></thead><tbody>'+zeilen+'</tbody></table></div>';
   document.getElementById('saisonModal').classList.remove('hidden');
@@ -987,13 +1006,14 @@ function renderSaisons(){
   if(!ziel) return;
   if(saisons.length === 0){ ziel.innerHTML = '<p class="leer">Noch keine abgeschlossenen Saisons.</p>'; return; }
   const darf = darfBearbeiten();
-  ziel.innerHTML = saisons.slice().reverse().map(s=>
-    '<div class="kal-row"><div class="kal-info"><b>'+escapeHtml(s.name)+'</b>'+
-    '<span>'+s.abgeschlossenAm+' · '+euro(s.summary.gesamt)+' · '+s.summary.anzahlStrafen+' Strafen'+
-    (s.summary.zugsau?' · 🐷 '+escapeHtml(s.summary.zugsau.name):'')+'</span></div>'+
+  ziel.innerHTML = saisons.slice().reverse().map(s=>{
+    const sm = (s.daten && s.daten.summary) || {};
+    return '<div class="kal-row"><div class="kal-info"><b>'+escapeHtml(s.name)+'</b>'+
+    '<span>'+s.abgeschlossen_am+' · '+euro(sm.gesamt||0)+' · '+(sm.anzahlStrafen||0)+' Strafen'+
+    (sm.zugsau?' · 🐷 '+escapeHtml(sm.zugsau.name):'')+'</span></div>'+
     '<button class="mini-btn" onclick="saisonDetails(\''+s.id+'\')">Details</button>'+
-    (darf?' <button class="mini-btn delete-button" onclick="saisonLoeschen(\''+s.id+'\')">🗑</button>':'')+'</div>'
-  ).join('');
+    (darf?' <button class="mini-btn delete-button" onclick="saisonLoeschen(\''+s.id+'\')">🗑</button>':'')+'</div>';
+  }).join('');
 }
 
 /* ============================================================
