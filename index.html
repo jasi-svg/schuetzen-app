@@ -48,7 +48,7 @@
     <svg class="brand-svg" viewBox="0 0 100 116"><use href="#appWappen"/></svg>
     <span id="topbarZugname">Strafenkatalog</span>
   </div>
-  <button class="topbar-menu" onclick="menueOeffnen()" aria-label="Menü">☰</button>
+  <button class="topbar-menu hidden" id="topbarMenu" onclick="menueOeffnen()" aria-label="Menü">☰</button>
 </header>
 
 <!-- Vollbild-Menü (mobil) -->
@@ -121,7 +121,7 @@
 </div>
 
 <!-- Desktop Sidebar -->
-<nav class="sidebar" id="sidebar">
+<nav class="sidebar hidden" id="sidebar">
   <div class="sidebar-brand">
     <svg class="brand-svg" viewBox="0 0 100 116"><use href="#appWappen"/></svg>
     <div><b id="sidebarZugname">Strafenkatalog</b><small>Schützenzug</small></div>
@@ -142,13 +142,40 @@
 
 <main class="app">
 
-  <!-- Login-Karte (nur wenn ausgeloggt) -->
-  <section class="card login-card" id="loginCard">
-    <h2>Anmelden</h2>
-    <p class="muted" id="loginHinweis"></p>
-    <input id="loginName" type="text" placeholder="Benutzername">
-    <input id="loginPasswort" type="password" placeholder="Passwort">
-    <button class="btn-gold" onclick="einloggen()">Einloggen</button>
+  <!-- Ladeindikator (bis Auth-Status feststeht) -->
+  <div id="ladeAnzeige" class="lade-anzeige">
+    <svg class="brand-svg lade-wappen" viewBox="0 0 100 116"><use href="#appWappen"/></svg>
+    <p>Wird geladen …</p>
+  </div>
+
+  <!-- Zustand A: Nicht eingeloggt -->
+  <section class="card login-card hidden" id="authCard">
+    <svg class="brand-svg login-wappen" viewBox="0 0 100 116"><use href="#appWappen"/></svg>
+    <h2 id="authTitel">Anmelden</h2>
+    <input id="authEmail" type="email" placeholder="E-Mail-Adresse" autocomplete="email">
+    <input id="authPasswort" type="password" placeholder="Passwort" autocomplete="current-password">
+    <button class="btn-gold" id="authBtn" onclick="authAktion()">Einloggen</button>
+    <button class="btn-ghost" id="authToggleBtn" onclick="authModeToggle()">Noch kein Konto? Registrieren</button>
+  </section>
+
+  <!-- Zustand B: Eingeloggt, aber kein Verein -->
+  <section class="card login-card hidden" id="onboardingCard">
+    <svg class="brand-svg login-wappen" viewBox="0 0 100 116"><use href="#appWappen"/></svg>
+    <h2>Willkommen!</h2>
+    <p class="muted">Gründe einen neuen Verein oder tritt einem bestehenden bei.</p>
+    <div class="unterkarte">
+      <h3>Verein gründen</h3>
+      <input id="obVereinsname" type="text" placeholder="Vereinsname (z. B. Jägerzug Immergrün)">
+      <input id="obMeinName" type="text" placeholder="Dein Name">
+      <button class="btn-gold" onclick="onboardingGruenden()">Verein gründen</button>
+    </div>
+    <div class="unterkarte">
+      <h3>Verein beitreten</h3>
+      <input id="obCode" type="text" placeholder="Einladungscode" autocomplete="off">
+      <input id="obBeitretenName" type="text" placeholder="Dein Name">
+      <button class="btn-gold" onclick="onboardingBeitreten()">Beitreten</button>
+    </div>
+    <button class="btn-ghost" onclick="ausloggen()">Abmelden</button>
   </section>
 
   <!-- DASHBOARD -->
@@ -345,7 +372,7 @@
 </main>
 
 <!-- Untere Leiste (mobil) -->
-<nav class="tabbar">
+<nav class="tabbar hidden" id="tabbar">
   <button id="tab-dashboard" class="tab" onclick="seiteAnzeigen('dashboard')"><span class="pill"><span class="tic">🏠</span></span>Start</button>
   <button id="tab-strafen" class="tab" onclick="seiteAnzeigen('strafen')"><span class="pill"><span class="tic">💰</span></span>Strafen</button>
   <button class="tab add" onclick="schnellStrafe()"><span class="pill"><span class="tic">＋</span></span></button>
@@ -353,6 +380,7 @@
   <button id="tab-profil" class="tab" onclick="seiteAnzeigen('profil')"><span class="pill"><span class="tic">👤</span></span>Profil</button>
 </nav>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="script.js"></script>
 </body>
 </html>

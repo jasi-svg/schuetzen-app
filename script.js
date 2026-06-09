@@ -4,6 +4,16 @@
    zur bisherigen Version (gleiche Schlüssel & Felder).
    ============================================================ */
 
+/* ---------- Supabase ---------- */
+const sb = supabase.createClient(
+  'https://hohduipsxbbgesbgwnwq.supabase.co',
+  'sb_publishable_s2lekHNDQaoVlK_oxXj60A_PvifrHo-'
+);
+let sbSession  = null;
+let sbClubId   = null;
+let sbClubName = null;
+let sbInviteCode = null;
+
 /* ---------- Zustand ---------- */
 let schuetzen = [];
 let strafarten = [];
@@ -34,7 +44,6 @@ function speichern(){
   localStorage.setItem('saisons', JSON.stringify(saisons));
   localStorage.setItem('zugname', zugname);
   localStorage.setItem('logo', logo);
-  localStorage.setItem('aktuellerBenutzer', aktuellerBenutzer ? aktuellerBenutzer.id : '');
 }
 
 function datenLaden(){
@@ -65,20 +74,6 @@ function datenLaden(){
     if(!s.passwort) s.passwort = '1234';
     if(!s.rolle) s.rolle = 'Schütze';
   });
-
-  // LOGIN-FIX: Wenn noch niemand existiert, einen Start-Spieß anlegen,
-  // sonst käme man nie in die App (Mitglied anlegen braucht Offizier-Login).
-  if(schuetzen.length === 0){
-    schuetzen.push({
-      id: neueId(), name:'Administrator', rolle:'Spieß', aktiv:true,
-      bild:'', benutzername:'admin', passwort:'admin1234', email:''
-    });
-    localStorage.setItem('startHinweis','1');
-  }
-
-  // Eingeloggten Benutzer wiederherstellen
-  const uid = localStorage.getItem('aktuellerBenutzer');
-  aktuellerBenutzer = uid ? (findSchuetze(uid) || null) : null;
 
   speichern();
 }
@@ -124,26 +119,137 @@ function showToast(text, typ='success'){
 }
 
 /* ============================================================
-   LOGIN
+   AUTH (Supabase)
    ============================================================ */
-function einloggen(){
-  const name = document.getElementById('loginName').value.trim();
-  const pw   = document.getElementById('loginPasswort').value;
-  const s = schuetzen.find(x => x.benutzername === name && x.passwort === pw && x.aktiv);
-  if(!s){ showToast('Benutzername oder Passwort falsch','error'); return; }
-  aktuellerBenutzer = s;
-  speichern();
-  document.getElementById('loginPasswort').value = '';
-  showToast('Willkommen, ' + s.name + '!');
-  seiteAnzeigen('dashboard');
-  appAktualisieren();
+let authModus = 'login'; // 'login' | 'register'
+
+function zustandSetzen(zustand){
+  document.getElementById('ladeAnzeige').classList.toggle('hidden', zustand !== 'laden');
+  document.getElementById('authCard').classList.toggle('hidden', zustand !== 'auth');
+  document.getElementById('onboardingCard').classList.toggle('hidden', zustand !== 'onboarding');
+
+  const istApp = zustand === 'app';
+  document.getElementById('sidebar').classList.toggle('hidden', !istApp);
+  document.getElementById('tabbar').classList.toggle('hidden', !istApp);
+  document.getElementById('topbarMenu').classList.toggle('hidden', !istApp);
+
+  if(!istApp){
+    document.querySelectorAll('.app-seite').forEach(el => el.classList.add('hidden'));
+  }
 }
-function ausloggen(){
+
+function authModeToggle(){
+  authModus = authModus === 'login' ? 'register' : 'login';
+  const anmelden = authModus === 'login';
+  document.getElementById('authTitel').textContent  = anmelden ? 'Anmelden' : 'Registrieren';
+  document.getElementById('authBtn').textContent    = anmelden ? 'Einloggen' : 'Registrieren';
+  document.getElementById('authToggleBtn').textContent = anmelden
+    ? 'Noch kein Konto? Registrieren' : 'Bereits ein Konto? Einloggen';
+  document.getElementById('authPasswort').autocomplete = anmelden ? 'current-password' : 'new-password';
+}
+
+async function authAktion(){
+  const email = document.getElementById('authEmail').value.trim();
+  const pw    = document.getElementById('authPasswort').value;
+  if(!email || !pw){ showToast('E-Mail und Passwort eingeben','error'); return; }
+
+  const btn = document.getElementById('authBtn');
+  btn.disabled = true;
+  try{
+    if(authModus === 'login'){
+      const { error } = await sb.auth.signInWithPassword({ email, password: pw });
+      if(error) throw error;
+    } else {
+      const { error } = await sb.auth.signUp({ email, password: pw });
+      if(error) throw error;
+      showToast('Registrierung erfolgreich – bitte E-Mail bestätigen falls nötig.','info');
+    }
+  } catch(e){
+    const msg = {
+      'Invalid login credentials': 'E-Mail oder Passwort falsch.',
+      'User already registered': 'Diese E-Mail ist bereits registriert.',
+      'Password should be at least 6 characters': 'Passwort muss mindestens 6 Zeichen haben.',
+    }[e.message] || e.message;
+    showToast(msg,'error');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function onboardingGruenden(){
+  const club_name = document.getElementById('obVereinsname').value.trim();
+  const mein_name = document.getElementById('obMeinName').value.trim();
+  if(!club_name || !mein_name){ showToast('Vereinsname und Name eingeben','error'); return; }
+  const { error } = await sb.rpc('create_club', { club_name, mein_name });
+  if(error){ showToast(error.message || 'Fehler beim Gründen','error'); return; }
+  showToast('Verein „' + club_name + '" gegründet!');
+  await checkAppState();
+}
+
+async function onboardingBeitreten(){
+  const code      = document.getElementById('obCode').value.trim();
+  const mein_name = document.getElementById('obBeitretenName').value.trim();
+  if(!code || !mein_name){ showToast('Code und Name eingeben','error'); return; }
+  const { error } = await sb.rpc('join_club', { code, mein_name });
+  if(error){ showToast(error.message || 'Ungültiger Einladungscode','error'); return; }
+  showToast('Dem Verein beigetreten!');
+  await checkAppState();
+}
+
+async function ausloggen(){
+  await sb.auth.signOut();
   aktuellerBenutzer = null;
-  speichern();
+  sbSession = null; sbClubId = null; sbClubName = null; sbInviteCode = null;
   showToast('Abgemeldet','info');
-  seiteAnzeigen('dashboard');
-  appAktualisieren();
+}
+
+async function checkAppState(){
+  zustandSetzen('laden');
+  try{
+    const { data: { session } } = await sb.auth.getSession();
+    sbSession = session;
+
+    if(!session){
+      aktuellerBenutzer = null;
+      sbClubId = null; sbClubName = null; sbInviteCode = null;
+      zustandSetzen('auth');
+      return;
+    }
+
+    const { data: clubId } = await sb.rpc('my_club_id');
+    sbClubId = clubId;
+
+    if(!clubId){
+      zustandSetzen('onboarding');
+      return;
+    }
+
+    const [roleRes, memberRes, clubRes] = await Promise.all([
+      sb.rpc('my_role'),
+      sb.from('members').select('name, role').maybeSingle(),
+      sb.from('clubs').select('name, invite_code').eq('id', clubId).single()
+    ]);
+
+    const memberName = memberRes.data?.name || session.user.email;
+    const memberRole = roleRes.data || memberRes.data?.role || 'Schütze';
+    sbClubName   = clubRes.data?.name        || 'Schützenverein';
+    sbInviteCode = clubRes.data?.invite_code || '';
+
+    aktuellerBenutzer = {
+      id: 'sb-' + session.user.id,
+      name: memberName, rolle: memberRole,
+      aktiv: true, bild: '', benutzername: session.user.email, passwort: '', email: session.user.email
+    };
+    zugname = sbClubName;
+
+    datenLaden();
+    zustandSetzen('app');
+    appAktualisieren();
+    seiteAnzeigen('dashboard');
+  } catch(e){
+    console.error('checkAppState:', e);
+    zustandSetzen('auth');
+  }
 }
 
 /* ============================================================
@@ -426,17 +532,15 @@ function appAktualisieren(){
   document.getElementById('sidebarZugname').textContent = zugname;
   document.getElementById('dashboardDatum').textContent = new Date().toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
 
-  // Login-Status
-  const eingeloggt = !!aktuellerBenutzer;
-  document.getElementById('loginCard').classList.toggle('hidden', eingeloggt);
-  const startHinweis = localStorage.getItem('startHinweis') === '1';
-  document.getElementById('loginHinweis').textContent = (!eingeloggt && startHinweis)
-    ? 'Erststart: Benutzer „admin", Passwort „admin1234" – bitte nach dem Login im Profil ändern.' : '';
-
-  // Sidebar-Login-Box
+  // Sidebar-Login-Box: Verein, Rolle, Einladungscode (Spieß), Abmelden
   const slb = document.getElementById('sidebarLogin');
-  if(eingeloggt){
-    slb.innerHTML = 'Angemeldet als<br><b>'+escapeHtml(aktuellerBenutzer.name)+'</b> · '+escapeHtml(aktuellerBenutzer.rolle)+
+  if(aktuellerBenutzer){
+    const codeHtml = (istOffizier(aktuellerBenutzer) && sbInviteCode)
+      ? '<div style="margin:6px 0 2px">Einladungscode:<br><span class="code-display">'+escapeHtml(sbInviteCode)+'</span></div>' : '';
+    slb.innerHTML =
+      escapeHtml(sbClubName || zugname)+'<br>'+
+      '<b>'+escapeHtml(aktuellerBenutzer.name)+'</b> · '+escapeHtml(aktuellerBenutzer.rolle)+
+      codeHtml+
       '<button onclick="ausloggen()">Abmelden</button>';
   } else {
     slb.innerHTML = 'Nicht angemeldet';
@@ -816,9 +920,11 @@ function appInstallieren(){
    START
    ============================================================ */
 document.addEventListener('DOMContentLoaded', () => {
-  datenLaden();
-  appAktualisieren();
-  seiteAnzeigen('dashboard');
+  // onAuthStateChange reagiert auch auf den Initialzustand (INITIAL_SESSION-Event)
+  sb.auth.onAuthStateChange((_event, session) => {
+    sbSession = session;
+    checkAppState();
+  });
   if('serviceWorker' in navigator && location.protocol.startsWith('http')){
     navigator.serviceWorker.register('sw.js').catch(()=>{});
   }
