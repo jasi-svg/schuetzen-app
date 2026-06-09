@@ -1,0 +1,59 @@
+# Rechtstexte — Rhein(f)löten (internes Tool, kein e.V.)
+
+> Keine Rechtsberatung. Da kein e.V., nicht kommerziell und nur im Kreis befreundeter Züge geteilt: kein förmliches Impressum mit Anschrift nötig. Eine Datenschutzerklärung ist trotzdem sinnvoll, weil Mitgliederdaten verarbeitet werden. Kontakt genügt per E-Mail.
+
+---
+
+## Nutzungshinweis
+
+Diese App ist ein **privates, internes Verwaltungswerkzeug** des Schützenzuges Rhein(f)löten und wird ausschließlich im Kreis befreundeter Züge genutzt. Sie wird **nicht öffentlich angeboten, nicht beworben und nicht zu gewerblichen Zwecken** betrieben. Der Zugang erfolgt nur über persönliche Einladung; eine Nutzung durch unbeteiligte Dritte ist nicht vorgesehen.
+
+---
+
+## Kontakt (schlicht, freiwillig)
+
+Anbieter dieser App: **Rhein(f)löten**, Christian Javid
+E-Mail: jjavidson@gmail.com
+
+---
+
+## Datenschutzerklärung
+
+### 1. Verantwortlicher
+**Rhein(f)löten**, vertreten durch Christian Javid.
+E-Mail: jjavidson@gmail.com
+
+### 2. Welche Daten wir verarbeiten
+- **Anmeldedaten:** E-Mail-Adresse und Passwort (Passwort nur verschlüsselt gespeichert).
+- **Profildaten:** Name, optional E-Mail, optional Profilbild.
+- **Vereinsdaten:** Zugehörigkeit zum Zug und Rolle (z. B. Schütze, Spieß).
+- **Verwaltungsdaten:** Anwesenheiten, Strafen mit Beträgen und Zahlungsvermerken, Termine.
+- **Technische Daten:** Beim Aufruf verarbeitet der Hosting-Anbieter automatisch technische Zugriffsdaten (z. B. die IP-Adresse), um die App auszuliefern.
+
+### 3. Zwecke
+Ausschließlich die interne Organisation des Schützenzugs: Verwaltung von Mitgliedern, Strafenkatalog, Anwesenheit und Terminen.
+
+### 4. Rechtsgrundlagen
+- Durchführung des Vereins-/Zugverhältnisses: Art. 6 Abs. 1 lit. b DSGVO.
+- Berechtigtes Interesse an der Organisation des Zuges: Art. 6 Abs. 1 lit. f DSGVO.
+- Optionale Angaben (z. B. Profilbild): Einwilligung nach Art. 6 Abs. 1 lit. a DSGVO, jederzeit widerrufbar.
+
+### 5. Eingesetzte Dienstleister (Auftragsverarbeiter)
+- **Datenbank & Anmeldung:** Supabase, Speicherung in der **EU-Region (Frankfurt)**, Auftragsverarbeitungsvertrag nach Art. 28 DSGVO. Anbieter: Supabase Inc. (USA), Datenhaltung in der EU.
+- **Hosting der App:** GitHub Pages, GitHub Inc. / Microsoft, USA – liefert die App aus; dabei wird die IP-Adresse verarbeitet.
+
+### 6. Übermittlung in Drittländer
+Einige Anbieter haben einen USA-Bezug. Die Vereinsdaten werden in der EU gehalten; soweit eine Übermittlung in die USA erfolgt, geschieht dies auf Grundlage geeigneter Garantien (z. B. EU-Standardvertragsklauseln).
+
+### 7. Speicherdauer
+Speicherung, solange für die genannten Zwecke nötig; abgeschlossene Saisons werden archiviert. Auf Wunsch werden Daten gelöscht.
+
+### 8. Deine Rechte
+Auskunft (Art. 15), Berichtigung (Art. 16), Löschung (Art. 17), Einschränkung (Art. 18), Datenübertragbarkeit (Art. 20), Widerspruch (Art. 21), Widerruf einer Einwilligung sowie Beschwerde bei einer Datenschutz-Aufsichtsbehörde.
+
+### 9. Kontakt in Datenschutzfragen
+jjavidson@gmail.com
+
+---
+
+*Stand: Juni 2026*

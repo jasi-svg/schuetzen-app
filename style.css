@@ -3,6 +3,20 @@
    Farben: Tannengrün / Loden / Gold · Schrift: Fraunces + Manrope
    ============================================================ */
 
+/* ---------- Lokale Schriften (kein Google Fonts) ---------- */
+@font-face{font-family:'Fraunces';font-style:normal;font-weight:400 900;font-display:swap;
+  src:url('fonts/fraunces-latin-ext.woff2') format('woff2');
+  unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:'Fraunces';font-style:normal;font-weight:400 900;font-display:swap;
+  src:url('fonts/fraunces-latin.woff2') format('woff2');
+  unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:'Manrope';font-style:normal;font-weight:400 800;font-display:swap;
+  src:url('fonts/manrope-latin-ext.woff2') format('woff2');
+  unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:'Manrope';font-style:normal;font-weight:400 800;font-display:swap;
+  src:url('fonts/manrope-latin.woff2') format('woff2');
+  unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+
 :root{
   --gruen-900:#102b23;
   --gruen-800:#163b30;
@@ -303,6 +317,35 @@ table tbody tr:hover{background:var(--creme)}
   color:var(--gold-hell);
 }
 
+/* ---------- Auth-Hinweis ---------- */
+.auth-hinweis{font-size:12px;color:var(--grau);text-align:center;line-height:1.5;margin-top:4px}
+
+/* ---------- Globaler Datenschutz-Footer ---------- */
+.app-footer{
+  position:fixed;bottom:12px;right:16px;z-index:1100;
+  font-size:11px;font-weight:600;color:var(--grau);
+  background:rgba(244,239,228,.92);border:1px solid var(--linie);
+  border-radius:99px;padding:5px 14px;text-decoration:none;
+  box-shadow:0 2px 8px rgba(16,43,35,.08);
+  backdrop-filter:blur(4px);
+  transition:color .15s,background .15s;
+}
+.app-footer:hover{color:var(--gruen-800);background:var(--creme)}
+
+/* ---------- Datenschutz-Overlay ---------- */
+.datenschutz-overlay{
+  position:fixed;inset:0;z-index:4500;
+  background:var(--creme);overflow-y:auto;-webkit-overflow-scrolling:touch;
+}
+.datenschutz-sheet{max-width:720px;margin:0 auto;padding:32px 24px 80px}
+.datenschutz-sheet .seite-head{margin-bottom:24px}
+.datenschutz-sheet h3{margin-top:28px}
+.datenschutz-sheet h4{margin-top:18px;margin-bottom:6px}
+.datenschutz-sheet p,.datenschutz-sheet ul{margin-bottom:10px}
+.datenschutz-sheet ul{padding-left:20px}
+.datenschutz-sheet li{margin-bottom:6px}
+.datenschutz-sheet a{color:var(--gruen-600)}
+
 /* ============================================================
    MOBILE
    ============================================================ */
@@ -314,6 +357,7 @@ table tbody tr:hover{background:var(--creme)}
   .card{padding:20px 16px;border-radius:20px}
   h2{font-size:22px}
   .seite-head{margin-bottom:14px}
+  .app-footer{bottom:calc(66px + env(safe-area-inset-bottom))}
 }
 @media(min-width:861px){
   .topbar,.tabbar,.menue-overlay{display:none !important}

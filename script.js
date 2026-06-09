@@ -104,6 +104,8 @@ function seiteAnzeigen(seite){
 function menueOeffnen(){ document.getElementById('menueOverlay').classList.remove('hidden'); }
 function menueSchliessen(){ document.getElementById('menueOverlay')?.classList.add('hidden'); }
 function schnellStrafe(){ seiteAnzeigen('strafen'); document.getElementById('schuetzeSelect')?.focus(); }
+function datenschutzAnzeigen(){ document.getElementById('datenschutzSeite').classList.remove('hidden'); }
+function datenschutzSchliessen(){ document.getElementById('datenschutzSeite').classList.add('hidden'); }
 
 /* ============================================================
    TOASTS

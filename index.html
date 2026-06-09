@@ -8,9 +8,6 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon.svg">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700;9..144,900&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -156,6 +153,7 @@
     <input id="authPasswort" type="password" placeholder="Passwort" autocomplete="current-password">
     <button class="btn-gold" id="authBtn" onclick="authAktion()">Einloggen</button>
     <button class="btn-ghost" id="authToggleBtn" onclick="authModeToggle()">Noch kein Konto? Registrieren</button>
+    <p class="auth-hinweis">Internes Tool des Schützenzuges Rhein(f)löten – Zugang nur auf Einladung.</p>
   </section>
 
   <!-- Zustand B: Eingeloggt, aber kein Verein -->
@@ -377,6 +375,74 @@
   <button id="tab-kalender" class="tab" onclick="seiteAnzeigen('kalender')"><span class="pill"><span class="tic">📅</span></span>Kalender</button>
   <button id="tab-profil" class="tab" onclick="seiteAnzeigen('profil')"><span class="pill"><span class="tic">👤</span></span>Profil</button>
 </nav>
+
+<!-- DATENSCHUTZ-OVERLAY (ohne Login erreichbar) -->
+<div id="datenschutzSeite" class="datenschutz-overlay hidden">
+  <div class="datenschutz-sheet">
+    <div class="seite-head">
+      <h2>Datenschutz</h2>
+      <button class="btn-ghost" style="width:auto" onclick="datenschutzSchliessen()">← Zurück</button>
+    </div>
+
+    <h3>Nutzungshinweis</h3>
+    <p>Diese App ist ein <strong>privates, internes Verwaltungswerkzeug</strong> des Schützenzuges Rhein(f)löten und wird ausschließlich im Kreis befreundeter Züge genutzt. Sie wird <strong>nicht öffentlich angeboten, nicht beworben und nicht zu gewerblichen Zwecken</strong> betrieben. Der Zugang erfolgt nur über persönliche Einladung; eine Nutzung durch unbeteiligte Dritte ist nicht vorgesehen.</p>
+
+    <hr class="trenner">
+
+    <h3>Kontakt</h3>
+    <p>Anbieter dieser App: <strong>Rhein(f)löten</strong>, Christian Javid<br>
+    E-Mail: <a href="mailto:jjavidson@gmail.com">jjavidson@gmail.com</a></p>
+
+    <hr class="trenner">
+
+    <h3>Datenschutzerklärung</h3>
+
+    <h4>1. Verantwortlicher</h4>
+    <p><strong>Rhein(f)löten</strong>, vertreten durch Christian Javid.<br>
+    E-Mail: <a href="mailto:jjavidson@gmail.com">jjavidson@gmail.com</a></p>
+
+    <h4>2. Welche Daten wir verarbeiten</h4>
+    <ul>
+      <li><strong>Anmeldedaten:</strong> E-Mail-Adresse und Passwort (Passwort nur verschlüsselt gespeichert).</li>
+      <li><strong>Profildaten:</strong> Name, optional E-Mail, optional Profilbild.</li>
+      <li><strong>Vereinsdaten:</strong> Zugehörigkeit zum Zug und Rolle (z. B. Schütze, Spieß).</li>
+      <li><strong>Verwaltungsdaten:</strong> Anwesenheiten, Strafen mit Beträgen und Zahlungsvermerken, Termine.</li>
+      <li><strong>Technische Daten:</strong> Beim Aufruf verarbeitet der Hosting-Anbieter automatisch technische Zugriffsdaten (z. B. die IP-Adresse), um die App auszuliefern.</li>
+    </ul>
+
+    <h4>3. Zwecke</h4>
+    <p>Ausschließlich die interne Organisation des Schützenzugs: Verwaltung von Mitgliedern, Strafenkatalog, Anwesenheit und Terminen.</p>
+
+    <h4>4. Rechtsgrundlagen</h4>
+    <ul>
+      <li>Durchführung des Vereins-/Zugverhältnisses: Art. 6 Abs. 1 lit. b DSGVO.</li>
+      <li>Berechtigtes Interesse an der Organisation des Zuges: Art. 6 Abs. 1 lit. f DSGVO.</li>
+      <li>Optionale Angaben (z. B. Profilbild): Einwilligung nach Art. 6 Abs. 1 lit. a DSGVO, jederzeit widerrufbar.</li>
+    </ul>
+
+    <h4>5. Eingesetzte Dienstleister (Auftragsverarbeiter)</h4>
+    <ul>
+      <li><strong>Datenbank &amp; Anmeldung:</strong> Supabase, Speicherung in der <strong>EU-Region (Frankfurt)</strong>, Auftragsverarbeitungsvertrag nach Art. 28 DSGVO. Anbieter: Supabase Inc. (USA), Datenhaltung in der EU.</li>
+      <li><strong>Hosting der App:</strong> GitHub Pages, GitHub Inc. / Microsoft, USA – liefert die App aus; dabei wird die IP-Adresse verarbeitet.</li>
+    </ul>
+
+    <h4>6. Übermittlung in Drittländer</h4>
+    <p>Einige Anbieter haben einen USA-Bezug. Die Vereinsdaten werden in der EU gehalten; soweit eine Übermittlung in die USA erfolgt, geschieht dies auf Grundlage geeigneter Garantien (z. B. EU-Standardvertragsklauseln).</p>
+
+    <h4>7. Speicherdauer</h4>
+    <p>Speicherung, solange für die genannten Zwecke nötig; abgeschlossene Saisons werden archiviert. Auf Wunsch werden Daten gelöscht.</p>
+
+    <h4>8. Deine Rechte</h4>
+    <p>Auskunft (Art. 15), Berichtigung (Art. 16), Löschung (Art. 17), Einschränkung (Art. 18), Datenübertragbarkeit (Art. 20), Widerspruch (Art. 21), Widerruf einer Einwilligung sowie Beschwerde bei einer Datenschutz-Aufsichtsbehörde.</p>
+
+    <h4>9. Kontakt in Datenschutzfragen</h4>
+    <p><a href="mailto:jjavidson@gmail.com">jjavidson@gmail.com</a></p>
+
+    <p class="muted" style="margin-top:24px">Stand: Juni 2026</p>
+  </div>
+</div>
+
+<a class="app-footer" href="#" onclick="datenschutzAnzeigen();return false;">Datenschutz</a>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="script.js"></script>
