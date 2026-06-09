@@ -42,7 +42,8 @@
 <!-- Mobile Topbar -->
 <header class="topbar">
   <div class="topbar-brand">
-    <svg class="brand-svg" viewBox="0 0 100 116"><use href="#appWappen"/></svg>
+    <svg id="topbarWappen" class="brand-svg" viewBox="0 0 100 116"><use href="#appWappen"/></svg>
+    <img id="topbarLogo" class="brand-logo hidden" alt="Logo">
     <span id="topbarZugname">Strafenkatalog</span>
   </div>
   <button class="topbar-menu hidden" id="topbarMenu" onclick="menueOeffnen()" aria-label="Menü">☰</button>
@@ -120,7 +121,8 @@
 <!-- Desktop Sidebar -->
 <nav class="sidebar hidden" id="sidebar">
   <div class="sidebar-brand">
-    <svg class="brand-svg" viewBox="0 0 100 116"><use href="#appWappen"/></svg>
+    <svg id="sidebarWappen" class="brand-svg" viewBox="0 0 100 116"><use href="#appWappen"/></svg>
+    <img id="sidebarLogo" class="brand-logo hidden" alt="Logo">
     <div><b id="sidebarZugname">Strafenkatalog</b><small>Schützenzug</small></div>
   </div>
   <button id="nav-dashboard" class="nav-item" onclick="seiteAnzeigen('dashboard')"><span class="ic">🏠</span> Dashboard</button>
@@ -180,18 +182,18 @@
   <section class="card app-seite" id="dashboardSeite">
     <div class="seite-head"><h2>Dashboard</h2><span id="dashboardDatum" class="muted"></span></div>
     <div class="dashboard">
-      <div class="dashboard-card"><span class="dashboard-icon">💰</span><p id="dashboardGesamt">0 €</p><strong>Gesamt</strong></div>
-      <div class="dashboard-card"><span class="dashboard-icon">✅</span><p id="dashboardBezahlt">0 €</p><strong>Bezahlt</strong></div>
-      <div class="dashboard-card offen"><span class="dashboard-icon">🔥</span><p id="dashboardOffen">0 €</p><strong>Offen</strong></div>
-      <div class="dashboard-card"><span class="dashboard-icon">🐷</span><p id="dashboardAnzahlStrafen">0</p><strong>Strafen</strong></div>
-      <div class="dashboard-card"><span class="dashboard-icon">📅</span><p id="dashboardAnwesenheiten">0</p><strong>Anwesenheiten</strong></div>
+      <div class="dashboard-card" onclick="seiteAnzeigen('strafen')"><span class="dashboard-icon">💰</span><p id="dashboardGesamt">0 €</p><strong>Gesamt</strong></div>
+      <div class="dashboard-card" onclick="seiteAnzeigen('strafen')"><span class="dashboard-icon">✅</span><p id="dashboardBezahlt">0 €</p><strong>Bezahlt</strong></div>
+      <div class="dashboard-card offen" onclick="seiteAnzeigen('strafen')"><span class="dashboard-icon">🔥</span><p id="dashboardOffen">0 €</p><strong>Offen</strong></div>
+      <div class="dashboard-card" onclick="seiteAnzeigen('strafen')"><span class="dashboard-icon">🐷</span><p id="dashboardAnzahlStrafen">0</p><strong>Strafen</strong></div>
+      <div class="dashboard-card" onclick="seiteAnzeigen('anwesenheit')"><span class="dashboard-icon">📅</span><p id="dashboardAnwesenheiten">0</p><strong>Anwesenheiten</strong></div>
     </div>
 
     <h3>Nächstes Antreten</h3>
     <div id="dashboardNaechsterTermin"></div>
 
-    <h3>🐷 Zugsau-Podium</h3>
-    <div id="dashboardPodium" class="podium"></div>
+    <h3 style="cursor:pointer" onclick="seiteAnzeigen('ranking')">🐷 Zugsau-Podium</h3>
+    <div id="dashboardPodium" class="podium" style="cursor:pointer" onclick="seiteAnzeigen('ranking')"></div>
   </section>
 
   <!-- PROFIL -->
@@ -206,9 +208,10 @@
     <div class="form-grid">
       <select id="schuetzeSelect"></select>
       <select id="strafartSelect" onchange="betragAktualisieren()"></select>
-      <input id="betrag" type="number" placeholder="Betrag in €">
+      <input id="betrag" type="number" placeholder="Betrag in €" oninput="betragManuell()">
       <input id="kommentar" type="text" placeholder="Kommentar (optional)">
     </div>
+    <small id="betragHinweis" class="hidden" style="display:block;color:var(--grau);font-size:12px;margin:-6px 0 10px">Betrag aus Strafart übernommen – zum Überschreiben einfach eintippen.</small>
     <button class="btn-gold" onclick="strafeSpeichern()">Strafe speichern</button>
 
     <div class="tabelle-head">
@@ -363,6 +366,8 @@
       <h3>⚠️ Gefahrenzone</h3>
       <button class="delete-button" onclick="clearAllData()">Alle Daten löschen</button>
     </div>
+
+    <p style="text-align:center;padding-top:4px"><a href="#" onclick="datenschutzAnzeigen();return false;" style="color:var(--grau);font-size:12px;text-decoration:none">🔒 Datenschutz</a></p>
   </section>
 
 </main>
@@ -485,9 +490,9 @@
   </div>
 </div>
 
-<footer class="app-footer-bar">
+<footer id="footerBar" class="app-footer-bar hidden">
   <a href="#" onclick="installSeiteAnzeigen();return false;">📲 App installieren</a>
-  <a href="#" onclick="datenschutzAnzeigen();return false;">Datenschutz</a>
+  <a href="#" onclick="datenschutzAnzeigen();return false;">🔒 Datenschutz</a>
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>

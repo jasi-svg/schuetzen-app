@@ -49,7 +49,9 @@ body{
     var(--creme);
   background-attachment:fixed;
   min-height:100vh;
+  overflow-x:hidden;
 }
+img{max-width:100%;height:auto}
 
 h1,h2,h3{font-family:'Fraunces',Georgia,serif;color:var(--gruen-900);letter-spacing:-.3px}
 h2{font-size:26px;font-weight:700}
@@ -168,8 +170,8 @@ button:active{transform:translateY(0)}
   display:none;position:fixed;left:0;right:0;bottom:0;z-index:900;
   justify-content:space-around;align-items:center;
   background:var(--weiss);border-top:1px solid var(--linie);
-  padding:8px 6px calc(8px + env(safe-area-inset-bottom));
-  box-shadow:0 -6px 20px rgba(16,43,35,.06);
+  padding:8px 6px calc(8px + env(safe-area-inset-bottom, 10px));
+  box-shadow:0 -4px 12px rgba(0,0,0,.08);
 }
 .tab{background:transparent;color:var(--grau);border:none;flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10px;font-weight:700;padding:4px}
 .tab:hover{transform:none;background:transparent}
@@ -182,12 +184,20 @@ button:active{transform:translateY(0)}
 
 /* ---------- Dashboard ---------- */
 .dashboard{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:10px}
-.dashboard-card{background:linear-gradient(180deg,#fff,var(--creme));border:1px solid var(--linie);border-radius:20px;padding:20px;transition:transform .2s,box-shadow .2s}
+.dashboard-card{background:linear-gradient(180deg,#fff,var(--creme));border:1px solid var(--linie);border-radius:20px;padding:20px;transition:transform .2s,box-shadow .2s;cursor:pointer}
 .dashboard-card:hover{transform:translateY(-4px);box-shadow:var(--schatten)}
 .dashboard-icon{display:inline-flex;align-items:center;justify-content:center;width:42px;height:42px;background:var(--gruen-900);color:var(--gold-hell);border-radius:13px;font-size:20px;margin-bottom:12px}
 .dashboard-card p{font-family:'Fraunces',serif;font-size:27px;font-weight:700;color:var(--gruen-900);margin:0 0 2px}
 .dashboard-card strong{font-size:12px;color:var(--grau);text-transform:uppercase;letter-spacing:.4px}
 .dashboard-card.offen p{color:var(--bordeaux)}
+
+/* ---------- Auto-Betrag ---------- */
+.auto-betrag{border-color:var(--gold) !important;background:rgba(200,160,74,.06);color:var(--grau)}
+
+/* ---------- Zug-Logo ---------- */
+.brand-logo{border-radius:50%;object-fit:cover;border:2px solid var(--gold-hell);flex:none}
+.topbar-brand .brand-logo{width:32px;height:32px}
+.sidebar-brand .brand-logo{width:38px;height:38px}
 
 /* ---------- Tabellen ---------- */
 .tabelle-scroll{overflow-x:auto;border-radius:16px;border:1px solid var(--linie)}
@@ -371,7 +381,7 @@ table tbody tr:hover{background:var(--creme)}
   .sidebar{display:none}
   .topbar{display:flex}
   .tabbar{display:flex}
-  .app{margin-left:0;padding:16px 14px 96px;max-width:100%}
+  .app{margin-left:0;padding:16px 14px calc(72px + env(safe-area-inset-bottom, 0px));max-width:100%;box-sizing:border-box}
   .card{padding:20px 16px;border-radius:20px}
   h2{font-size:22px}
   .seite-head{margin-bottom:14px}

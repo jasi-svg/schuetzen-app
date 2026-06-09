@@ -147,6 +147,7 @@ function zustandSetzen(zustand){
   document.getElementById('sidebar').classList.toggle('hidden', !istApp);
   document.getElementById('tabbar').classList.toggle('hidden', !istApp);
   document.getElementById('topbarMenu').classList.toggle('hidden', !istApp);
+  document.getElementById('footerBar')?.classList.toggle('hidden', zustand !== 'auth');
 
   if(!istApp){
     document.querySelectorAll('.app-seite').forEach(el => el.classList.add('hidden'));
@@ -427,7 +428,20 @@ async function strafartLoeschen(id){
 function betragAktualisieren(){
   const i = document.getElementById('strafartSelect').value;
   const a = strafarten[i];
-  if(a) document.getElementById('betrag').value = a.betrag;
+  const betragEl = document.getElementById('betrag');
+  const hinweis  = document.getElementById('betragHinweis');
+  if(a && betragEl){
+    betragEl.value = a.betrag;
+    betragEl.classList.add('auto-betrag');
+    hinweis?.classList.remove('hidden');
+  } else if(betragEl){
+    betragEl.classList.remove('auto-betrag');
+    hinweis?.classList.add('hidden');
+  }
+}
+function betragManuell(){
+  document.getElementById('betrag')?.classList.remove('auto-betrag');
+  document.getElementById('betragHinweis')?.classList.add('hidden');
 }
 async function strafeSpeichern(){
   if(!darfBearbeiten()){ showToast('Nur Offiziere dürfen Strafen erfassen','error'); return; }
@@ -649,6 +663,23 @@ function appAktualisieren(){
   // Kopf / Zugname
   document.getElementById('topbarZugname').textContent = zugname;
   document.getElementById('sidebarZugname').textContent = zugname;
+
+  // Logo in Topbar und Sidebar
+  const topbarWappen = document.getElementById('topbarWappen');
+  const topbarLogo   = document.getElementById('topbarLogo');
+  const sidebarWappen= document.getElementById('sidebarWappen');
+  const sidebarLogo  = document.getElementById('sidebarLogo');
+  if(logo){
+    topbarWappen?.classList.add('hidden');
+    if(topbarLogo){ topbarLogo.src = logo; topbarLogo.classList.remove('hidden'); }
+    sidebarWappen?.classList.add('hidden');
+    if(sidebarLogo){ sidebarLogo.src = logo; sidebarLogo.classList.remove('hidden'); }
+  } else {
+    topbarWappen?.classList.remove('hidden');
+    topbarLogo?.classList.add('hidden');
+    sidebarWappen?.classList.remove('hidden');
+    sidebarLogo?.classList.add('hidden');
+  }
   document.getElementById('dashboardDatum').textContent = new Date().toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
 
   // Sidebar-Login-Box: Verein, Rolle, Einladungscode (Spieß), Abmelden
@@ -851,6 +882,7 @@ function renderSelects(){
   const as = document.getElementById('anwesenheitSchuetzeSelect'); if(as) as.innerHTML = '<option value="">Schütze auswählen</option>'+opt;
   const art = document.getElementById('strafartSelect');
   if(art) art.innerHTML = strafarten.map((a,i)=>'<option value="'+i+'">'+escapeHtml(a.bezeichnung)+' ('+euro(a.betrag)+')</option>').join('');
+  betragAktualisieren();
 }
 
 /* ============================================================
@@ -890,7 +922,7 @@ function logoSpeichern(){
   const f = document.getElementById('logoInput').files[0];
   if(!f){ showToast('Bitte ein Bild wählen','error'); return; }
   const r = new FileReader();
-  r.onload = e => { logo = e.target.result; speichern(); showToast('Logo gespeichert'); };
+  r.onload = e => { logo = e.target.result; speichern(); showToast('Logo gespeichert'); appAktualisieren(); };
   r.readAsDataURL(f);
 }
 
