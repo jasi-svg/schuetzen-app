@@ -396,7 +396,7 @@ function betragAktualisieren(){
   const a = strafarten[i];
   if(a) document.getElementById('betrag').value = a.betrag;
 }
-function strafeSpeichern(){
+async function strafeSpeichern(){
   if(!darfBearbeiten()){ showToast('Nur Offiziere dürfen Strafen erfassen','error'); return; }
   const sid = document.getElementById('schuetzeSelect').value;
   const ai  = document.getElementById('strafartSelect').value;
@@ -406,28 +406,32 @@ function strafeSpeichern(){
   if(!s || isNaN(basis)){ showToast('Schütze und Betrag wählen','error'); return; }
   const art = strafarten[ai] ? strafarten[ai].bezeichnung : 'Strafe';
   const endbetrag = istOffizier(s) ? basis*2 : basis;  // Offiziere zahlen doppelt
-  strafen.push({
-    id:neueId(), schuetzeId:s.id, schuetze:s.name, strafart:art,
-    basisbetrag:basis, betrag:endbetrag, kommentar,
-    datum:new Date().toISOString().slice(0,10), bezahlt:false
+  const { error } = await sb.from('strafen').insert({
+    club_id: sbClubId, member_id: s.id, schuetze: s.name, strafart: art,
+    basisbetrag: basis, betrag: endbetrag, kommentar,
+    datum: new Date().toISOString().slice(0,10), bezahlt: false
   });
-  speichern();
+  if(error){ showToast(error.message || 'Fehler beim Speichern', 'error'); return; }
   document.getElementById('kommentar').value='';
   showToast('Strafe gespeichert' + (istOffizier(s)?' (Offizier × 2)':''));
-  appAktualisieren();
+  await clubDatenLaden();
 }
-function strafeLoeschen(id){
+async function strafeLoeschen(id){
   if(!darfBearbeiten()){ showToast('Keine Berechtigung','error'); return; }
-  strafen = strafen.filter(x => x.id !== id); speichern(); showToast('Strafe gelöscht','warning'); appAktualisieren();
+  const { error } = await sb.from('strafen').delete().eq('id', id);
+  if(error){ showToast(error.message || 'Fehler beim Löschen', 'error'); return; }
+  showToast('Strafe gelöscht','warning');
+  await clubDatenLaden();
 }
 let zahlungStrafeId = null;
-function strafeBezahltToggle(id){
+async function strafeBezahltToggle(id){
   if(!darfBearbeiten()){ showToast('Keine Berechtigung','error'); return; }
   const st = strafen.find(x => x.id === id); if(!st) return;
   if(st.bezahlt){
     // bereits bezahlt -> wieder auf offen, Vermerk entfernen
-    st.bezahlt = false; st.bezahltArt = ''; st.bezahltDatum = '';
-    speichern(); appAktualisieren();
+    const { error } = await sb.from('strafen').update({ bezahlt: false, bezahlt_art: null, bezahlt_datum: null }).eq('id', id);
+    if(error){ showToast(error.message || 'Fehler', 'error'); return; }
+    await clubDatenLaden();
   } else {
     // Bezahl-Fenster öffnen, um Art + Datum zu erfassen
     zahlungStrafeId = id;
@@ -437,15 +441,15 @@ function strafeBezahltToggle(id){
   }
 }
 function closeZahlungModal(){ zahlungStrafeId = null; document.getElementById('zahlungModal').classList.add('hidden'); }
-function zahlungSpeichern(){
-  const st = strafen.find(x => x.id === zahlungStrafeId); if(!st){ closeZahlungModal(); return; }
-  st.bezahlt = true;
-  st.bezahltArt = document.getElementById('zahlungArt').value;
-  st.bezahltDatum = document.getElementById('zahlungDatum').value || new Date().toISOString().slice(0,10);
-  speichern();
+async function zahlungSpeichern(){
+  if(!zahlungStrafeId){ closeZahlungModal(); return; }
+  const art   = document.getElementById('zahlungArt').value;
+  const datum = document.getElementById('zahlungDatum').value || new Date().toISOString().slice(0,10);
+  const { error } = await sb.from('strafen').update({ bezahlt: true, bezahlt_art: art, bezahlt_datum: datum }).eq('id', zahlungStrafeId);
+  if(error){ showToast(error.message || 'Fehler beim Speichern', 'error'); return; }
   closeZahlungModal();
-  showToast('Als bezahlt vermerkt ('+st.bezahltArt+')');
-  appAktualisieren();
+  showToast('Als bezahlt vermerkt ('+art+')');
+  await clubDatenLaden();
 }
 
 /* ============================================================
