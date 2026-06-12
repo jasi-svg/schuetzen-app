@@ -297,6 +297,29 @@
   <!-- ANWESENHEIT -->
   <section class="card app-seite hidden" id="anwesenheitSeite">
     <div class="seite-head"><h2>Anwesenheit erfassen</h2></div>
+
+    <!-- Schnell-Erfassung (nur Offiziere, wird per JS ein-/ausgeblendet) -->
+    <div id="schnellErfassungBereich" class="unterkarte hidden">
+      <h3 style="margin-top:0">⚡ Schnell-Erfassung</h3>
+      <div class="form-grid" style="margin-bottom:14px">
+        <div>
+          <label for="schnellDatum">Datum</label>
+          <input id="schnellDatum" type="date">
+        </div>
+        <div>
+          <label for="schnellTag">Tag / Anlass</label>
+          <select id="schnellTag">
+            <option value="Freitag">Freitag</option><option value="Samstag">Samstag</option>
+            <option value="Sonntag">Sonntag</option><option value="Montag">Montag</option><option value="Dienstag">Dienstag</option>
+          </select>
+        </div>
+      </div>
+      <div id="schnellMitgliederListe"></div>
+      <button class="btn-gold" style="margin-top:14px" onclick="schnellAnwesenheitSpeichern()">Alle speichern</button>
+    </div>
+
+    <hr class="trenner">
+    <h3 style="margin-top:0">Einzel-Erfassung</h3>
     <div class="form-grid">
       <select id="tagSelect">
         <option value="Freitag">Freitag</option><option value="Samstag">Samstag</option>

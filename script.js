@@ -670,6 +670,86 @@ async function anwesenheitLoeschen(id){
   await clubDatenLaden();
 }
 
+function renderSchnellErfassung(){
+  const bereich = document.getElementById('schnellErfassungBereich');
+  if(!bereich) return;
+  if(!darfBearbeiten()){ bereich.classList.add('hidden'); return; }
+  bereich.classList.remove('hidden');
+
+  const datumInput = document.getElementById('schnellDatum');
+  if(datumInput && !datumInput.value) datumInput.value = new Date().toISOString().slice(0,10);
+
+  const aktive = schuetzen.filter(s=>s.aktiv);
+  const liste = document.getElementById('schnellMitgliederListe');
+  if(!liste) return;
+  liste.innerHTML = aktive.map(s=>
+    '<div class="schnell-zeile" data-id="'+s.id+'">' +
+      '<span class="schnell-name">'+escapeHtml(s.name)+'</span>' +
+      '<div class="status-seg">' +
+        '<button type="button" class="seg-btn" data-status="Anwesend" onclick="schnellStatusWaehlen(this)">Anwesend</button>' +
+        '<button type="button" class="seg-btn" data-status="Zu spät" onclick="schnellStatusWaehlen(this)">Zu spät</button>' +
+        '<button type="button" class="seg-btn" data-status="Entschuldigt" onclick="schnellStatusWaehlen(this)">Entschuld.</button>' +
+        '<button type="button" class="seg-btn" data-status="Fehlend" onclick="schnellStatusWaehlen(this)">Fehlend</button>' +
+      '</div>' +
+      '<input class="schnell-min hidden" type="number" placeholder="Min." min="0">' +
+    '</div>'
+  ).join('') || '<p class="muted">Keine aktiven Mitglieder.</p>';
+}
+
+function schnellStatusWaehlen(btn){
+  const zeile = btn.closest('.schnell-zeile');
+  const war = btn.classList.contains('seg-aktiv');
+  zeile.querySelectorAll('.seg-btn').forEach(b=>b.classList.remove('seg-aktiv'));
+  const minInput = zeile.querySelector('.schnell-min');
+  if(!war){
+    btn.classList.add('seg-aktiv');
+    if(btn.dataset.status === 'Zu spät'){ minInput.classList.remove('hidden'); }
+    else { minInput.classList.add('hidden'); minInput.value = ''; }
+  } else {
+    minInput.classList.add('hidden'); minInput.value = '';
+  }
+}
+
+async function schnellAnwesenheitSpeichern(){
+  if(!darfBearbeiten()){ showToast('Nur Offiziere dürfen Anwesenheit erfassen','error'); return; }
+  const datum = document.getElementById('schnellDatum').value || new Date().toISOString().slice(0,10);
+  const tag   = document.getElementById('schnellTag').value;
+  const zeilen = document.querySelectorAll('#schnellMitgliederListe .schnell-zeile');
+  const eintraege = [];
+  const verspaetete = [];
+  zeilen.forEach(zeile=>{
+    const aktiv = zeile.querySelector('.seg-btn.seg-aktiv');
+    if(!aktiv) return;
+    const s = findSchuetze(zeile.dataset.id);
+    if(!s) return;
+    const status  = aktiv.dataset.status;
+    const minuten = status === 'Zu spät' ? (parseInt(zeile.querySelector('.schnell-min').value)||0) : 0;
+    eintraege.push({ club_id:sbClubId, member_id:s.id, schuetze:s.name, tag, status, minuten, datum });
+    if(status === 'Zu spät') verspaetete.push({ s, minuten });
+  });
+  if(eintraege.length === 0){ showToast('Kein Status ausgewählt','error'); return; }
+
+  const { error: anwErr } = await sb.from('anwesenheiten').insert(eintraege);
+  if(anwErr){ console.error('schnellAnwesenheitSpeichern:', anwErr); showToast('Fehler: '+anwErr.message,'error'); return; }
+
+  if(verspaetete.length > 0){
+    const basis = 5;
+    const strafEintraege = verspaetete.map(({s, minuten})=>({
+      club_id:sbClubId, member_id:s.id, schuetze:s.name,
+      strafart:'Zu spät erschienen', basisbetrag:basis,
+      betrag: istOffizier(s) ? basis*2 : basis,
+      kommentar: minuten ? minuten+' Min. Verspätung' : '',
+      datum, bezahlt:false
+    }));
+    const { error: strafErr } = await sb.from('strafen').insert(strafEintraege);
+    if(strafErr){ console.error('schnellAnwesenheitSpeichern (Strafen):', strafErr); showToast(eintraege.length+' Anwesenheit(en) gespeichert, Strafen fehlgeschlagen: '+strafErr.message,'error'); }
+    else { showToast(eintraege.length+' Anwesenheit(en) + '+verspaetete.length+' Verspätungs-Strafe(n) gespeichert','info'); }
+  } else {
+    showToast(eintraege.length+' Anwesenheit(en) gespeichert');
+  }
+  await clubDatenLaden();
+}
+
 /* ============================================================
    KALENDER
    ============================================================ */
@@ -1066,6 +1146,7 @@ function renderStrafarten(){
 }
 
 function renderAnwesenheit(){
+  renderSchnellErfassung();
   const darf = darfBearbeiten();
   document.getElementById('anwesenheitenTabelle').innerHTML = anwesenheiten.slice().reverse().map(a=>{
     const klasse = {'Anwesend':'status-anwesend','Zu spät':'status-zuspaet','Entschuldigt':'status-entschuldigt','Fehlend':'status-fehlend'}[a.status]||'';

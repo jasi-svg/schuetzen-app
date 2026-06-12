@@ -121,6 +121,33 @@ h4{font-family:'Fraunces',serif;color:var(--gruen-800);font-size:15px;margin-bot
 /* ---------- Anwesenheit Kommentar ---------- */
 .anw-kommentar{color:var(--grau);font-size:12px;display:block;margin-top:2px}
 
+/* ---------- Schnell-Erfassung ---------- */
+.schnell-zeile{
+  display:flex;align-items:center;flex-wrap:wrap;gap:6px 10px;
+  padding:9px 0;border-bottom:1px solid var(--linie);
+}
+.schnell-zeile:last-child{border-bottom:none}
+.schnell-name{flex:0 0 140px;font-weight:600;font-size:14px}
+.status-seg{display:flex;gap:4px;flex-wrap:wrap;flex:1}
+.seg-btn{
+  width:auto;padding:8px 11px;font-size:13px;border-radius:9px;
+  background:var(--creme-2);color:var(--grau);
+  border:1px solid var(--linie);font-weight:600;
+  transition:background .15s,color .15s;cursor:pointer;
+}
+.seg-btn:hover{background:var(--creme);transform:none}
+.seg-btn.seg-aktiv[data-status="Anwesend"]{background:var(--gruen-600);color:#fff;border-color:var(--gruen-600)}
+.seg-btn.seg-aktiv[data-status="Zu spät"]{background:#b5742a;color:#fff;border-color:#b5742a}
+.seg-btn.seg-aktiv[data-status="Entschuldigt"]{background:#3a6ea5;color:#fff;border-color:#3a6ea5}
+.seg-btn.seg-aktiv[data-status="Fehlend"]{background:var(--bordeaux);color:#fff;border-color:var(--bordeaux)}
+.schnell-min{width:88px;flex:none;padding:8px 10px;font-size:13px;border-radius:9px}
+@media(max-width:600px){
+  .schnell-name{flex:1 1 100%;margin-bottom:2px}
+  .status-seg{flex:1 1 100%}
+  .seg-btn{flex:1;min-width:0;text-align:center}
+  .schnell-min{width:100%}
+}
+
 /* ---------- Eingaben & Buttons ---------- */
 input,select,button{
   font-family:inherit;
