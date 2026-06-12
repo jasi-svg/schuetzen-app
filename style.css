@@ -87,6 +87,40 @@ h4{font-family:'Fraunces',serif;color:var(--gruen-800);font-size:15px;margin-bot
 }
 .unterkarte.danger{background:#fbeeee;border-color:#e7b9b9}
 
+/* ---------- Zahlungs-Banner (Profil) ---------- */
+.banner-offen{
+  background:linear-gradient(135deg,var(--bordeaux),#6b1a1a);
+  color:#fff;border-radius:14px;padding:14px 18px;margin-bottom:18px;
+  font-size:16px;font-weight:600;border:1px solid rgba(255,255,255,.15);
+  box-shadow:0 4px 16px rgba(138,43,43,.25);
+}
+.banner-ok{
+  background:linear-gradient(135deg,var(--gruen-700),var(--gruen-600));
+  color:#fff;border-radius:14px;padding:10px 18px;margin-bottom:18px;
+  font-size:14px;font-weight:600;
+}
+
+/* ---------- Strafen-Filterleiste ---------- */
+.filter-bar{
+  display:flex;gap:8px;flex-wrap:wrap;align-items:center;
+  margin-bottom:14px;padding:12px 14px;
+  background:var(--creme-2);border-radius:12px;border:1px solid var(--linie);
+}
+.filter-bar select,.filter-bar input[type=date]{
+  flex:1;min-width:130px;max-width:190px;padding:8px 10px;
+  border:1px solid var(--linie);border-radius:8px;background:var(--weiss);
+  color:var(--tinte);font-size:13px;width:auto;
+}
+.filter-bar .btn-reset{
+  padding:8px 14px;border:1px solid var(--linie);border-radius:8px;
+  background:var(--weiss);cursor:pointer;font-size:13px;
+  color:var(--grau);white-space:nowrap;width:auto;
+}
+.filter-bar .btn-reset:hover{background:var(--creme);}
+
+/* ---------- Anwesenheit Kommentar ---------- */
+.anw-kommentar{color:var(--grau);font-size:12px;display:block;margin-top:2px}
+
 /* ---------- Eingaben & Buttons ---------- */
 input,select,button{
   font-family:inherit;

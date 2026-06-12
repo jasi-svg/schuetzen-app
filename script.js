@@ -630,6 +630,7 @@ async function anwesenheitSpeichern(){
   const sid    = document.getElementById('anwesenheitSchuetzeSelect').value;
   const status = document.getElementById('statusSelect').value;
   const minuten = parseInt(document.getElementById('verspaetungMinuten').value) || 0;
+  const anwKommentar = document.getElementById('anwesenheitKommentar')?.value.trim() || '';
   const s = findSchuetze(sid);
   if(!s){ showToast('Bitte Schütze auswählen','error'); return; }
 
@@ -637,7 +638,7 @@ async function anwesenheitSpeichern(){
 
   const { error: anwErr } = await sb.from('anwesenheiten').insert({
     club_id: sbClubId, member_id: s.id, schuetze: s.name,
-    tag, status, minuten, datum
+    tag, status, minuten, datum, kommentar: anwKommentar
   });
   if(anwErr){ console.error('anwesenheitSpeichern:', anwErr); showToast('Fehler: ' + anwErr.message, 'error'); return; }
 
@@ -658,6 +659,7 @@ async function anwesenheitSpeichern(){
   }
 
   document.getElementById('verspaetungMinuten').value = '';
+  if(document.getElementById('anwesenheitKommentar')) document.getElementById('anwesenheitKommentar').value = '';
   await clubDatenLaden();
 }
 async function anwesenheitLoeschen(id){
@@ -913,6 +915,13 @@ function renderProfil(){
   if(!aktuellerBenutzer){ ziel.innerHTML = '<p class="leer">Bitte einloggen, um dein Profil zu sehen.</p>'; return; }
   const s = aktuellerBenutzer;
   const st = statsFuer(s);
+
+  // Zahlungs-Banner: echtes member-Objekt für korrekte ID-Zuordnung
+  const meinMember = sbSession ? schuetzen.find(m => m.user_id === sbSession.user.id) : null;
+  const stMein = meinMember ? statsFuer(meinMember) : st;
+  const bannerHtml = stMein.offen > 0
+    ? '<div class="banner-offen">⚠️ Du hast noch <b>' + euro(stMein.offen) + '</b> offen</div>'
+    : (stMein.anzahl > 0 ? '<div class="banner-ok">✓ Alles bezahlt</div>' : '');
   const initialen = s.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
   const avatar = s.bild ? '<img class="sk-avatar" src="'+s.bild+'" alt="">' : '<div class="sk-avatar">'+escapeHtml(initialen)+'</div>';
   const badges = abzeichenFuer(s);
@@ -921,7 +930,7 @@ function renderProfil(){
     .map(x=>'<div class="kal-row"><div class="kal-info"><b>'+escapeHtml(x.strafart)+'</b><span>'+x.datum+' · '+euro(x.betrag)+' · '+(x.bezahlt?'<span class="an">bezahlt</span>':'offen')+'</span></div></div>').join('');
   if(!letzte) letzte = '<p class="leer">Noch keine Strafen – weiter so!</p>';
 
-  ziel.innerHTML =
+  ziel.innerHTML = bannerHtml +
     '<div class="spielerkarte"><div class="sk-top">'+avatar+
       '<div><h3>'+escapeHtml(s.name)+'</h3><div class="mrolle">'+escapeHtml(s.rolle)+'</div>'+
       '<div class="rang">'+titelFuer(s)+'</div></div></div>'+
@@ -958,11 +967,24 @@ function renderProfil(){
 }
 
 function renderStrafen(){
-  const gesamt = strafen.reduce((a,x)=>a+x.betrag,0);
-  document.getElementById('gesamtbetrag').textContent = 'Gesamtsumme: ' + euro(gesamt);
-  const suche = (document.getElementById('strafenSuche')?.value || '').toLowerCase();
-  const liste = strafen.slice().reverse().filter(x =>
-    !suche || (x.schuetze+' '+x.strafart+' '+(x.kommentar||'')).toLowerCase().includes(suche));
+  const filterSchuetze = document.getElementById('filterSchuetze')?.value || '';
+  const filterStrafart = document.getElementById('filterStrafart')?.value || '';
+  const filterVon      = document.getElementById('filterVon')?.value || '';
+  const filterBis      = document.getElementById('filterBis')?.value || '';
+  const suche          = (document.getElementById('strafenSuche')?.value || '').toLowerCase();
+
+  const liste = strafen.slice().reverse().filter(x => {
+    if(filterSchuetze && x.schuetzeId !== filterSchuetze) return false;
+    if(filterStrafart && x.strafart !== filterStrafart) return false;
+    if(filterVon && x.datum < filterVon) return false;
+    if(filterBis && x.datum > filterBis) return false;
+    if(suche && !(x.schuetze+' '+x.strafart+' '+(x.kommentar||'')).toLowerCase().includes(suche)) return false;
+    return true;
+  });
+
+  const hatFilter = filterSchuetze || filterStrafart || filterVon || filterBis || suche;
+  const gefiltSum = liste.reduce((a,x) => a + x.betrag, 0);
+  document.getElementById('gesamtbetrag').textContent = (hatFilter ? 'Gefiltert: ' : 'Gesamtsumme: ') + euro(gefiltSum);
   const darf = darfBearbeiten();
   document.getElementById('strafenTabelle').innerHTML = liste.map(x =>
     '<tr><td>'+x.datum+'</td><td>'+escapeHtml(x.schuetze)+'</td><td>'+escapeHtml(x.strafart)+'</td>'+
@@ -974,6 +996,14 @@ function renderStrafen(){
         '<button class="mini-btn delete-button" onclick="strafeLoeschen(\''+x.id+'\')">🗑</button>'
       : '–') +'</td></tr>'
   ).join('') || '<tr><td colspan="7" class="leer">Keine Einträge.</td></tr>';
+}
+
+function resetStrafenFilter(){
+  ['filterSchuetze','filterStrafart','filterVon','filterBis','strafenSuche'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.value = '';
+  });
+  renderStrafen();
 }
 
 function renderKalender(){
@@ -1041,8 +1071,9 @@ function renderAnwesenheit(){
     const klasse = {'Anwesend':'status-anwesend','Zu spät':'status-zuspaet','Entschuldigt':'status-entschuldigt','Fehlend':'status-fehlend'}[a.status]||'';
     return '<tr><td>'+escapeHtml(a.tag)+'</td><td>'+escapeHtml(a.schuetze)+'</td>'+
       '<td><span class="'+klasse+'">'+escapeHtml(a.status)+'</span></td><td>'+(a.minuten||0)+'</td>'+
+      '<td>'+(a.kommentar ? '<span class="anw-kommentar">'+escapeHtml(a.kommentar)+'</span>' : '–')+'</td>'+
       '<td>'+(darf?'<button class="mini-btn delete-button" onclick="anwesenheitLoeschen(\''+a.id+'\')">🗑</button>':'–')+'</td></tr>';
-  }).join('') || '<tr><td colspan="5" class="leer">Keine Einträge.</td></tr>';
+  }).join('') || '<tr><td colspan="6" class="leer">Keine Einträge.</td></tr>';
 
   document.getElementById('statistikTabelle').innerHTML = schuetzen.filter(s=>s.aktiv).map(s=>{
     const anw = anwesenheiten.filter(x=>x.schuetzeId===s.id);
@@ -1058,6 +1089,24 @@ function renderSelects(){
   const as = document.getElementById('anwesenheitSchuetzeSelect'); if(as) as.innerHTML = '<option value="">Schütze auswählen</option>'+opt;
   const art = document.getElementById('strafartSelect');
   if(art) art.innerHTML = '<option value="">Strafart wählen (optional)</option>'+strafarten.map((a,i)=>'<option value="'+i+'">'+escapeHtml(a.bezeichnung)+' ('+euro(a.betrag)+')</option>').join('');
+
+  // Strafen-Filter-Dropdowns befüllen (aktuelle Auswahl erhalten)
+  const fSchuetze = document.getElementById('filterSchuetze');
+  if(fSchuetze){
+    const cur = fSchuetze.value;
+    fSchuetze.innerHTML = '<option value="">Alle Schützen</option>' +
+      schuetzen.map(s => '<option value="'+s.id+'">'+escapeHtml(s.name)+'</option>').join('');
+    fSchuetze.value = cur;
+  }
+  const fStrafart = document.getElementById('filterStrafart');
+  if(fStrafart){
+    const cur = fStrafart.value;
+    const arten = [...new Set(strafen.map(x => x.strafart))].sort();
+    fStrafart.innerHTML = '<option value="">Alle Strafarten</option>' +
+      arten.map(a => '<option value="'+escapeHtml(a)+'">'+escapeHtml(a)+'</option>').join('');
+    fStrafart.value = cur;
+  }
+
   betragAktualisieren();
 }
 
