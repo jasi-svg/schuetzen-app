@@ -109,6 +109,13 @@ function schnellStrafe(){ seiteAnzeigen('strafen'); document.getElementById('sch
 function datenschutzAnzeigen(){ document.getElementById('datenschutzSeite').classList.remove('hidden'); }
 function datenschutzSchliessen(){ document.getElementById('datenschutzSeite').classList.add('hidden'); }
 
+function einladungscodeKopieren(){
+  if(!sbInviteCode) return;
+  navigator.clipboard.writeText(sbInviteCode)
+    .then(()=> showToast('Code kopiert ✓'))
+    .catch(()=> showToast('Kopieren fehlgeschlagen','error'));
+}
+
 function installSeiteAnzeigen(){
   const box = document.getElementById('installCodeBox');
   if(box){
@@ -281,10 +288,11 @@ async function clubDatenLaden(){
       sb.from('anwesenheiten').select('*'),
       sb.from('termine').select('*'),
       sb.from('saisons').select('*'),
-      sb.from('clubs').select('custom_badge_types').eq('id', sbClubId).single()
+      sb.from('clubs').select('custom_badge_types, logo').eq('id', sbClubId).single()
     ]);
 
     customBadgeTypes = clubRes.data?.custom_badge_types || [];
+    logo = clubRes.data?.logo || '';
 
     schuetzen = (membersRes.data || []).map(m => ({
       id: m.id, name: m.name, rolle: m.role,
@@ -507,21 +515,33 @@ async function strafartLoeschen(id){
    ============================================================ */
 function betragAktualisieren(){
   const i = document.getElementById('strafartSelect').value;
-  const a = strafarten[i];
-  const betragEl = document.getElementById('betrag');
-  const hinweis  = document.getElementById('betragHinweis');
+  const a = (i !== '') ? strafarten[parseInt(i)] : null;
+  const betragEl   = document.getElementById('betrag');
+  const betragInfo = document.getElementById('betragInfo');
+  const overrideEl = document.getElementById('betragOverrideLink');
   if(a && betragEl){
     betragEl.value = a.betrag;
-    betragEl.classList.add('auto-betrag');
-    hinweis?.classList.remove('hidden');
+    betragEl.style.display = 'none';
+    if(betragInfo){ betragInfo.style.display = 'block'; betragInfo.textContent = 'Betrag: ' + euro(a.betrag) + ' (aus Strafart)'; }
+    if(overrideEl) overrideEl.style.display = 'block';
   } else if(betragEl){
+    betragEl.style.display = '';
+    if(betragInfo) betragInfo.style.display = 'none';
+    if(overrideEl) overrideEl.style.display = 'none';
     betragEl.classList.remove('auto-betrag');
-    hinweis?.classList.add('hidden');
   }
 }
 function betragManuell(){
   document.getElementById('betrag')?.classList.remove('auto-betrag');
-  document.getElementById('betragHinweis')?.classList.add('hidden');
+}
+function betragUeberschreiben(){
+  const betragEl   = document.getElementById('betrag');
+  const betragInfo = document.getElementById('betragInfo');
+  const overrideEl = document.getElementById('betragOverrideLink');
+  if(betragEl) betragEl.style.display = '';
+  if(betragInfo) betragInfo.style.display = 'none';
+  if(overrideEl) overrideEl.style.display = 'none';
+  betragEl?.focus();
 }
 async function strafeSpeichern(){
   if(!darfBearbeiten()){ showToast('Nur Offiziere dürfen Strafen erfassen','error'); return; }
@@ -720,20 +740,34 @@ function titelFuer(s){
 }
 
 const ABZEICHEN = [
-  { e:'👑', name:'König',         tipp:'Du hast die höchste Strafsumme im ganzen Zug.',                                  pruef:(st,p)=> p===0 && st.gesamt>0 },
-  { e:'🐷', name:'Zugsau',        tipp:'Du bist unter den Top 3 mit der höchsten Strafsumme.',                           pruef:(st,p)=> p>=0 && p<=2 && st.gesamt>0 },
-  { e:'🍺', name:'Bierkönig',     tipp:'Du hast die meisten Einzel-Strafen kassiert.',                                   pruef:(st)=> st.anzahl>0 && st.anzahl===maxAnzahl() },
-  { e:'🔥', name:'Serienmeister', tipp:'Du warst 5-mal oder öfter pünktlich anwesend.',                                  pruef:(st)=> st.anwesend>=5 },
-  { e:'🏅', name:'Ehrenmann',     tipp:'Alle deine Strafen sind bezahlt – kein einziger offener Betrag.',                pruef:(st)=> st.offen===0 && st.bezahlt>0 },
-  { e:'📅', name:'Stammgast',     tipp:'Du warst 10-mal oder öfter anwesend.',                                           pruef:(st)=> st.anwGesamt>=10 },
-  { e:'💎', name:'Makellos',      tipp:'Noch keine einzige Strafe und mindestens 3-mal anwesend.',                       pruef:(st)=> st.anzahl===0 && st.anwGesamt>=3 },
-  { e:'💰', name:'Zahlmeister',   tipp:'Du hast mindestens eine Strafe vollständig bezahlt.',                            pruef:(st)=> st.bezahlt>0 }
+  { id:'koenig',       e:'👑', name:'König',         tipp:'Du hast die höchste Strafsumme im ganzen Zug.',                               pruef:(st,p)=> p===0 && st.gesamt>0 },
+  { id:'zugsau',       e:'🐷', name:'Zugsau',        tipp:'Du bist unter den Top 3 mit der höchsten Strafsumme.',                        pruef:(st,p)=> p>=0 && p<=2 && st.gesamt>0 },
+  { id:'bierkoenig',   e:'🍺', name:'Bierkönig',     tipp:'Du hast die meisten Einzel-Strafen kassiert.',                                pruef:(st)=> st.anzahl>0 && st.anzahl===maxAnzahl() },
+  { id:'serienmeister',e:'🔥', name:'Serienmeister', tipp:'Du warst 5-mal oder öfter pünktlich anwesend.',                               pruef:(st)=> st.anwesend>=5 },
+  { id:'ehrenmann',    e:'🏅', name:'Ehrenmann',     tipp:'Alle deine Strafen sind bezahlt – kein einziger offener Betrag.',             pruef:(st)=> st.offen===0 && st.bezahlt>0 },
+  { id:'stammgast',    e:'📅', name:'Stammgast',     tipp:'Du warst 10-mal oder öfter anwesend.',                                        pruef:(st)=> st.anwGesamt>=10 },
+  { id:'makellos',     e:'💎', name:'Makellos',      tipp:'Noch keine einzige Strafe und mindestens 3-mal anwesend.',                    pruef:(st)=> st.anzahl===0 && st.anwGesamt>=3 },
+  { id:'zahlmeister',  e:'💰', name:'Zahlmeister',   tipp:'Du hast mindestens eine Strafe vollständig bezahlt.',                         pruef:(st)=> st.bezahlt>0 }
 ];
 function abzeichenFuer(s){
   const rang = rankingListe();
   const platz = rang.findIndex(r => r.s.id === s.id);
   const st = statsFuer(s);
-  return ABZEICHEN.map(b => ({ ...b, hat: b.pruef(st, platz) }));
+  const deaktiviert = customBadgeTypes.filter(b => b.type === 'disabled_auto').map(b => b.id);
+  return ABZEICHEN
+    .filter(b => !deaktiviert.includes(b.id))
+    .map(b => ({ ...b, hat: b.pruef(st, platz) }));
+}
+
+async function autoAbzeichenToggle(id){
+  if(!darfBearbeiten()){ showToast('Keine Berechtigung','error'); return; }
+  const istDeaktiviert = customBadgeTypes.some(b => b.type === 'disabled_auto' && b.id === id);
+  const neueTypes = istDeaktiviert
+    ? customBadgeTypes.filter(b => !(b.type === 'disabled_auto' && b.id === id))
+    : [...customBadgeTypes, { type: 'disabled_auto', id }];
+  const { error } = await sb.from('clubs').update({ custom_badge_types: neueTypes }).eq('id', sbClubId);
+  if(error){ showToast('Fehler: ' + error.message, 'error'); return; }
+  await clubDatenLaden();
 }
 
 /* ============================================================
@@ -776,6 +810,21 @@ function appAktualisieren(){
     slb.innerHTML = 'Nicht angemeldet';
   }
 
+  // Einladungscode in Einstellungen (P3)
+  const ecb = document.getElementById('einladungscodeBereich');
+  if(ecb){
+    if(istOffizier(aktuellerBenutzer) && sbInviteCode){
+      ecb.classList.remove('hidden');
+      ecb.innerHTML = '<h3>🔗 Einladungscode</h3>'+
+        '<div style="display:flex;align-items:center;gap:12px;margin-top:8px;flex-wrap:wrap">'+
+        '<span style="font-size:26px;font-weight:800;letter-spacing:3px;color:var(--gold);font-family:monospace">'+escapeHtml(sbInviteCode)+'</span>'+
+        '<button class="btn-gold" style="width:auto;padding:8px 18px" onclick="einladungscodeKopieren()">Kopieren</button>'+
+        '</div>';
+    } else {
+      ecb.classList.add('hidden');
+    }
+  }
+
   renderDashboard();
   renderProfil();
   renderStrafen();
@@ -793,13 +842,40 @@ function appAktualisieren(){
 }
 
 function renderDashboard(){
-  const gesamt = strafen.reduce((a,x)=>a+x.betrag,0);
-  const bezahlt= strafen.filter(x=>x.bezahlt).reduce((a,x)=>a+x.betrag,0);
-  document.getElementById('dashboardGesamt').textContent = euro(gesamt);
-  document.getElementById('dashboardBezahlt').textContent = euro(bezahlt);
-  document.getElementById('dashboardOffen').textContent = euro(gesamt-bezahlt);
-  document.getElementById('dashboardAnzahlStrafen').textContent = strafen.length;
-  document.getElementById('dashboardAnwesenheiten').textContent = anwesenheiten.filter(a=>a.status==='Anwesend').length;
+  const kacheln = document.getElementById('dashboardKacheln');
+  if(kacheln){
+    // Mein-Zug-Kachel (P4) – immer sichtbar, für alle Rollen
+    const zugTile = '<div class="dashboard-card dashboard-card-zug" style="grid-column:1/-1;display:flex;align-items:center;gap:16px;cursor:default">'+
+      (logo ? '<img src="'+escapeHtml(logo)+'" alt="Logo" style="width:56px;height:56px;border-radius:50%;object-fit:cover;border:2px solid var(--gold);flex:none">' : '')+
+      '<span style="font-family:\'Fraunces\',serif;font-size:22px;font-weight:700;color:var(--gruen-900)">'+escapeHtml(zugname||'Mein Zug')+'</span>'+
+    '</div>';
+
+    let kachelHtml = '';
+    if(istOffizier(aktuellerBenutzer)){
+      // Offiziere: Zug-Gesamtzahlen + eigene Kachel
+      const gesamt  = strafen.reduce((a,x)=>a+x.betrag,0);
+      const bezahlt = strafen.filter(x=>x.bezahlt).reduce((a,x)=>a+x.betrag,0);
+      const meinMember = sbSession ? schuetzen.find(s => s.user_id === sbSession.user.id) : null;
+      const eigeneSum  = meinMember ? statsFuer(meinMember).gesamt : 0;
+      kachelHtml =
+        '<div class="dashboard-card" onclick="seiteAnzeigen(\'strafen\')"><span class="dashboard-icon">💰</span><p>'+euro(gesamt)+'</p><strong>Gesamt</strong></div>'+
+        '<div class="dashboard-card" onclick="seiteAnzeigen(\'strafen\')"><span class="dashboard-icon">✅</span><p>'+euro(bezahlt)+'</p><strong>Bezahlt</strong></div>'+
+        '<div class="dashboard-card offen" onclick="seiteAnzeigen(\'strafen\')"><span class="dashboard-icon">🔥</span><p>'+euro(gesamt-bezahlt)+'</p><strong>Offen</strong></div>'+
+        '<div class="dashboard-card" onclick="seiteAnzeigen(\'strafen\')"><span class="dashboard-icon">🐷</span><p>'+strafen.length+'</p><strong>Strafen</strong></div>'+
+        '<div class="dashboard-card" onclick="seiteAnzeigen(\'anwesenheit\')"><span class="dashboard-icon">📅</span><p>'+anwesenheiten.filter(a=>a.status==='Anwesend').length+'</p><strong>Anwesenheiten</strong></div>'+
+        '<div class="dashboard-card" onclick="seiteAnzeigen(\'profil\')"><span class="dashboard-icon">👤</span><p>'+euro(eigeneSum)+'</p><strong>Meine Strafen</strong></div>';
+    } else {
+      // Schützen: nur eigene Werte
+      const meinMember = sbSession ? schuetzen.find(s => s.user_id === sbSession.user.id) : null;
+      const st = meinMember ? statsFuer(meinMember) : { gesamt:0, offen:0, anzahl:0, anwesend:0 };
+      kachelHtml =
+        '<div class="dashboard-card" onclick="seiteAnzeigen(\'profil\')"><span class="dashboard-icon">💰</span><p>'+euro(st.gesamt)+'</p><strong>Meine Strafen</strong></div>'+
+        '<div class="dashboard-card offen" onclick="seiteAnzeigen(\'profil\')"><span class="dashboard-icon">🔥</span><p>'+euro(st.offen)+'</p><strong>Offen</strong></div>'+
+        '<div class="dashboard-card" onclick="seiteAnzeigen(\'profil\')"><span class="dashboard-icon">🐷</span><p>'+st.anzahl+'</p><strong>Strafen</strong></div>'+
+        '<div class="dashboard-card" onclick="seiteAnzeigen(\'anwesenheit\')"><span class="dashboard-icon">📅</span><p>'+st.anwesend+'</p><strong>Anwesenheiten</strong></div>';
+    }
+    kacheln.innerHTML = zugTile + kachelHtml;
+  }
 
   // Nächstes Antreten
   const nt = naechsterTermin();
@@ -862,7 +938,7 @@ function renderProfil(){
     '<h3>Deine Abzeichen</h3>'+
     '<div class="badges-grid">'+ badges.map(b=>'<div class="badge '+(b.hat?'on':'off')+'">'+b.e+
       '<span class="badge-name">'+b.name+'</span>'+
-      '<span class="badge-tipp">'+(b.hat ? b.tipp : 'So verdienst du es: '+b.tipp)+'</span>'+
+      '<span class="badge-tipp">'+escapeHtml(b.tipp)+'</span>'+
     '</div>').join('') +'</div>'+
     '<div id="customBadgesProfilBereich"></div>'+
     '<h3>Letzte Strafen</h3>'+ letzte;
@@ -981,7 +1057,7 @@ function renderSelects(){
   const ss = document.getElementById('schuetzeSelect'); if(ss) ss.innerHTML = opt;
   const as = document.getElementById('anwesenheitSchuetzeSelect'); if(as) as.innerHTML = '<option value="">Schütze auswählen</option>'+opt;
   const art = document.getElementById('strafartSelect');
-  if(art) art.innerHTML = strafarten.map((a,i)=>'<option value="'+i+'">'+escapeHtml(a.bezeichnung)+' ('+euro(a.betrag)+')</option>').join('');
+  if(art) art.innerHTML = '<option value="">Strafart wählen (optional)</option>'+strafarten.map((a,i)=>'<option value="'+i+'">'+escapeHtml(a.bezeichnung)+' ('+euro(a.betrag)+')</option>').join('');
   betragAktualisieren();
 }
 
@@ -1022,7 +1098,13 @@ function logoSpeichern(){
   const f = document.getElementById('logoInput').files[0];
   if(!f){ showToast('Bitte ein Bild wählen','error'); return; }
   const r = new FileReader();
-  r.onload = e => { logo = e.target.result; speichern(); showToast('Logo gespeichert'); appAktualisieren(); };
+  r.onload = async e => {
+    logo = e.target.result;
+    const { error } = await sb.from('clubs').update({ logo }).eq('id', sbClubId);
+    if(error){ showToast('Fehler beim Speichern: ' + error.message, 'error'); return; }
+    showToast('Logo gespeichert');
+    appAktualisieren();
+  };
   r.readAsDataURL(f);
 }
 
@@ -1169,14 +1251,36 @@ function renderCustomBadgeSettings(){
   const darf = darfBearbeiten();
   const bereich = document.getElementById('customBadgeErstellen');
   if(bereich) bereich.classList.toggle('hidden', !darf);
-  if(!customBadgeTypes.length){
+
+  const individuelleTypes = customBadgeTypes.filter(b => !b.type);
+  if(!individuelleTypes.length){
     ziel.innerHTML = '<li class="leer">Noch keine individuellen Abzeichen angelegt.</li>';
-    return;
+  } else {
+    ziel.innerHTML = individuelleTypes.map(b =>
+      '<li><div><b>'+escapeHtml(b.emoji)+' '+escapeHtml(b.name)+'</b></div>'+
+      '<div class="aktionen">'+(darf ? '<button class="mini-btn delete-button" onclick="customBadgeLoeschen(\''+b.id+'\')">🗑</button>' : '')+'</div></li>'
+    ).join('');
   }
-  ziel.innerHTML = customBadgeTypes.map(b =>
-    '<li><div><b>'+escapeHtml(b.emoji)+' '+escapeHtml(b.name)+'</b></div>'+
-    '<div class="aktionen">'+(darf ? '<button class="mini-btn delete-button" onclick="customBadgeLoeschen(\''+b.id+'\')">🗑</button>' : '')+'</div></li>'
-  ).join('');
+
+  // Auto-Abzeichen verwalten (nur Offiziere)
+  const autoBereich = document.getElementById('autoBadgeVerwaltung');
+  if(autoBereich){
+    if(darf){
+      autoBereich.classList.remove('hidden');
+      const deaktiviert = customBadgeTypes.filter(b => b.type === 'disabled_auto').map(b => b.id);
+      autoBereich.innerHTML = '<h3>Auto-Abzeichen verwalten</h3>'+
+        '<p class="muted" style="margin-bottom:10px">Abzeichen, die dein Zug nicht anzeigen möchte, hier deaktivieren.</p>'+
+        ABZEICHEN.map(b => {
+          const aktiv = !deaktiviert.includes(b.id);
+          return '<div class="badge-modal-row" style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--linie)">'+
+            '<span>'+b.e+' <b>'+escapeHtml(b.name)+'</b></span>'+
+            '<button class="mini-btn '+(aktiv?'btn-gold':'')+'" onclick="autoAbzeichenToggle(\''+b.id+'\')">'+
+            (aktiv ? 'Aktiv' : 'Deaktiviert')+'</button></div>';
+        }).join('');
+    } else {
+      autoBereich.classList.add('hidden');
+    }
+  }
 }
 
 function renderHilfe(){

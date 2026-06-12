@@ -183,13 +183,7 @@
   <!-- DASHBOARD -->
   <section class="card app-seite" id="dashboardSeite">
     <div class="seite-head"><h2>Dashboard</h2><span id="dashboardDatum" class="muted"></span></div>
-    <div class="dashboard">
-      <div class="dashboard-card" onclick="seiteAnzeigen('strafen')"><span class="dashboard-icon">💰</span><p id="dashboardGesamt">0 €</p><strong>Gesamt</strong></div>
-      <div class="dashboard-card" onclick="seiteAnzeigen('strafen')"><span class="dashboard-icon">✅</span><p id="dashboardBezahlt">0 €</p><strong>Bezahlt</strong></div>
-      <div class="dashboard-card offen" onclick="seiteAnzeigen('strafen')"><span class="dashboard-icon">🔥</span><p id="dashboardOffen">0 €</p><strong>Offen</strong></div>
-      <div class="dashboard-card" onclick="seiteAnzeigen('strafen')"><span class="dashboard-icon">🐷</span><p id="dashboardAnzahlStrafen">0</p><strong>Strafen</strong></div>
-      <div class="dashboard-card" onclick="seiteAnzeigen('anwesenheit')"><span class="dashboard-icon">📅</span><p id="dashboardAnwesenheiten">0</p><strong>Anwesenheiten</strong></div>
-    </div>
+    <div class="dashboard" id="dashboardKacheln"></div>
 
     <h3>Nächstes Antreten</h3>
     <div id="dashboardNaechsterTermin"></div>
@@ -213,7 +207,8 @@
       <input id="betrag" type="number" placeholder="Betrag in €" oninput="betragManuell()">
       <input id="kommentar" type="text" placeholder="Kommentar (optional)">
     </div>
-    <small id="betragHinweis" class="hidden" style="display:block;color:var(--grau);font-size:12px;margin:-6px 0 10px">Betrag aus Strafart übernommen – zum Überschreiben einfach eintippen.</small>
+    <div id="betragInfo" style="display:none;color:var(--gruen-700);font-size:13px;font-weight:600;margin:-4px 0 4px"></div>
+    <div id="betragOverrideLink" style="display:none;margin-bottom:10px"><a href="#" style="font-size:12px;color:var(--grau)" onclick="betragUeberschreiben();return false">Betrag manuell überschreiben</a></div>
     <button class="btn-gold" onclick="strafeSpeichern()">Strafe speichern</button>
 
     <div class="tabelle-head">
@@ -230,15 +225,23 @@
 
   <!-- KALENDER -->
   <section class="card app-seite hidden" id="kalenderSeite">
-    <div class="seite-head"><h2>Kalender · Antretszeiten</h2></div>
+    <div class="seite-head"><h2>Kalender · Antrittszeiten</h2></div>
     <div id="kalenderNaechster"></div>
 
     <div id="kalenderFormBereich" class="unterkarte hidden">
       <h3>Termin hinzufügen</h3>
       <div class="form-grid">
         <input id="terminTitel" type="text" placeholder="z. B. Festzug durchs Dorf">
-        <input id="terminDatum" type="date">
-        <input id="terminZeit" type="time">
+        <div>
+          <label>Datum</label>
+          <input id="terminDatum" type="date">
+          <small class="muted" style="font-size:12px">z. B. 04.07.2026</small>
+        </div>
+        <div>
+          <label>Uhrzeit</label>
+          <input id="terminZeit" type="time">
+          <small class="muted" style="font-size:12px">z. B. 17:30</small>
+        </div>
         <input id="terminOrt" type="text" placeholder="Ort (z. B. Festplatz)">
         <input id="terminHinweis" type="text" placeholder="Hinweis (z. B. Uniform & Hut)">
         <label class="check"><input id="terminAntreten" type="checkbox" checked> Antreten (Pflichttermin)</label>
@@ -322,6 +325,8 @@
   <section class="card app-seite hidden" id="einstellungenSeite">
     <div class="seite-head"><h2>Einstellungen</h2></div>
 
+    <div id="einladungscodeBereich" class="unterkarte hidden"></div>
+
     <div class="unterkarte">
       <h3>Zugname</h3>
       <input id="zugnameInput" type="text" placeholder="z. B. Jägerzug Immergrün">
@@ -374,6 +379,8 @@
       <button class="btn-gold" onclick="customBadgeHinzufuegen()">Abzeichen-Typ erstellen</button>
       <ul id="customBadgeListe" class="strafart-liste" style="margin-top:12px"></ul>
     </div>
+
+    <div id="autoBadgeVerwaltung" class="unterkarte hidden"></div>
 
     <div class="unterkarte danger">
       <h3>⚠️ Gefahrenzone</h3>
