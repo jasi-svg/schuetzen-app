@@ -481,6 +481,14 @@ table tbody tr:hover{background:var(--canvas)}
 .modal-buttons{display:flex;gap:10px;margin-top:14px}
 .modal-buttons button{flex:1}
 
+/* ---------- App-Dialog (ersetzt confirm()) ---------- */
+.app-dialog-overlay{position:fixed;inset:0;background:rgba(14,63,49,.50);display:flex;align-items:center;justify-content:center;z-index:9000;padding:20px}
+.app-dialog-card{background:var(--white);border-radius:22px;padding:28px 28px 22px;max-width:380px;width:100%;box-shadow:var(--schatten);animation:dialogEin .18s ease}
+.app-dialog-text{font-size:15px;line-height:1.6;color:var(--ink);margin-bottom:20px;white-space:pre-line}
+.app-dialog-buttons{display:flex;gap:10px}
+.app-dialog-btn{flex:1}
+@keyframes dialogEin{from{transform:scale(.94);opacity:0}to{transform:none;opacity:1}}
+
 /* ---------- PWA Installations-Hinweis ---------- */
 .install-hint{position:fixed;left:50%;bottom:80px;transform:translateX(-50%);background:var(--green-deep);color:var(--canvas);padding:12px 18px;border-radius:14px;box-shadow:var(--schatten);z-index:1500;display:flex;align-items:center;gap:12px;font-size:14px;font-weight:600;max-width:92vw}
 .install-hint button{width:auto;padding:8px 14px;font-size:13px}
@@ -609,10 +617,15 @@ table tbody tr:hover{background:var(--canvas)}
    ============================================================ */
 
 /* ---- Dashboard: Kopfzeile ---- */
-.db-kopf{display:flex;align-items:center;gap:12px;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--line)}
+.db-kopf{display:flex;align-items:center;gap:12px;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--line);flex-wrap:wrap}
 .db-kopf-logo{width:46px;height:46px;border-radius:50%;object-fit:cover;border:2px solid var(--gold);flex:none}
-.db-kopf-zugname{font-family:'Fraunces',serif;font-size:18px;font-weight:700;color:var(--green-deep);line-height:1.2}
+.db-kopf-text{flex:1;min-width:0}
+.db-kopf-zugname{font-family:'Fraunces',serif;font-size:18px;font-weight:700;color:var(--green-deep);line-height:1.2;word-break:break-word}
 .db-kopf-gruss{font-size:13px;color:var(--ink-soft)}
+.db-kopf-datum{font-size:12px;color:var(--ink-soft);text-align:right;white-space:nowrap;flex:none}
+@media(max-width:400px){
+  .db-kopf-datum{flex:1 1 100%;text-align:left;margin-top:2px}
+}
 
 /* ---- Dashboard: Hero-Karte ---- */
 .db-hero{background:linear-gradient(150deg,var(--green-deep),var(--green));color:var(--canvas);border-radius:20px;padding:22px 24px;margin-bottom:12px;position:relative;overflow:hidden;cursor:pointer;transition:opacity .15s}

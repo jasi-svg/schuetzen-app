@@ -609,6 +609,17 @@
   </div>
 </div>
 
+<!-- App-Dialog (ersetzt browser confirm()) -->
+<div id="appDialog" class="app-dialog-overlay hidden" role="dialog" aria-modal="true" onclick="appDialogSchliessen()">
+  <div class="app-dialog-card" onclick="event.stopPropagation()">
+    <p id="appDialogText" class="app-dialog-text"></p>
+    <div class="app-dialog-buttons">
+      <button class="btn-ghost app-dialog-btn" onclick="appDialogSchliessen()">Abbrechen</button>
+      <button id="appDialogBestaetigen" class="app-dialog-btn"></button>
+    </div>
+  </div>
+</div>
+
 <footer id="footerBar" class="app-footer-bar hidden">
   <a href="#" onclick="installSeiteAnzeigen();return false;">📲 App installieren</a>
   <a href="#" onclick="datenschutzAnzeigen();return false;">🔒 Datenschutz</a>
