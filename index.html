@@ -218,6 +218,9 @@
       <input id="filterBis" type="date" title="Bis Datum" onchange="renderStrafen()">
       <button class="btn-reset" onclick="resetStrafenFilter()">↺ Zurücksetzen</button>
     </div>
+    <div id="kassenberichtBereich" class="hidden" style="margin:4px 0 8px">
+      <button onclick="kassenberichtPdf()">📄 Kassenbericht als PDF</button>
+    </div>
     <div class="tabelle-head">
       <h3 id="gesamtbetrag">Gesamtsumme: 0 €</h3>
       <input id="strafenSuche" type="text" class="suche" placeholder="🔍 Suchen (Name, Strafe …)" oninput="renderStrafen()">
@@ -564,6 +567,8 @@
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script src="script.js"></script>
 </body>
 </html>

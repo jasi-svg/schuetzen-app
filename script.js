@@ -1090,6 +1090,7 @@ function renderStrafen(){
   const gefiltSum = liste.reduce((a,x) => a + x.betrag, 0);
   document.getElementById('gesamtbetrag').textContent = (hatFilter ? 'Gefiltert: ' : 'Gesamtsumme: ') + euro(gefiltSum);
   const darf = darfBearbeiten();
+  document.getElementById('kassenberichtBereich')?.classList.toggle('hidden', !darf);
   document.getElementById('strafenTabelle').innerHTML = liste.map(x =>
     '<tr><td>'+x.datum+'</td><td>'+escapeHtml(x.schuetze)+'</td><td>'+escapeHtml(x.strafart)+'</td>'+
     '<td>'+euro(x.betrag)+'</td><td>'+escapeHtml(x.kommentar||'')+'</td>'+
@@ -1395,6 +1396,7 @@ function renderSaisons(){
     '<span>'+s.abgeschlossen_am+' · '+euro(sm.gesamt||0)+' · '+(sm.anzahlStrafen||0)+' Strafen'+
     (sm.zugsau?' · 🐷 '+escapeHtml(sm.zugsau.name):'')+'</span></div>'+
     '<button class="mini-btn" onclick="saisonDetails(\''+s.id+'\')">Details</button>'+
+    (darf?' <button class="mini-btn" onclick="saisonPdf(\''+s.id+'\')">📄 PDF</button>':'') +
     (darf?' <button class="mini-btn delete-button" onclick="saisonLoeschen(\''+s.id+'\')">🗑</button>':'')+'</div>';
   }).join('');
 }
@@ -1483,6 +1485,92 @@ function renderHilfe(){
       '<p>Dein Titel (z. B. „Ehrenmann", „Zugsau", „König") wird anhand deiner Strafsumme und Zahlungsmoral automatisch berechnet. Den aktuellen Rang siehst du jederzeit in deinem Profil.</p>'+
       '</div>';
   }
+}
+
+/* ============================================================
+   KASSENBERICHT ALS PDF
+   ============================================================ */
+function kassenberichtPdf(strafenListe, saisonTitel) {
+  strafenListe = strafenListe || strafen;
+  if (!strafenListe.length) { showToast('Keine Strafen vorhanden', 'info'); return; }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+  const heute = new Date().toLocaleDateString('de-DE');
+  const heuteDateiname = new Date().toISOString().slice(0, 10);
+  const zugnameSauber = (zugname || 'Zug').replace(/[^a-zA-Z0-9äöüÄÖÜß]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+  const kopftitel = saisonTitel ? 'Kassenbericht – ' + saisonTitel : 'Kassenbericht';
+
+  // Logo oben rechts (base64 data URL)
+  if (logo) {
+    try { doc.addImage(logo, 165, 8, 25, 25); } catch (e) { /* weglassen */ }
+  }
+
+  // Kopfzeile
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(18);
+  doc.text(kopftitel, 14, 18);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(11);
+  doc.text(zugname || 'Schützenzug', 14, 26);
+  doc.setFontSize(9);
+  doc.setTextColor(120, 120, 120);
+  doc.text('Erstellt am: ' + heute, 14, 32);
+  doc.setTextColor(0, 0, 0);
+
+  // Tabelle – sortiert nach Schütze, dann Datum
+  const sortiert = strafenListe.slice().sort((a, b) =>
+    (a.schuetze || '').localeCompare(b.schuetze || '', 'de') || (a.datum || '').localeCompare(b.datum || '')
+  );
+
+  doc.autoTable({
+    head: [['Datum', 'Schütze', 'Strafart', 'Betrag', 'Bezahlt', 'Zahlungsart']],
+    body: sortiert.map(x => [
+      x.datum || '',
+      x.schuetze || '',
+      x.strafart || '',
+      euro(x.betrag || 0),
+      x.bezahlt ? 'Ja' : 'Nein',
+      x.bezahltArt || '–'
+    ]),
+    startY: 38,
+    styles: { font: 'helvetica', fontSize: 9, cellPadding: 2 },
+    headStyles: { fillColor: [22, 59, 48], textColor: 255, fontStyle: 'bold' },
+    alternateRowStyles: { fillColor: [245, 242, 235] },
+    columnStyles: {
+      0: { cellWidth: 22 },
+      3: { halign: 'right', cellWidth: 24 },
+      4: { cellWidth: 18 },
+      5: { cellWidth: 28 }
+    }
+  });
+
+  // Zusammenfassung unter der Tabelle
+  const gesamt   = strafenListe.reduce((a, x) => a + (x.betrag || 0), 0);
+  const bezahlt  = strafenListe.filter(x => x.bezahlt).reduce((a, x) => a + (x.betrag || 0), 0);
+  const offen    = gesamt - bezahlt;
+  const baseY    = doc.lastAutoTable.finalY + 8;
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.text('Zusammenfassung', 14, baseY);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.text('Gesamtsumme:   ' + euro(gesamt),  14, baseY + 6);
+  doc.setTextColor(22, 100, 60);
+  doc.text('Davon bezahlt: ' + euro(bezahlt), 14, baseY + 12);
+  doc.setTextColor(160, 30, 30);
+  doc.text('Davon offen:   ' + euro(offen),   14, baseY + 18);
+  doc.setTextColor(0, 0, 0);
+
+  doc.save('Kassenbericht-' + zugnameSauber + '-' + heuteDateiname + '.pdf');
+}
+
+function saisonPdf(id) {
+  const s = saisons.find(x => x.id === id);
+  if (!s) return;
+  kassenberichtPdf(s.daten.strafen || [], s.name);
 }
 
 /* ============================================================
