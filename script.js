@@ -1015,11 +1015,12 @@ function appAktualisieren(){
   if(ecb){
     if(istOffizier(aktuellerBenutzer) && sbInviteCode){
       ecb.classList.remove('hidden');
-      ecb.innerHTML = '<h3>🔗 Einladungscode</h3>'+
+      ecb.innerHTML = '<h3>🔑 Einladungscode</h3>'+
         '<div style="display:flex;align-items:center;gap:12px;margin-top:8px;flex-wrap:wrap">'+
         '<span style="font-size:26px;font-weight:800;letter-spacing:3px;color:var(--gold);font-family:monospace">'+escapeHtml(sbInviteCode)+'</span>'+
         '<button class="btn-gold" style="width:auto;padding:8px 18px" onclick="einladungscodeKopieren()">Kopieren</button>'+
-        '</div>';
+        '</div>'+
+        '<p style="margin-top:10px;font-size:13px;color:var(--ink-soft)">Gib diesen Code an neue Mitglieder weiter, damit sie dem Zug beitreten können.</p>';
     } else {
       ecb.classList.add('hidden');
     }
@@ -1811,7 +1812,7 @@ function renderHilfe(){
       '</div>'+
       '<div class="unterkarte" style="margin-top:16px">'+
       '<h3 style="margin-top:0">🔑 Einladungscode</h3>'+
-      '<p>Den Code findest du in den Einstellungen und in der Sidebar. Gib ihn an neue Mitglieder weiter, damit sie dem Zug beitreten können.</p>'+
+      '<p>Den Code findest du oben in den Einstellungen. Gib ihn an neue Mitglieder weiter, damit sie dem Zug beitreten können.</p>'+
       '<h3>💸 Offiziere zahlen doppelt</h3>'+
       '<p>Strafen für Offiziere werden automatisch mit dem doppelten Betrag berechnet – faire Führung heißt höhere Verantwortung.</p>'+
       '</div>'+
