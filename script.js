@@ -14,6 +14,28 @@ let sbClubId   = null;
 let sbClubName = null;
 let sbInviteCode = null;
 
+/* ---------- Realtime ---------- */
+let realtimeChannel = null;
+let realtimeDebounceTimer = null;
+function datenNeuLadenDebounced(){
+  clearTimeout(realtimeDebounceTimer);
+  realtimeDebounceTimer = setTimeout(async () => { await clubDatenLaden(); }, 400);
+}
+function realtimeStarten(){
+  if(realtimeChannel) return;
+  realtimeChannel = sb.channel('club-live');
+  ['strafen','anwesenheiten','members','termine','strafarten','clubs','saisons'].forEach(tabelle => {
+    realtimeChannel.on('postgres_changes',
+      { event: '*', schema: 'public', table: tabelle },
+      () => datenNeuLadenDebounced()
+    );
+  });
+  realtimeChannel.subscribe();
+}
+function realtimeStoppen(){
+  if(realtimeChannel){ sb.removeChannel(realtimeChannel); realtimeChannel = null; }
+}
+
 /* ---------- Zustand ---------- */
 let schuetzen = [];
 let strafarten = [];
@@ -222,6 +244,7 @@ async function onboardingBeitreten(){
 }
 
 async function ausloggen(){
+  realtimeStoppen();
   await sb.auth.signOut();
   aktuellerBenutzer = null;
   sbSession = null; sbClubId = null; sbClubName = null; sbInviteCode = null;
@@ -270,6 +293,7 @@ async function checkAppState(){
     zustandSetzen('app');
     seiteAnzeigen('dashboard');
     await clubDatenLaden();
+    realtimeStarten();
   } catch(e){
     console.error('checkAppState:', e);
     zustandSetzen('auth');
