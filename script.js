@@ -112,7 +112,8 @@ const seitenMap = {
   dashboard:'dashboardSeite', profil:'profilSeite', strafen:'strafenSeite',
   kalender:'kalenderSeite', ranking:'rankingSeite', mitglieder:'mitgliederSeite',
   anwesenheit:'anwesenheitSeite', abstimmungen:'abstimmungenSeite',
-  akten:'aktenSeite', einstellungen:'einstellungenSeite', hilfe:'hilfeSeite'
+  akten:'aktenSeite', einstellungen:'einstellungenSeite', hilfe:'hilfeSeite',
+  chronik:'chronikSeite'
 };
 
 function seiteAnzeigen(seite){
@@ -1026,6 +1027,7 @@ function appAktualisieren(){
   renderCustomBadgeSettings();
   renderHilfe();
   renderAbstimmungen();
+  renderChronik();
   // Einstellungen-Felder
   document.getElementById('zugnameInput').value = zugname;
 }
@@ -1355,6 +1357,107 @@ function renderRanking(){
           '</div>';
         }).join('');
   }
+
+  // Strafarten-Ranking Dropdown befüllen
+  const srSel = document.getElementById('strafartRankingSelect');
+  if(srSel){
+    const prevVal = srSel.value;
+    srSel.innerHTML = strafarten.map(a =>
+      '<option value="'+escapeHtml(a.bezeichnung)+'">'+escapeHtml(a.bezeichnung)+'</option>'
+    ).join('');
+    if(prevVal && strafarten.find(a => a.bezeichnung === prevVal)){
+      srSel.value = prevVal;
+    } else {
+      const vorbel = strafarten.find(a => /sp[äa]t/i.test(a.bezeichnung));
+      if(vorbel) srSel.value = vorbel.bezeichnung;
+    }
+    renderStrafartRanking();
+  }
+}
+
+function renderStrafartRanking(){
+  const sel = document.getElementById('strafartRankingSelect');
+  const liste = document.getElementById('strafartRankingListe');
+  if(!sel || !liste) return;
+  const gewaehlte = sel.value;
+  if(!gewaehlte){
+    liste.innerHTML = '<div class="leer-zeile">Keine Strafart ausgewählt.</div>';
+    return;
+  }
+  const gefiltert = strafen.filter(x => x.strafart === gewaehlte);
+  const mitDaten = schuetzen.filter(s => s.aktiv).reduce((acc, s) => {
+    const eigen = gefiltert.filter(x => x.schuetzeId === s.id);
+    if(eigen.length) acc.push({ s, anzahl: eigen.length, summe: eigen.reduce((a,x)=>a+x.betrag,0) });
+    return acc;
+  }, []).sort((a,b) => b.anzahl - a.anzahl || b.summe - a.summe);
+  if(!mitDaten.length){
+    liste.innerHTML = '<div class="leer-zeile">Für diese Strafart gibt es noch keine Einträge.</div>';
+    return;
+  }
+  liste.innerHTML = mitDaten.map((r,i) => {
+    const ini = r.s.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    return '<div class="strafen-list-zeile">'+
+      '<div class="pz-rang">'+(i+1)+'</div>'+
+      '<div class="mini-avatar'+(i===0?' gold':'')+'">'+escapeHtml(ini)+'</div>'+
+      '<div class="sz-mitte"><span class="sz-name">'+escapeHtml(r.s.name)+'</span></div>'+
+      '<div class="sz-rechts">'+
+        '<span class="sz-betrag">'+r.anzahl+'×</span>'+
+        '<span class="muted" style="font-size:12px">'+euro(r.summe)+'</span>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
+
+let chronikLimit = 50;
+
+function renderChronik(){
+  const el = document.getElementById('chronikListe');
+  if(!el) return;
+  const ereignisse = [];
+  strafen.forEach(x => {
+    const s = findSchuetze(x.schuetzeId);
+    const name = s ? s.name : (x.schuetze || '?');
+    const tsStr = x.created_at || (x.datum + 'T00:00:00');
+    ereignisse.push({
+      ts: new Date(tsStr),
+      icon: '🐷',
+      text: escapeHtml(name) + ' – ' + escapeHtml(x.strafart) + ' (' + euro(x.betrag) + ')',
+      label: 'Strafe erfasst'
+    });
+    if(x.bezahlt && x.bezahltDatum){
+      ereignisse.push({
+        ts: new Date(x.bezahltDatum + 'T00:00:00'),
+        icon: '✅',
+        text: escapeHtml(name) + ' hat ' + euro(x.betrag) + ' bezahlt',
+        label: 'Bezahlt'
+      });
+    }
+  });
+  ereignisse.sort((a,b) => b.ts - a.ts);
+  if(!ereignisse.length){
+    el.innerHTML = '<div class="leer-zeile">Noch keine Aktivitäten.</div>';
+    return;
+  }
+  const zeige = ereignisse.slice(0, chronikLimit);
+  const mehr = ereignisse.length > zeige.length;
+  el.innerHTML = zeige.map(e => {
+    const datumStr = isNaN(e.ts) ? '?' : e.ts.toLocaleDateString('de-DE',{day:'numeric',month:'short',year:'numeric'});
+    return '<div class="strafen-list-zeile">'+
+      '<div style="font-size:20px;min-width:28px;text-align:center">'+e.icon+'</div>'+
+      '<div class="sz-mitte">'+
+        '<span class="sz-name">'+e.text+'</span>'+
+        '<span class="sz-info">'+e.label+'</span>'+
+      '</div>'+
+      '<div class="sz-rechts"><span class="muted" style="font-size:12px;white-space:nowrap">'+datumStr+'</span></div>'+
+    '</div>';
+  }).join('') + (mehr
+    ? '<button class="btn-ghost" style="margin-top:8px;width:100%" onclick="chronikAlleAnzeigen()">Mehr anzeigen ('+ereignisse.length+' gesamt)</button>'
+    : '');
+}
+
+function chronikAlleAnzeigen(){
+  chronikLimit = Infinity;
+  renderChronik();
 }
 
 function renderMitglieder(){

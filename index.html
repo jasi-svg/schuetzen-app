@@ -65,6 +65,7 @@
     <button class="menue-link" onclick="seiteAnzeigen('anwesenheit')">✅ Anwesenheit</button>
     <button class="menue-link" onclick="seiteAnzeigen('abstimmungen')">📊 Abstimmungen</button>
     <button class="menue-link" onclick="seiteAnzeigen('akten')">📁 Akten</button>
+    <button class="menue-link" onclick="seiteAnzeigen('chronik')">📜 Chronik</button>
     <button class="menue-link" onclick="seiteAnzeigen('einstellungen')">⚙️ Einstellungen</button>
     <button class="menue-link" onclick="seiteAnzeigen('hilfe')">❓ Hilfe</button>
   </div>
@@ -136,6 +137,7 @@
   <button id="nav-anwesenheit" class="nav-item" onclick="seiteAnzeigen('anwesenheit')"><span class="ic">✅</span> Anwesenheit</button>
   <button id="nav-abstimmungen" class="nav-item" onclick="seiteAnzeigen('abstimmungen')"><span class="ic">📊</span> Abstimmungen</button>
   <button id="nav-akten" class="nav-item" onclick="seiteAnzeigen('akten')"><span class="ic">📁</span> Akten</button>
+  <button id="nav-chronik" class="nav-item" onclick="seiteAnzeigen('chronik')"><span class="ic">📜</span> Chronik</button>
   <button id="nav-einstellungen" class="nav-item" onclick="seiteAnzeigen('einstellungen')"><span class="ic">⚙️</span> Einstellungen</button>
   <button id="nav-hilfe" class="nav-item" onclick="seiteAnzeigen('hilfe')"><span class="ic">❓</span> Hilfe</button>
   <div class="sidebar-foot">
@@ -284,7 +286,12 @@
     <h3>Gesamtes Strafen-Ranking</h3>
     <div id="zugsauListe" class="strafen-list" style="margin-bottom:16px"></div>
     <h3>Offene Beträge</h3>
-    <div id="schuldenListe" class="strafen-list"></div>
+    <div id="schuldenListe" class="strafen-list" style="margin-bottom:20px"></div>
+    <h3>Strafarten-Ranking</h3>
+    <div class="unterkarte">
+      <select id="strafartRankingSelect" onchange="renderStrafartRanking()"></select>
+      <div id="strafartRankingListe" class="strafen-list" style="margin-top:12px"></div>
+    </div>
   </section>
 
   <!-- MITGLIEDER -->
@@ -355,6 +362,12 @@
     <div class="tabelle-scroll">
       <table><thead><tr><th>Schütze</th><th>Anwesend</th><th>Zu spät</th><th>Entsch.</th><th>Fehlend</th></tr></thead><tbody id="statistikTabelle"></tbody></table>
     </div>
+  </section>
+
+  <!-- CHRONIK -->
+  <section class="card app-seite hidden" id="chronikSeite">
+    <div class="seite-head"><h2>📜 Chronik</h2></div>
+    <div id="chronikListe" class="strafen-list"></div>
   </section>
 
   <!-- AKTEN -->
