@@ -1298,13 +1298,57 @@ function renderDashboard(){
     '<div class="db-mini-zahl" data-ziel="'+ks+'" style="font-family:\'Fraunces\',serif;color:' + (ks >= 0 ? 'var(--green-deep)' : 'var(--bordeaux)') + ';border-bottom:2px solid var(--gold);display:inline-block;padding-bottom:2px">' + euro(ks) + '</div>' +
     '</div>';
 
-  ziel.innerHTML = kopfHtml + heroHtml + miniHtml + kassenstandKarteHtml + podiumKarteHtml + terminKarteHtml;
+  // Erste-Schritte-Karte (nur Offiziere, solange nicht alle Schritte erledigt & nicht manuell dismissed)
+  let ersteSchritteHtml = '';
+  if(darfBearbeiten()){
+    const esKey = 'es_dismissed_' + (sbClubId || 'x');
+    const esDismissed = localStorage.getItem(esKey) === '1';
+    const esS1 = strafarten.length > 0;
+    const esS2 = schuetzen.length > 1;
+    const esS3 = strafen.length > 0;
+    if(!esDismissed && !(esS1 && esS2 && esS3)){
+      const esAnzahl = [esS1,esS2,esS3].filter(Boolean).length;
+      const esSchritt = (ok, titel, extraHtml, btnText, btnAktion) =>
+        '<div class="es-schritt'+(ok?' es-ok':'')+'">'+
+          '<span class="es-check-icon">'+(ok?'✓':'')+'</span>'+
+          '<div class="es-text"><b>'+escapeHtml(titel)+'</b>'+extraHtml+'</div>'+
+          (ok?'':'<button class="es-btn btn-gold" onclick="'+btnAktion+'">'+escapeHtml(btnText)+'</button>')+
+        '</div>';
+      const esCodeHtml = sbInviteCode
+        ? '<div class="es-code-zeile">Code: <span class="es-code">'+escapeHtml(sbInviteCode)+'</span></div>'
+        : '';
+      ersteSchritteHtml =
+        '<div class="card es-karte">'+
+          '<div class="es-kopf">'+
+            '<div>'+
+              '<div class="mini-label mb-10">👋 Erste Schritte</div>'+
+              '<div class="es-fortschritt">'+esAnzahl+' von 3 erledigt</div>'+
+            '</div>'+
+            '<button class="es-ausblenden" onclick="ersteSchritteAusblenden()">ausblenden</button>'+
+          '</div>'+
+          esSchritt(esS1,'Strafenkatalog anlegen','','Zum Strafenkatalog',"seiteAnzeigen('einstellungen')")+
+          '<div class="es-schritt'+(esS2?' es-ok':'')+'">'+
+            '<span class="es-check-icon">'+(esS2?'✓':'')+'</span>'+
+            '<div class="es-text"><b>Schützen einladen</b>'+esCodeHtml+'</div>'+
+            (esS2?'':'<button class="es-btn btn-gold" onclick="einladungscodeKopieren()">Code kopieren</button>')+
+          '</div>'+
+          esSchritt(esS3,'Erste Strafe erfassen','','Zu den Strafen',"seiteAnzeigen('strafen')")+
+        '</div>';
+    }
+  }
+
+  ziel.innerHTML = kopfHtml + ersteSchritteHtml + heroHtml + miniHtml + kassenstandKarteHtml + podiumKarteHtml + terminKarteHtml;
 
   // Hero-Zahlen beim ersten Anzeigen hochzählen
   if(!dashboardZahlAnimiert){
     dashboardZahlAnimiert = true;
     zahlAnimieren(ziel);
   }
+}
+
+function ersteSchritteAusblenden(){
+  localStorage.setItem('es_dismissed_' + (sbClubId || 'x'), '1');
+  renderDashboard();
 }
 
 function podiumRender(ziel){

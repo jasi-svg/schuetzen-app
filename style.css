@@ -745,3 +745,24 @@ button svg.lucide,a svg.lucide{width:14px;height:14px;vertical-align:-2px}
 .mini-label svg.lucide{width:14px;height:14px;vertical-align:-2px}
 /* Chronik-Icon-Spalte */
 .strafen-list-zeile > div[style*="font-size:20px"] svg.lucide{width:18px;height:18px}
+
+/* === Erste-Schritte-Karte (Onboarding für neue Züge) === */
+.es-karte{margin-bottom:14px;padding:18px 18px 12px;border-left:3px solid var(--gold)}
+.es-kopf{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px}
+.es-fortschritt{font-size:12px;color:var(--ink-soft);font-weight:600;margin-top:2px}
+button.es-ausblenden{background:transparent;border:none;color:var(--ink-soft);font-size:12px;padding:2px 6px;border-radius:6px;width:auto;box-shadow:none;flex:none}
+button.es-ausblenden:hover{background:var(--canvas);color:var(--ink);transform:none}
+.es-schritt{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.es-schritt:last-child{border-bottom:none;padding-bottom:0}
+.es-check-icon{flex:none;width:22px;height:22px;border-radius:50%;border:2px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:var(--ink-soft);margin-top:1px}
+.es-ok .es-check-icon{background:var(--green);border-color:var(--green);color:#fff}
+.es-text{flex:1;min-width:0}
+.es-text b{font-size:14px;font-weight:700;color:var(--ink);display:block}
+.es-ok .es-text b{color:var(--ink-soft);text-decoration:line-through}
+.es-code-zeile{font-size:12px;color:var(--ink-soft);margin-top:4px}
+.es-code{font-family:monospace;background:var(--canvas);border:1px solid var(--line);border-radius:6px;padding:2px 6px;font-weight:700;color:var(--green-deep);letter-spacing:.05em}
+button.es-btn{width:auto;flex:none;font-size:12px;padding:6px 12px;margin-top:2px}
+@media(max-width:420px){
+  .es-schritt{flex-wrap:wrap}
+  button.es-btn{width:100%;margin-top:8px}
+}
