@@ -54,6 +54,10 @@
 
 *{margin:0;padding:0;box-sizing:border-box}
 
+/* overflow-x auf html UND body, damit iOS Safari keinen Body-Scroll-Kontext erzeugt,
+   der position:fixed zu position:absolute degradiert */
+html{overflow-x:hidden}
+
 body{
   font-family:'Manrope',system-ui,sans-serif;
   color:var(--ink);
@@ -178,7 +182,7 @@ h4{font-family:'Fraunces',serif;color:var(--green-deep);font-size:15px;margin-bo
 @media(max-width:600px){
   .schnell-name{flex:1 1 100%;margin-bottom:2px}
   .status-seg{flex:1 1 100%}
-  .seg-btn{flex:1;min-width:0;text-align:center}
+  .seg-btn{flex:1 1 calc(50% - 4px);min-width:0;text-align:center;white-space:nowrap}
   .schnell-min{width:100%}
 }
 
@@ -267,7 +271,7 @@ button:active{transform:translateY(0)}
   display:none;position:fixed;left:0;right:0;bottom:0;z-index:900;
   justify-content:space-around;align-items:stretch;
   background:var(--white);border-top:1px solid var(--line);
-  height:72px;
+  height:calc(56px + env(safe-area-inset-bottom,0px));
   padding-bottom:env(safe-area-inset-bottom,0px);
   box-shadow:0 -1px 0 var(--line);
 }
@@ -431,11 +435,16 @@ table tbody tr:hover{background:var(--canvas)}
 .badge-modal-row:last-child{border-bottom:none}
 
 /* ---------- Hilfe ---------- */
-.hilfe-bereich h3{margin:20px 0 6px;font-family:'Fraunces',serif}
+.hilfe-bereich h3{margin:20px 0 10px;font-family:'Fraunces',serif}
 .hilfe-bereich h3:first-child{margin-top:0}
 .hilfe-bereich ul{padding-left:18px;margin-bottom:6px}
 .hilfe-bereich li{margin-bottom:4px;font-size:14px}
 .hilfe-bereich p{font-size:14px;margin-bottom:10px}
+.hilfe-grid{display:flex;flex-direction:column;gap:7px;margin-top:4px}
+.hilfe-item{background:var(--white);border:1px solid var(--line);border-radius:14px;padding:11px 14px;display:flex;gap:12px;align-items:flex-start;box-shadow:var(--schatten-klein)}
+.hilfe-item-icon{font-size:18px;flex:none;width:26px;text-align:center;padding-top:1px}
+.hilfe-item h4{font-family:'Manrope',sans-serif;font-size:13px;font-weight:700;color:var(--green-deep);margin:0 0 2px}
+.hilfe-item p{font-size:13px;color:var(--ink-soft);margin:0;line-height:1.45}
 
 /* ---------- Kalender ---------- */
 .kal-next{background:linear-gradient(150deg,var(--green-deep),var(--green));color:var(--canvas);border-radius:18px;padding:18px 20px;margin-bottom:16px;position:relative;overflow:hidden}
@@ -555,12 +564,13 @@ table tbody tr:hover{background:var(--canvas)}
   .sidebar{display:none}
   .topbar{display:flex}
   .tabbar{display:flex}
-  .app{margin-left:0;padding:16px 14px calc(80px + env(safe-area-inset-bottom, 0px));max-width:100%;box-sizing:border-box}
+  .app{margin-left:0;padding:16px 14px calc(72px + env(safe-area-inset-bottom, 0px));max-width:100%;box-sizing:border-box}
   .card{padding:16px;border-radius:18px}
   h2{font-size:22px}
   .seite-head{margin-bottom:14px}
-  .app-footer-bar{bottom:calc(80px + env(safe-area-inset-bottom));right:8px;gap:6px}
+  .app-footer-bar{bottom:calc(72px + env(safe-area-inset-bottom, 0px));right:8px;gap:6px}
   .app-footer-bar a{padding:4px 10px;font-size:10px}
+  .install-hint{bottom:calc(72px + env(safe-area-inset-bottom, 0px))}
 }
 @media(min-width:861px){
   .topbar,.tabbar,.menue-overlay{display:none !important}

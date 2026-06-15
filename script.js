@@ -805,7 +805,7 @@ function renderSchnellErfassung(){
       '<div class="status-seg">' +
         '<button type="button" class="seg-btn" data-status="Anwesend" onclick="schnellStatusWaehlen(this)">Anwesend</button>' +
         '<button type="button" class="seg-btn" data-status="Zu spät" onclick="schnellStatusWaehlen(this)">Zu spät</button>' +
-        '<button type="button" class="seg-btn" data-status="Entschuldigt" onclick="schnellStatusWaehlen(this)">Entschuld.</button>' +
+        '<button type="button" class="seg-btn" data-status="Entschuldigt" onclick="schnellStatusWaehlen(this)">Entschuldigt</button>' +
         '<button type="button" class="seg-btn" data-status="Fehlend" onclick="schnellStatusWaehlen(this)">Fehlend</button>' +
       '</div>' +
       '<input class="schnell-min hidden" type="number" placeholder="Min." min="0">' +
@@ -1784,46 +1784,65 @@ function renderHilfe(){
   const ziel = document.getElementById('hilfeInhalt');
   if(!ziel) return;
   const istOff = istOffizier(aktuellerBenutzer);
+
+  function hilfeItem(icon, titel, text){
+    return '<div class="hilfe-item">'+
+      '<div class="hilfe-item-icon">'+icon+'</div>'+
+      '<div><h4>'+escapeHtml(titel)+'</h4><p>'+escapeHtml(text)+'</p></div>'+
+    '</div>';
+  }
+
   if(istOff){
     ziel.innerHTML =
       '<div class="hilfe-bereich">'+
-      '<h3>👮 Deine Rechte als Offizier</h3>'+
-      '<ul>'+
-      '<li>Mitglieder anlegen und verwalten</li>'+
-      '<li>Strafen erfassen, bearbeiten und als bezahlt markieren</li>'+
-      '<li>Anwesenheit eintragen</li>'+
-      '<li>Termine anlegen</li>'+
-      '<li>Saison abschließen & archivieren</li>'+
-      '<li>Individuelle Abzeichen erstellen und vergeben</li>'+
-      '<li>Einstellungen bearbeiten (Zugname, Logo, Strafarten)</li>'+
-      '</ul>'+
-      '<h3>🔑 Einladungscode</h3>'+
-      '<p>Den Einladungscode für neue Schützen findest du in der linken Seitenleiste (Desktop) oder im Menü unter deinem Namen. Gib ihn an neue Mitglieder weiter, damit sie dem Zug beitreten können.</p>'+
-      '<h3>⏰ Automatische Verspätungsstrafe</h3>'+
-      '<p>Wer als „Zu spät" eingetragen wird, erhält automatisch eine Strafe von <b>5 €</b>. Diese wird direkt beim Speichern der Anwesenheit erfasst.</p>'+
+      '<h3>👮 Deine Seiten im Überblick</h3>'+
+      '<div class="hilfe-grid">'+
+      hilfeItem('🏠','Start','Überblick über offene Strafen des Zuges, Kassenstand, Zugsau-Ranking und das nächste Antreten.')+
+      hilfeItem('💰','Strafen','Strafen einzeln oder für mehrere Schützen gleichzeitig erfassen, als bezahlt markieren, filtern und offene Beträge teilen.')+
+      hilfeItem('✅','Anwesenheit','Schnell-Erfassung für alle auf einmal oder Einzel-Erfassung; „Zu spät" erzeugt automatisch eine Strafe gemäß Strafenkatalog.')+
+      hilfeItem('📅','Kalender','Termine und Antrittszeiten anlegen.')+
+      hilfeItem('🏆','Ranking','Zugsau-Ranking nach Gesamtbetrag und Ranking pro Strafart.')+
+      hilfeItem('📜','Chronik','Vollständiger Verlauf aller Strafen und Zahlungen im Zug.')+
+      hilfeItem('📊','Abstimmungen','Umfragen mit Einzel- oder Mehrfachauswahl erstellen, Ergebnisse live verfolgen und Abstimmungen schließen.')+
+      hilfeItem('💶','Kasse','Einnahmen und Ausgaben buchen, Kassenstand im Blick behalten und bezahlte Strafen direkt als Einnahme übernehmen.')+
+      hilfeItem('👥','Mitglieder','Mitglieder anlegen, Rollen vergeben, Profilbilder setzen und individuelle Abzeichen verleihen.')+
+      hilfeItem('⚙️','Einstellungen','Strafarten mit Beträgen pflegen (Strafenkatalog), Zugname und Logo anpassen, Einladungscode anzeigen, Saison abschließen und Abzeichen verwalten.')+
+      hilfeItem('👤','Profil','Eigene Spielerkarte mit Statistik, Abzeichen und den letzten Strafen.')+
+      '</div>'+
+      '<div class="unterkarte" style="margin-top:16px">'+
+      '<h3 style="margin-top:0">🔑 Einladungscode</h3>'+
+      '<p>Den Code findest du in den Einstellungen und in der Sidebar. Gib ihn an neue Mitglieder weiter, damit sie dem Zug beitreten können.</p>'+
       '<h3>💸 Offiziere zahlen doppelt</h3>'+
-      '<p>Für Offiziere gilt: Strafen werden mit dem <b>doppelten Betrag</b> berechnet. So ist es im System hinterlegt – faire Führung heißt höhere Verantwortung!</p>'+
+      '<p>Strafen für Offiziere werden automatisch mit dem doppelten Betrag berechnet – faire Führung heißt höhere Verantwortung.</p>'+
+      '</div>'+
       '</div>';
   } else {
-    const badgeListe = ABZEICHEN.map(b =>
-      '<li><b>'+b.e+' '+b.name+'</b> – '+escapeHtml(b.tipp)+'</li>'
-    ).join('');
     ziel.innerHTML =
       '<div class="hilfe-bereich">'+
-      '<h3>👁️ Was du sehen kannst</h3>'+
-      '<ul>'+
-      '<li>Dein eigenes Profil mit Strafen & Abzeichen</li>'+
-      '<li>Eigene Strafen (Übersicht & Details)</li>'+
-      '<li>Ranking (wer hat die meisten Strafen?)</li>'+
-      '<li>Kalender (Termine lesen)</li>'+
-      '<li>Anwesenheitsübersicht (lesen)</li>'+
-      '<li>Akten anderer Schützen (öffentlich einsehbar)</li>'+
-      '</ul>'+
-      '<h3>🎖️ Automatische Abzeichen</h3>'+
-      '<p>Diese Abzeichen werden automatisch vergeben, sobald du die Kriterien erfüllst:</p>'+
-      '<ul>'+badgeListe+'</ul>'+
-      '<h3>🏅 Dein Rang</h3>'+
-      '<p>Dein Titel (z. B. „Ehrenmann", „Zugsau", „König") wird anhand deiner Strafsumme und Zahlungsmoral automatisch berechnet. Den aktuellen Rang siehst du jederzeit in deinem Profil.</p>'+
+      '<h3>👁️ Deine Ansichten</h3>'+
+      '<div class="hilfe-grid">'+
+      hilfeItem('🏠','Start','Überblick über deine eigenen offenen Strafen und das nächste Antreten.')+
+      hilfeItem('💰','Strafen','Alle Strafen im Zug einsehen – deine eigenen im Detail, inklusive Zahlungsstatus.')+
+      hilfeItem('⚙️','Strafenkatalog','Unter Einstellungen nachschauen, welche Strafe wie viel kostet.')+
+      hilfeItem('✅','Anwesenheit','Deine eigene Anwesenheitshistorie einsehen.')+
+      hilfeItem('📅','Kalender','Termine und Antrittszeiten des Zuges ansehen.')+
+      hilfeItem('🏆','Ranking','Sehen, wo du im Zugsau-Ranking stehst – und wer gerade Spitzenreiter ist.')+
+      hilfeItem('📜','Chronik','Den Verlauf aller Aktivitäten im Zug verfolgen.')+
+      hilfeItem('📊','Abstimmungen','An Umfragen des Zuges teilnehmen und Ergebnisse einsehen.')+
+      hilfeItem('👤','Profil','Deine Spielerkarte mit Statistik, Abzeichen und deinen letzten Strafen.')+
+      '</div>'+
+      '<div class="unterkarte" style="margin-top:16px">'+
+      '<h3 style="margin-top:0">🎖️ Automatische Abzeichen</h3>'+
+      '<p style="font-size:13px;color:var(--ink-soft);margin-bottom:10px">Diese Abzeichen werden automatisch vergeben, sobald du die Kriterien erfüllst:</p>'+
+      '<div class="hilfe-grid">'+
+      ABZEICHEN.map(b =>
+        '<div class="hilfe-item">'+
+        '<div class="hilfe-item-icon">'+b.e+'</div>'+
+        '<div><h4>'+escapeHtml(b.name)+'</h4><p>'+escapeHtml(b.tipp)+'</p></div>'+
+        '</div>'
+      ).join('')+
+      '</div>'+
+      '</div>'+
       '</div>';
   }
 }
