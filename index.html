@@ -305,7 +305,7 @@
   <!-- MITGLIEDER -->
   <section class="card app-seite hidden" id="mitgliederSeite">
     <div class="seite-head"><h2>Mitglieder</h2></div>
-    <div class="unterkarte">
+    <div class="unterkarte" id="mitgliedHinzufuegenBereich">
       <h3>Mitglied hinzufügen</h3>
       <div class="form-grid">
         <input id="neuerSchuetze" type="text" placeholder="Name">
@@ -391,29 +391,31 @@
 
     <div id="einladungscodeBereich" class="unterkarte hidden"></div>
 
-    <div class="unterkarte">
+    <div class="unterkarte hidden" id="einstellungZugname">
       <h3>Zugname</h3>
       <input id="zugnameInput" type="text" placeholder="z. B. Jägerzug Immergrün">
       <button class="btn-gold" onclick="zugnameSpeichern()">Zugname speichern</button>
     </div>
 
-    <div class="unterkarte">
+    <div class="unterkarte hidden" id="einstellungLogo">
       <h3>Zuglogo</h3>
       <input id="logoInput" type="file" accept="image/*">
       <button class="btn-gold" onclick="logoSpeichern()">Logo speichern</button>
     </div>
 
     <div class="unterkarte">
-      <h3>Strafart hinzufügen</h3>
-      <div class="form-grid">
-        <input id="neueStrafart" type="text" placeholder="z. B. Zu spät erschienen">
-        <input id="neuerBetrag" type="number" placeholder="Betrag in €">
-      </div>
-      <button class="btn-gold" onclick="strafartHinzufuegen()">Strafart hinzufügen</button>
+      <h3>Strafenkatalog</h3>
       <ul id="strafartenListe" class="strafart-liste"></ul>
+      <div id="strafartHinzufuegenForm" class="hidden" style="margin-top:12px">
+        <div class="form-grid">
+          <input id="neueStrafart" type="text" placeholder="z. B. Zu spät erschienen">
+          <input id="neuerBetrag" type="number" placeholder="Betrag in €">
+        </div>
+        <button class="btn-gold" onclick="strafartHinzufuegen()">Strafart hinzufügen</button>
+      </div>
     </div>
 
-    <div class="unterkarte">
+    <div class="unterkarte hidden" id="einstellungBackup">
       <h3>Backup &amp; Export</h3>
       <div class="btn-row">
         <button onclick="exportDataAsJSON()">📥 Backup (JSON)</button>
@@ -425,7 +427,7 @@
       <button onclick="importDataFromJSON()">📤 Importieren</button>
     </div>
 
-    <div class="unterkarte">
+    <div class="unterkarte hidden" id="einstellungSaison">
       <h3>🏁 Saison</h3>
       <p class="muted">Schließt die laufende Saison ab: Strafen &amp; Anwesenheiten werden archiviert und danach geleert. Mitglieder, Strafarten und Termine bleiben erhalten.</p>
       <button class="btn-gold" onclick="saisonAbschliessen()">Saison abschließen &amp; neu starten</button>
@@ -445,11 +447,6 @@
     </div>
 
     <div id="autoBadgeVerwaltung" class="unterkarte hidden"></div>
-
-    <div class="unterkarte danger">
-      <h3>⚠️ Gefahrenzone</h3>
-      <button class="delete-button" onclick="clearAllData()">Alle Daten löschen</button>
-    </div>
 
     <p style="text-align:center;padding-top:4px"><a href="#" onclick="datenschutzAnzeigen();return false;" style="color:var(--grau);font-size:12px;text-decoration:none">🔒 Datenschutz</a></p>
   </section>

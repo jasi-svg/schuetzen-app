@@ -286,7 +286,7 @@ async function checkAppState(){
 
     const [roleRes, memberRes, clubRes] = await Promise.all([
       sb.rpc('my_role'),
-      sb.from('members').select('name, role').maybeSingle(),
+      sb.from('members').select('name, role').eq('user_id', session.user.id).maybeSingle(),
       sb.from('clubs').select('name, invite_code').eq('id', clubId).single()
     ]);
 
@@ -1038,6 +1038,7 @@ function appAktualisieren(){
   renderAbstimmungen();
   renderChronik();
   renderKasse();
+  renderEinstellungen();
   // Einstellungen-Felder
   document.getElementById('zugnameInput').value = zugname;
 }
@@ -1177,15 +1178,14 @@ function podiumRender(ziel){
 function renderProfil(){
   const ziel = document.getElementById('profilInhalt');
   if(!aktuellerBenutzer){ ziel.innerHTML = '<p class="leer">Bitte einloggen, um dein Profil zu sehen.</p>'; return; }
-  const s = aktuellerBenutzer;
+  // meinMember hat die korrekte member.id, die mit schuetzeId in Strafen/Anwesenheiten übereinstimmt
+  const meinMember = sbSession ? schuetzen.find(m => m.user_id === sbSession.user.id) : null;
+  const s = meinMember || aktuellerBenutzer;
   const st = statsFuer(s);
 
-  // Zahlungs-Banner: echtes member-Objekt für korrekte ID-Zuordnung
-  const meinMember = sbSession ? schuetzen.find(m => m.user_id === sbSession.user.id) : null;
-  const stMein = meinMember ? statsFuer(meinMember) : st;
-  const bannerHtml = stMein.offen > 0
-    ? '<div class="banner-offen">⚠️ Du hast noch <b>' + euro(stMein.offen) + '</b> offen</div>'
-    : (stMein.anzahl > 0 ? '<div class="banner-ok">✓ Alles bezahlt</div>' : '');
+  const bannerHtml = st.offen > 0
+    ? '<div class="banner-offen">⚠️ Du hast noch <b>' + euro(st.offen) + '</b> offen</div>'
+    : (st.anzahl > 0 ? '<div class="banner-ok">✓ Alles bezahlt</div>' : '');
   const initialen = s.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
   const avatar = s.bild ? '<img class="sk-avatar" src="'+s.bild+'" alt="">' : '<div class="sk-avatar">'+escapeHtml(initialen)+'</div>';
   const badges = abzeichenFuer(s);
@@ -1479,6 +1479,7 @@ function chronikAlleAnzeigen(){
 
 function renderMitglieder(){
   const darf = darfBearbeiten();
+  document.getElementById('mitgliedHinzufuegenBereich')?.classList.toggle('hidden', !darf);
   document.getElementById('schuetzenListe').innerHTML = schuetzen.map(s=>{
     const initialen = s.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
     const avatar = s.bild ? '<img class="mini-avatar" src="'+s.bild+'" alt="">' : '<div class="mini-avatar">'+escapeHtml(initialen)+'</div>';
@@ -1493,11 +1494,19 @@ function renderMitglieder(){
       '<div><div class="mname">'+escapeHtml(s.name)+'</div>'+
       '<div class="mrolle">'+escapeHtml(s.rolle)+'</div></div>'+
       '<div class="aktionen">'+akt+'</div></li>';
-  }).join('');
+  }).join('') || '<li class="leer" style="list-style:none;padding:18px;text-align:center">Noch keine Mitglieder angelegt.</li>';
+}
+
+function renderEinstellungen(){
+  const darf = darfBearbeiten();
+  ['einstellungZugname','einstellungLogo','einstellungBackup','einstellungSaison'].forEach(id => {
+    document.getElementById(id)?.classList.toggle('hidden', !darf);
+  });
 }
 
 function renderStrafarten(){
   const darf = darfBearbeiten();
+  document.getElementById('strafartHinzufuegenForm')?.classList.toggle('hidden', !darf);
   document.getElementById('strafartenListe').innerHTML = strafarten.map(a=>
     '<li><div><b>'+escapeHtml(a.bezeichnung)+'</b></div><div class="aktionen">'+euro(a.betrag)+
     (darf?' <button class="mini-btn delete-button" onclick="strafartLoeschen(\''+a.id+'\')">🗑</button>':'')+'</div></li>'
@@ -1636,15 +1645,6 @@ function importDataFromJSON(){
   };
   r.readAsText(f);
 }
-function clearAllData(){
-  if(!confirm('Wirklich ALLE Daten unwiderruflich löschen?')) return;
-  if(!confirm('Ganz sicher? Es gibt kein Zurück.')) return;
-  localStorage.clear();
-  schuetzen=[]; strafarten=[]; strafen=[]; anwesenheiten=[]; termine=[]; saisons=[];
-  aktuellerBenutzer=null; zugname='Digitaler Strafenkatalog'; logo='';
-  datenLaden(); appAktualisieren(); seiteAnzeigen('dashboard');
-  showToast('Alle Daten gelöscht','warning');
-}
 
 /* ============================================================
    SAISON-ABSCHLUSS (Archiv)
@@ -1684,8 +1684,10 @@ async function saisonAbschliessen(){
   });
   if(insertErr){ console.error('saisonAbschliessen insert:', insertErr); showToast('Archivieren fehlgeschlagen: ' + insertErr.message, 'error'); return; }
 
-  await sb.from('strafen').delete().eq('club_id', sbClubId);
-  await sb.from('anwesenheiten').delete().eq('club_id', sbClubId);
+  const { error: delSErr } = await sb.from('strafen').delete().eq('club_id', sbClubId);
+  if(delSErr){ console.error('saisonAbschliessen delete strafen:', delSErr); showToast('Archiv gespeichert, aber Strafen konnten nicht geleert werden: ' + delSErr.message, 'error'); return; }
+  const { error: delAErr } = await sb.from('anwesenheiten').delete().eq('club_id', sbClubId);
+  if(delAErr){ console.error('saisonAbschliessen delete anwesenheiten:', delAErr); showToast('Archiv gespeichert, aber Anwesenheiten konnten nicht geleert werden: ' + delAErr.message, 'error'); return; }
 
   showToast('Saison „'+saisonName+'" archiviert – neue Saison gestartet 🎉');
   await clubDatenLaden();
