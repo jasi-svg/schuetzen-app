@@ -465,3 +465,26 @@ table tbody tr:hover{background:var(--creme)}
 @media(min-width:861px){
   .topbar,.tabbar,.menue-overlay{display:none !important}
 }
+
+/* ---------- Abstimmungen / Umfragen ---------- */
+.umfrage-card{margin-bottom:14px}
+.umfrage-card h4{font-size:16px;margin-bottom:12px;display:flex;flex-wrap:wrap;align-items:center;gap:7px}
+.umfrage-tag{display:inline-flex;align-items:center;font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;background:var(--gruen-700);color:#fff;white-space:nowrap}
+.umfrage-tag.umfrage-tag-grau{background:var(--grau)}
+.umfrage-optionen{display:flex;flex-direction:column;gap:8px;margin-bottom:4px}
+.umfrage-option-check{display:flex;align-items:center;gap:9px;font-size:14px;cursor:pointer;padding:8px 10px;border-radius:10px;border:1px solid var(--linie);background:var(--creme);transition:background .15s}
+.umfrage-option-check:hover{background:var(--creme-2)}
+.umfrage-option-check input{width:auto;flex:none;accent-color:var(--gruen-700)}
+.umfrage-ergebnis{margin-top:12px;display:flex;flex-direction:column;gap:7px}
+.umfrage-ergebnis-unten{margin-top:16px;padding-top:12px;border-top:1px solid var(--linie)}
+.umfrage-ergebnis-zeile{display:grid;grid-template-columns:1fr 120px 60px;align-items:center;gap:8px;font-size:13px}
+.umfrage-option-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;color:var(--tinte)}
+.umfrage-balken-wrap{height:10px;background:var(--creme-2);border-radius:999px;overflow:hidden}
+.umfrage-balken{height:100%;background:linear-gradient(90deg,var(--gruen-600),var(--gruen-700));border-radius:999px;transition:width .4s ease}
+.umfrage-stimmen-zahl{text-align:right;color:var(--grau);white-space:nowrap}
+.umfrage-option-row{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.umfrage-option-input{flex:1}
+.umfrage-option-entfernen{width:auto !important;padding:6px 12px;flex:none}
+@media(max-width:500px){
+  .umfrage-ergebnis-zeile{grid-template-columns:1fr 80px 50px;gap:5px}
+}

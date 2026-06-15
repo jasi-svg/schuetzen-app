@@ -24,7 +24,7 @@ function datenNeuLadenDebounced(){
 function realtimeStarten(){
   if(realtimeChannel) return;
   realtimeChannel = sb.channel('club-live');
-  ['strafen','anwesenheiten','members','termine','strafarten','clubs','saisons'].forEach(tabelle => {
+  ['strafen','anwesenheiten','members','termine','strafarten','clubs','saisons','umfragen','umfrage_optionen','umfrage_stimmen'].forEach(tabelle => {
     realtimeChannel.on('postgres_changes',
       { event: '*', schema: 'public', table: tabelle },
       () => datenNeuLadenDebounced()
@@ -48,6 +48,9 @@ let zugname = 'Digitaler Strafenkatalog';
 let logo = '';
 let aktuelleSeite = 'dashboard';
 let customBadgeTypes = [];
+let umfragen = [];
+let umfrageOptionen = [];
+let umfrageStimmen = [];
 
 /* ---------- Hilfen ---------- */
 function neueId(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
@@ -107,8 +110,8 @@ function datenLaden(){
 const seitenMap = {
   dashboard:'dashboardSeite', profil:'profilSeite', strafen:'strafenSeite',
   kalender:'kalenderSeite', ranking:'rankingSeite', mitglieder:'mitgliederSeite',
-  anwesenheit:'anwesenheitSeite', akten:'aktenSeite', einstellungen:'einstellungenSeite',
-  hilfe:'hilfeSeite'
+  anwesenheit:'anwesenheitSeite', abstimmungen:'abstimmungenSeite',
+  akten:'aktenSeite', einstellungen:'einstellungenSeite', hilfe:'hilfeSeite'
 };
 
 function seiteAnzeigen(seite){
@@ -305,14 +308,17 @@ async function checkAppState(){
    ============================================================ */
 async function clubDatenLaden(){
   try{
-    const [membersRes, startenRes, strafenRes, anwRes, termineRes, saisonsRes, clubRes] = await Promise.all([
+    const [membersRes, startenRes, strafenRes, anwRes, termineRes, saisonsRes, clubRes, umfragenRes, optionenRes, stimmenRes] = await Promise.all([
       sb.from('members').select('*'),
       sb.from('strafarten').select('*'),
       sb.from('strafen').select('*'),
       sb.from('anwesenheiten').select('*'),
       sb.from('termine').select('*'),
       sb.from('saisons').select('*'),
-      sb.from('clubs').select('custom_badge_types, logo').eq('id', sbClubId).single()
+      sb.from('clubs').select('custom_badge_types, logo').eq('id', sbClubId).single(),
+      sb.from('umfragen').select('*'),
+      sb.from('umfrage_optionen').select('*'),
+      sb.from('umfrage_stimmen').select('*')
     ]);
 
     customBadgeTypes = clubRes.data?.custom_badge_types || [];
@@ -344,6 +350,10 @@ async function clubDatenLaden(){
       ...s,
       daten: s.daten || { strafen: [], anwesenheiten: [], summary: {} }
     }));
+
+    umfragen      = umfragenRes.data  || [];
+    umfrageOptionen = optionenRes.data || [];
+    umfrageStimmen  = stimmenRes.data  || [];
 
     appAktualisieren();
   } catch(e){
@@ -943,6 +953,7 @@ function appAktualisieren(){
   renderSaisons();
   renderCustomBadgeSettings();
   renderHilfe();
+  renderAbstimmungen();
   // Einstellungen-Felder
   document.getElementById('zugnameInput').value = zugname;
 }
@@ -1485,6 +1496,184 @@ function renderHilfe(){
       '<p>Dein Titel (z. B. „Ehrenmann", „Zugsau", „König") wird anhand deiner Strafsumme und Zahlungsmoral automatisch berechnet. Den aktuellen Rang siehst du jederzeit in deinem Profil.</p>'+
       '</div>';
   }
+}
+
+/* ============================================================
+   ABSTIMMUNGEN / UMFRAGEN
+   ============================================================ */
+function renderAbstimmungen(){
+  const formBereich = document.getElementById('umfrageFormBereich');
+  const liste = document.getElementById('abstimmungenListe');
+  if(!liste) return;
+
+  if(formBereich){
+    formBereich.classList.toggle('hidden', !darfBearbeiten());
+  }
+
+  const myUserId = sbSession?.user?.id;
+  const sorted = umfragen.slice().sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+
+  if(!sorted.length){
+    liste.innerHTML = '<p class="leer">Noch keine Abstimmungen vorhanden.</p>';
+    return;
+  }
+
+  liste.innerHTML = sorted.map(u => {
+    const optionen = umfrageOptionen
+      .filter(o => o.umfrage_id === u.id)
+      .sort((a,b) => a.sortierung - b.sortierung);
+    const alleStimmen  = umfrageStimmen.filter(s => s.umfrage_id === u.id);
+    const meineStimmen = alleStimmen.filter(s => s.user_id === myUserId);
+    const istOffen     = !u.geschlossen;
+
+    // Eindeutige Abstimmende (für Prozentbasis bei Mehrfachauswahl)
+    const voterCount = new Set(alleStimmen.map(s => s.user_id)).size;
+    const basis = voterCount || 1;
+
+    const ergebnisHtml = optionen.map(o => {
+      const n = alleStimmen.filter(s => s.option_id === o.id).length;
+      const pct = Math.round(n / basis * 100);
+      const meineWahl = meineStimmen.some(s => s.option_id === o.id);
+      return '<div class="umfrage-ergebnis-zeile">' +
+        '<div class="umfrage-option-label">' + (meineWahl ? '✓ ' : '') + escapeHtml(o.text) + '</div>' +
+        '<div class="umfrage-balken-wrap"><div class="umfrage-balken" style="width:' + pct + '%"></div></div>' +
+        '<div class="umfrage-stimmen-zahl">' + n + ' (' + pct + '%)</div>' +
+        '</div>';
+    }).join('');
+
+    // Abstimmformular (nur wenn offen)
+    let abstimmHtml = '';
+    if(istOffen){
+      const inputTyp = u.mehrfachauswahl ? 'checkbox' : 'radio';
+      const controls = optionen.map((o, i) => {
+        const checked = meineStimmen.some(s => s.option_id === o.id) ? ' checked' : '';
+        return '<label class="umfrage-option-check">' +
+          '<input type="' + inputTyp + '" name="umfrage_' + u.id + '" value="' + escapeHtml(o.id) + '"' + checked + '>' +
+          escapeHtml(o.text) + '</label>';
+      }).join('');
+      abstimmHtml =
+        '<div class="umfrage-optionen">' + controls + '</div>' +
+        '<button class="btn-gold" style="margin-top:10px;width:auto" onclick="umfrageAbstimmen(\'' + u.id + '\')">Abstimmen</button>';
+    }
+
+    // Status-Tag + Offizier-Aktionen
+    const geschlTag = !istOffen ? '<span class="umfrage-tag umfrage-tag-grau">Geschlossen</span>' : '';
+    const mehrTag   = u.mehrfachauswahl ? '<span class="umfrage-tag">Mehrfachauswahl</span>' : '';
+    let aktionenHtml = '';
+    if(darfBearbeiten()){
+      aktionenHtml = '<div class="btn-row" style="margin-top:12px">' +
+        (istOffen
+          ? '<button class="btn-ghost" style="width:auto" onclick="umfrageSchliessen(\'' + u.id + '\')">🔒 Schließen</button>'
+          : '') +
+        '<button class="delete-button" style="width:auto" onclick="umfrageLoeschen(\'' + u.id + '\')">Löschen</button>' +
+        '</div>';
+    }
+
+    const gesamtLabel = '<p class="muted" style="margin-top:10px">' +
+      voterCount + ' Abstimmende · ' + alleStimmen.length + ' Stimme' + (alleStimmen.length !== 1 ? 'n' : '') +
+      '</p>';
+
+    return '<div class="unterkarte umfrage-card">' +
+      '<h4>' + escapeHtml(u.frage) + ' ' + mehrTag + geschlTag + '</h4>' +
+      abstimmHtml +
+      '<div class="umfrage-ergebnis' + (abstimmHtml ? ' umfrage-ergebnis-unten' : '') + '">' + ergebnisHtml + '</div>' +
+      gesamtLabel +
+      aktionenHtml +
+      '</div>';
+  }).join('');
+}
+
+function umfrageOptionHinzufuegen(){
+  const container = document.getElementById('umfrageOptionenContainer');
+  if(!container) return;
+  const n = container.querySelectorAll('.umfrage-option-row').length + 1;
+  const row = document.createElement('div');
+  row.className = 'umfrage-option-row';
+  row.innerHTML = '<input type="text" class="umfrage-option-input" placeholder="Option ' + n + '">' +
+    '<button class="btn-ghost umfrage-option-entfernen" onclick="umfrageOptionEntfernen(this)">−</button>';
+  container.appendChild(row);
+}
+
+function umfrageOptionEntfernen(btn){
+  const container = document.getElementById('umfrageOptionenContainer');
+  if(!container) return;
+  const rows = container.querySelectorAll('.umfrage-option-row');
+  if(rows.length <= 2){ showToast('Mindestens 2 Optionen erforderlich','error'); return; }
+  btn.closest('.umfrage-option-row').remove();
+}
+
+async function umfrageErstellen(){
+  if(!darfBearbeiten()){ showToast('Keine Berechtigung','error'); return; }
+  const frage = document.getElementById('umfrageFrage')?.value.trim();
+  if(!frage){ showToast('Frage eingeben','error'); return; }
+  const mehrfach = document.getElementById('umfrageMehrfach')?.checked || false;
+  const optTexte = Array.from(document.querySelectorAll('.umfrage-option-input'))
+    .map(f => f.value.trim()).filter(t => t);
+  if(optTexte.length < 2){ showToast('Mindestens 2 Antwortoptionen eingeben','error'); return; }
+
+  const { data: neu, error: e1 } = await sb.from('umfragen')
+    .insert({ club_id: sbClubId, frage, mehrfachauswahl: mehrfach })
+    .select().single();
+  if(e1){ console.error(e1); showToast('Fehler: ' + e1.message,'error'); return; }
+
+  const inserts = optTexte.map((text, i) => ({
+    umfrage_id: neu.id, club_id: sbClubId, text, sortierung: i
+  }));
+  const { error: e2 } = await sb.from('umfrage_optionen').insert(inserts);
+  if(e2){ console.error(e2); showToast('Fehler: ' + e2.message,'error'); return; }
+
+  showToast('Abstimmung erstellt!');
+  document.getElementById('umfrageFrage').value = '';
+  document.getElementById('umfrageMehrfach').checked = false;
+  const container = document.getElementById('umfrageOptionenContainer');
+  if(container){
+    container.innerHTML =
+      '<div class="umfrage-option-row"><input type="text" class="umfrage-option-input" placeholder="Option 1"><button class="btn-ghost umfrage-option-entfernen" onclick="umfrageOptionEntfernen(this)">−</button></div>' +
+      '<div class="umfrage-option-row"><input type="text" class="umfrage-option-input" placeholder="Option 2"><button class="btn-ghost umfrage-option-entfernen" onclick="umfrageOptionEntfernen(this)">−</button></div>';
+  }
+  await clubDatenLaden();
+}
+
+async function umfrageSchliessen(id){
+  if(!darfBearbeiten()){ showToast('Keine Berechtigung','error'); return; }
+  const { error } = await sb.from('umfragen').update({ geschlossen: true }).eq('id', id);
+  if(error){ console.error(error); showToast('Fehler: ' + error.message,'error'); return; }
+  showToast('Abstimmung geschlossen','info');
+  await clubDatenLaden();
+}
+
+async function umfrageLoeschen(id){
+  if(!darfBearbeiten()){ showToast('Keine Berechtigung','error'); return; }
+  const { error } = await sb.from('umfragen').delete().eq('id', id);
+  if(error){ console.error(error); showToast('Fehler: ' + error.message,'error'); return; }
+  showToast('Abstimmung gelöscht','warning');
+  await clubDatenLaden();
+}
+
+async function umfrageAbstimmen(umfrageId){
+  const myUserId = sbSession?.user?.id;
+  if(!myUserId){ showToast('Nicht angemeldet','error'); return; }
+  const umfrage = umfragen.find(u => u.id === umfrageId);
+  if(!umfrage || umfrage.geschlossen){ showToast('Abstimmung geschlossen','error'); return; }
+
+  const inputs = document.querySelectorAll('input[name="umfrage_' + umfrageId + '"]:checked');
+  const gewaehlte = Array.from(inputs).map(i => i.value);
+  if(!gewaehlte.length){ showToast('Bitte mindestens eine Option wählen','error'); return; }
+
+  // Bei Einfachauswahl: eigene alte Stimmen löschen (Wahl ändern möglich)
+  if(!umfrage.mehrfachauswahl){
+    const { error: delErr } = await sb.from('umfrage_stimmen')
+      .delete().eq('umfrage_id', umfrageId).eq('user_id', myUserId);
+    if(delErr){ console.error(delErr); showToast('Fehler: ' + delErr.message,'error'); return; }
+  }
+
+  const inserts = gewaehlte.map(optionId => ({
+    umfrage_id: umfrageId, option_id: optionId, club_id: sbClubId, user_id: myUserId
+  }));
+  const { error } = await sb.from('umfrage_stimmen').insert(inserts);
+  if(error){ console.error(error); showToast('Fehler: ' + error.message,'error'); return; }
+  showToast('Stimme gespeichert ✓');
+  await clubDatenLaden();
 }
 
 /* ============================================================

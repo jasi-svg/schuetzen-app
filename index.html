@@ -63,6 +63,7 @@
     <button class="menue-link" onclick="seiteAnzeigen('profil')">👤 Profil</button>
     <button class="menue-link" onclick="seiteAnzeigen('mitglieder')">👥 Mitglieder</button>
     <button class="menue-link" onclick="seiteAnzeigen('anwesenheit')">✅ Anwesenheit</button>
+    <button class="menue-link" onclick="seiteAnzeigen('abstimmungen')">📊 Abstimmungen</button>
     <button class="menue-link" onclick="seiteAnzeigen('akten')">📁 Akten</button>
     <button class="menue-link" onclick="seiteAnzeigen('einstellungen')">⚙️ Einstellungen</button>
     <button class="menue-link" onclick="seiteAnzeigen('hilfe')">❓ Hilfe</button>
@@ -133,6 +134,7 @@
   <button id="nav-profil" class="nav-item" onclick="seiteAnzeigen('profil')"><span class="ic">👤</span> Profil</button>
   <button id="nav-mitglieder" class="nav-item" onclick="seiteAnzeigen('mitglieder')"><span class="ic">👥</span> Mitglieder</button>
   <button id="nav-anwesenheit" class="nav-item" onclick="seiteAnzeigen('anwesenheit')"><span class="ic">✅</span> Anwesenheit</button>
+  <button id="nav-abstimmungen" class="nav-item" onclick="seiteAnzeigen('abstimmungen')"><span class="ic">📊</span> Abstimmungen</button>
   <button id="nav-akten" class="nav-item" onclick="seiteAnzeigen('akten')"><span class="ic">📁</span> Akten</button>
   <button id="nav-einstellungen" class="nav-item" onclick="seiteAnzeigen('einstellungen')"><span class="ic">⚙️</span> Einstellungen</button>
   <button id="nav-hilfe" class="nav-item" onclick="seiteAnzeigen('hilfe')"><span class="ic">❓</span> Hilfe</button>
@@ -422,6 +424,27 @@
     </div>
 
     <p style="text-align:center;padding-top:4px"><a href="#" onclick="datenschutzAnzeigen();return false;" style="color:var(--grau);font-size:12px;text-decoration:none">🔒 Datenschutz</a></p>
+  </section>
+
+  <!-- ABSTIMMUNGEN -->
+  <section class="card app-seite hidden" id="abstimmungenSeite">
+    <div class="seite-head"><h2>📊 Abstimmungen</h2></div>
+    <div id="umfrageFormBereich" class="unterkarte hidden">
+      <h3 style="margin-top:0">Neue Abstimmung erstellen</h3>
+      <div class="form-grid">
+        <input id="umfrageFrage" type="text" placeholder="Frage der Abstimmung …">
+        <label class="check"><input id="umfrageMehrfach" type="checkbox"> Mehrfachauswahl erlauben</label>
+      </div>
+      <div id="umfrageOptionenContainer" style="margin-top:10px">
+        <div class="umfrage-option-row"><input type="text" class="umfrage-option-input" placeholder="Option 1"><button class="btn-ghost umfrage-option-entfernen" onclick="umfrageOptionEntfernen(this)">−</button></div>
+        <div class="umfrage-option-row"><input type="text" class="umfrage-option-input" placeholder="Option 2"><button class="btn-ghost umfrage-option-entfernen" onclick="umfrageOptionEntfernen(this)">−</button></div>
+      </div>
+      <div class="btn-row" style="margin-top:12px">
+        <button onclick="umfrageOptionHinzufuegen()">+ Option hinzufügen</button>
+        <button class="btn-gold" onclick="umfrageErstellen()">Abstimmung erstellen</button>
+      </div>
+    </div>
+    <div id="abstimmungenListe"></div>
   </section>
 
   <!-- HILFE -->
