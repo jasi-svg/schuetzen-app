@@ -758,9 +758,10 @@ async function anwesenheitSpeichern(){
   });
   if(anwErr){ console.error('anwesenheitSpeichern:', anwErr); showToast('Fehler: ' + anwErr.message, 'error'); return; }
 
-  // Automatische „Zu spät"-Strafe (5 € Grundbetrag, Offiziere doppelt)
+  // Automatische „Zu spät"-Strafe (Betrag aus Strafenkatalog, Rückfall 5 €, Offiziere doppelt)
   if(status === 'Zu spät'){
-    const basis = 5;
+    const zuSpaetArt = strafarten.find(a => a.bezeichnung === 'Zu spät erschienen');
+    const basis = zuSpaetArt ? zuSpaetArt.betrag : 5;
     const betrag = istOffizier(s) ? basis * 2 : basis;
     const { error: strafErr } = await sb.from('strafen').insert({
       club_id: sbClubId, member_id: s.id, schuetze: s.name,
@@ -849,7 +850,8 @@ async function schnellAnwesenheitSpeichern(){
   if(anwErr){ console.error('schnellAnwesenheitSpeichern:', anwErr); showToast('Fehler: '+anwErr.message,'error'); return; }
 
   if(verspaetete.length > 0){
-    const basis = 5;
+    const zuSpaetArt = strafarten.find(a => a.bezeichnung === 'Zu spät erschienen');
+    const basis = zuSpaetArt ? zuSpaetArt.betrag : 5;
     const strafEintraege = verspaetete.map(({s, minuten})=>({
       club_id:sbClubId, member_id:s.id, schuetze:s.name,
       strafart:'Zu spät erschienen', basisbetrag:basis,
