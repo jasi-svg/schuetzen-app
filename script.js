@@ -59,6 +59,7 @@ let dashboardZahlAnimiert = false;
 /* ---------- Hilfen ---------- */
 function neueId(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
 function escapeHtml(t){ return String(t==null?'':t).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function lcIcon(name){ return '<i data-lucide="'+name+'" aria-hidden="true"></i>'; }
 function euro(n){ return (Math.round(n*100)/100).toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' €'; }
 function istOffizier(s){ return !!s && (s.rolle==='Spieß' || s.rolle==='Oberleutnant' || s.rolle==='Leutnant'); }
 function darfBearbeiten(){ return istOffizier(aktuellerBenutzer); }
@@ -248,9 +249,10 @@ function showToast(text, typ='success'){
   const c = document.getElementById('toastContainer');
   const t = document.createElement('div');
   t.className = 'toast ' + typ;
-  const icons = {success:'✅',error:'⛔',info:'ℹ️',warning:'⚠️'};
+  const icons = {success:lcIcon('circle-check'),error:lcIcon('x-circle'),info:lcIcon('info'),warning:lcIcon('alert-triangle')};
   t.innerHTML = '<span>'+(icons[typ]||'')+'</span><span>'+escapeHtml(text)+'</span>';
   c.appendChild(t);
+  lucide.createIcons({el:t});
   setTimeout(()=>{ t.style.opacity='0'; t.style.transform='translateX(380px)'; t.style.transition='all .3s ease'; setTimeout(()=>t.remove(),300); }, 3200);
 }
 
@@ -1117,7 +1119,7 @@ function appAktualisieren(){
   if(ecb){
     if(istOffizier(aktuellerBenutzer) && sbInviteCode){
       ecb.classList.remove('hidden');
-      ecb.innerHTML = '<h3>🔑 Einladungscode</h3>'+
+      ecb.innerHTML = '<h3>'+lcIcon('key')+' Einladungscode</h3>'+
         '<div style="display:flex;align-items:center;gap:12px;margin-top:8px;flex-wrap:wrap">'+
         '<span style="font-size:26px;font-weight:800;letter-spacing:3px;color:var(--gold);font-family:monospace">'+escapeHtml(sbInviteCode)+'</span>'+
         '<button class="btn-gold" style="width:auto;padding:8px 18px" onclick="einladungscodeKopieren()">Kopieren</button>'+
@@ -1146,6 +1148,7 @@ function appAktualisieren(){
   renderEinstellungen();
   // Einstellungen-Felder
   document.getElementById('zugnameInput').value = zugname;
+  lucide.createIcons();
 }
 
 function renderDashboard(){
@@ -1291,7 +1294,7 @@ function renderDashboard(){
   const ks = kassenstandBerechnen();
   const kassenstandKarteHtml =
     '<div class="db-mini-card" style="cursor:pointer;margin-bottom:14px" onclick="seiteAnzeigen(\'kasse\')">' +
-    '<div class="db-mini-label">💶 Kassenstand</div>' +
+    '<div class="db-mini-label">'+lcIcon('landmark')+' Kassenstand</div>' +
     '<div class="db-mini-zahl" data-ziel="'+ks+'" style="font-family:\'Fraunces\',serif;color:' + (ks >= 0 ? 'var(--green-deep)' : 'var(--bordeaux)') + ';border-bottom:2px solid var(--gold);display:inline-block;padding-bottom:2px">' + euro(ks) + '</div>' +
     '</div>';
 
@@ -1445,7 +1448,7 @@ function renderStrafen(){
     const aktionen = darf
       ? '<div class="sz-aktionen">'+
           '<button class="mini-btn" onclick="strafeBezahltToggle(\''+x.id+'\')" title="'+(x.bezahlt?'Als offen markieren':'Als bezahlt markieren')+'">'+(x.bezahlt?'↩︎':'✓')+'</button>'+
-          '<button class="mini-btn delete-button" onclick="strafeLoeschen(\''+x.id+'\')" title="Löschen">🗑</button>'+
+          '<button class="mini-btn delete-button" onclick="strafeLoeschen(\''+x.id+'\')" title="Löschen">'+lcIcon('trash-2')+'</button>'+
         '</div>'
       : '';
     return '<div class="strafen-list-zeile">'+
@@ -1462,6 +1465,7 @@ function renderStrafen(){
       aktionen+
     '</div>';
   }).join('');
+  lucide.createIcons();
 }
 
 function resetStrafenFilter(){
@@ -1497,8 +1501,9 @@ function renderKalender(){
     return '<div class="kal-row"><div class="kal-date"><div class="d">'+d.tag+'</div><div class="m">'+d.monat+'</div></div>'+
       '<div class="kal-info"><b>'+escapeHtml(t.titel)+(t.antreten?' <span class="kal-badge">Antreten</span>':'')+'</b>'+
       '<span>'+(t.zeit?'<span class="an">'+t.zeit+' Uhr</span>':'')+(t.ort?' · '+escapeHtml(t.ort):'')+(t.hinweis?' · '+escapeHtml(t.hinweis):'')+'</span></div>'+
-      (darf?'<button class="mini-btn delete-button" onclick="terminLoeschen(\''+t.id+'\')">🗑</button>':'')+'</div>';
-  }).join('') || leerZustand('📅','Noch keine Termine.','Termin anlegen','focusTerminHinzufuegen()');
+      (darf?'<button class="mini-btn delete-button" onclick="terminLoeschen(\''+t.id+'\')">'+lcIcon('trash-2')+'</button>':'')+'</div>';
+  }).join('') || leerZustand(lcIcon('calendar'),'Noch keine Termine.','Termin anlegen','focusTerminHinzufuegen()');
+  lucide.createIcons();
 }
 
 function renderRanking(){
@@ -1518,7 +1523,7 @@ function renderRanking(){
   const zugsauListe = document.getElementById('zugsauListe');
   if(zugsauListe){
     zugsauListe.innerHTML = rang.length===0
-      ? leerZustand('🏆','Noch keine Daten fürs Ranking.')
+      ? leerZustand(lcIcon('trophy'),'Noch keine Daten fürs Ranking.')
       : rang.map((r,i)=>{
           return '<div class="strafen-list-zeile">'+
             '<div class="pz-rang">'+(i+1)+'</div>'+
@@ -1561,6 +1566,7 @@ function renderRanking(){
     }
     renderStrafartRanking();
   }
+  lucide.createIcons();
 }
 
 function renderStrafartRanking(){
@@ -1620,7 +1626,7 @@ function renderChronik(){
     if(x.bezahlt && x.bezahltDatum){
       ereignisse.push({
         ts: new Date(x.bezahltDatum + 'T00:00:00'),
-        icon: '✅',
+        icon: lcIcon('circle-check'),
         text: escapeHtml(name) + ' hat ' + euro(x.betrag) + ' bezahlt',
         label: 'Bezahlt'
       });
@@ -1628,7 +1634,7 @@ function renderChronik(){
   });
   ereignisse.sort((a,b) => b.ts - a.ts);
   if(!ereignisse.length){
-    el.innerHTML = leerZustand('📜','Noch keine Aktivitäten.');
+    el.innerHTML = leerZustand(lcIcon('history'),'Noch keine Aktivitäten.');
     return;
   }
   const zeige = ereignisse.slice(0, chronikLimit);
@@ -1646,6 +1652,7 @@ function renderChronik(){
   }).join('') + (mehr
     ? '<button class="btn-ghost" style="margin-top:8px;width:100%" onclick="chronikAlleAnzeigen()">Mehr anzeigen ('+ereignisse.length+' gesamt)</button>'
     : '');
+  lucide.createIcons();
 }
 
 function chronikAlleAnzeigen(){
@@ -1666,16 +1673,17 @@ function renderMitglieder(){
     const avatar = avatarHTML(s);
     let akt = '<button class="mini-btn btn-ghost" onclick="schuetzenakteOeffnen(\''+s.id+'\')">Akte</button>';
     if(darf){
-      akt += ' <button class="mini-btn btn-ghost" onclick="abzeichenModalOeffnen(\''+s.id+'\')">🎖️</button>'+
-        ' <label class="mini-btn btn-ghost" style="cursor:pointer;display:inline-flex;align-items:center" title="Bild ändern">📷<input type="file" accept="image/*" style="display:none" onchange="mitgliedBildHochladen(\''+s.id+'\',this)"></label>'+
+      akt += ' <button class="mini-btn btn-ghost" onclick="abzeichenModalOeffnen(\''+s.id+'\')" title="Abzeichen vergeben">'+lcIcon('award')+'</button>'+
+        ' <label class="mini-btn btn-ghost" style="cursor:pointer;display:inline-flex;align-items:center" title="Bild ändern">'+lcIcon('camera')+'<input type="file" accept="image/*" style="display:none" onchange="mitgliedBildHochladen(\''+s.id+'\',this)"></label>'+
         ' <button class="mini-btn btn-ghost" onclick="schuetzeAktivToggle(\''+s.id+'\')" title="'+(s.aktiv?'Deaktivieren':'Aktivieren')+'">'+(s.aktiv?'⏸':'▶')+'</button>'+
-        ' <button class="mini-btn delete-button" onclick="schuetzeLoeschen(\''+s.id+'\')" title="Löschen">🗑</button>';
+        ' <button class="mini-btn delete-button" onclick="schuetzeLoeschen(\''+s.id+'\')" title="Löschen">'+lcIcon('trash-2')+'</button>';
     }
     return '<li class="'+(s.aktiv?'':'inaktiv')+'">'+avatar+
       '<div><div class="mname">'+escapeHtml(s.name)+'</div>'+
       '<div class="mrolle">'+escapeHtml(s.rolle)+'</div></div>'+
       '<div class="aktionen">'+akt+'</div></li>';
-  }).join('') || '<li style="list-style:none">'+leerZustand('👤','Noch keine Mitglieder.','Mitglied anlegen','focusMitgliedHinzufuegen()')+'</li>';
+  }).join('') || '<li style="list-style:none">'+leerZustand(lcIcon('user'),'Noch keine Mitglieder.','Mitglied anlegen','focusMitgliedHinzufuegen()')+'</li>';
+  lucide.createIcons();
 }
 
 function renderEinstellungen(){
@@ -1690,8 +1698,9 @@ function renderStrafarten(){
   document.getElementById('strafartHinzufuegenForm')?.classList.toggle('hidden', !darf);
   document.getElementById('strafartenListe').innerHTML = strafarten.map(a=>
     '<li><div><b>'+escapeHtml(a.bezeichnung)+'</b></div><div class="aktionen">'+euro(a.betrag)+
-    (darf?' <button class="mini-btn delete-button" onclick="strafartLoeschen(\''+a.id+'\')">🗑</button>':'')+'</div></li>'
+    (darf?' <button class="mini-btn delete-button" onclick="strafartLoeschen(\''+a.id+'\')">'+lcIcon('trash-2')+'</button>':'')+'</div></li>'
   ).join('') || '<li class="leer">Noch keine Strafarten angelegt.</li>';
+  lucide.createIcons();
 }
 
 function renderAnwesenheit(){
@@ -1926,9 +1935,10 @@ function renderSaisons(){
     '<span>'+s.abgeschlossen_am+' · '+euro(sm.gesamt||0)+' · '+(sm.anzahlStrafen||0)+' Strafen'+
     (sm.zugsau?' · 🐷 '+escapeHtml(sm.zugsau.name):'')+'</span></div>'+
     '<button class="mini-btn" onclick="saisonDetails(\''+s.id+'\')">Details</button>'+
-    (darf?' <button class="mini-btn" onclick="saisonPdf(\''+s.id+'\')">📄 PDF</button>':'') +
-    (darf?' <button class="mini-btn delete-button" onclick="saisonLoeschen(\''+s.id+'\')">🗑</button>':'')+'</div>';
+    (darf?' <button class="mini-btn" onclick="saisonPdf(\''+s.id+'\')">'+lcIcon('file-text')+' PDF</button>':'') +
+    (darf?' <button class="mini-btn delete-button" onclick="saisonLoeschen(\''+s.id+'\')">'+lcIcon('trash-2')+'</button>':'')+'</div>';
   }).join('');
+  lucide.createIcons();
 }
 
 function renderCustomBadgeSettings(){
@@ -1944,7 +1954,7 @@ function renderCustomBadgeSettings(){
   } else {
     ziel.innerHTML = individuelleTypes.map(b =>
       '<li><div><b>'+escapeHtml(b.emoji)+' '+escapeHtml(b.name)+'</b></div>'+
-      '<div class="aktionen">'+(darf ? '<button class="mini-btn delete-button" onclick="customBadgeLoeschen(\''+b.id+'\')">🗑</button>' : '')+'</div></li>'
+      '<div class="aktionen">'+(darf ? '<button class="mini-btn delete-button" onclick="customBadgeLoeschen(\''+b.id+'\')">'+lcIcon('trash-2')+'</button>' : '')+'</div></li>'
     ).join('');
   }
 
@@ -1967,6 +1977,7 @@ function renderCustomBadgeSettings(){
       autoBereich.classList.add('hidden');
     }
   }
+  lucide.createIcons();
 }
 
 function renderHilfe(){
@@ -1984,44 +1995,44 @@ function renderHilfe(){
   if(istOff){
     ziel.innerHTML =
       '<div class="hilfe-bereich">'+
-      '<h3>👮 Deine Seiten im Überblick</h3>'+
+      '<h3><i data-lucide="shield-check"></i> Deine Seiten im Überblick</h3>'+
       '<div class="hilfe-grid">'+
-      hilfeItem('🏠','Start','Überblick über offene Strafen des Zuges, Kassenstand, Zugsau-Ranking und das nächste Antreten.')+
-      hilfeItem('💰','Strafen','Strafen einzeln oder für mehrere Schützen gleichzeitig erfassen, als bezahlt markieren, filtern und offene Beträge teilen.')+
-      hilfeItem('✅','Anwesenheit','Schnell-Erfassung für alle auf einmal oder Einzel-Erfassung; „Zu spät" erzeugt automatisch eine Strafe gemäß Strafenkatalog.')+
-      hilfeItem('📅','Kalender','Termine und Antrittszeiten anlegen.')+
-      hilfeItem('🏆','Ranking','Zugsau-Ranking nach Gesamtbetrag und Ranking pro Strafart.')+
-      hilfeItem('📜','Chronik','Vollständiger Verlauf aller Strafen und Zahlungen im Zug.')+
-      hilfeItem('📊','Abstimmungen','Umfragen mit Einzel- oder Mehrfachauswahl erstellen, Ergebnisse live verfolgen und Abstimmungen schließen.')+
-      hilfeItem('💶','Kasse','Einnahmen und Ausgaben buchen, Kassenstand im Blick behalten und bezahlte Strafen direkt als Einnahme übernehmen.')+
-      hilfeItem('👥','Mitglieder','Mitglieder anlegen, Rollen vergeben, Profilbilder setzen und individuelle Abzeichen verleihen.')+
-      hilfeItem('⚙️','Einstellungen','Strafarten mit Beträgen pflegen (Strafenkatalog), Zugname und Logo anpassen, Einladungscode anzeigen, Saison abschließen und Abzeichen verwalten.')+
-      hilfeItem('👤','Profil','Eigene Spielerkarte mit Statistik, Abzeichen und den letzten Strafen.')+
+      hilfeItem(lcIcon('home'),'Start','Überblick über offene Strafen des Zuges, Kassenstand, Zugsau-Ranking und das nächste Antreten.')+
+      hilfeItem(lcIcon('wallet'),'Strafen','Strafen einzeln oder für mehrere Schützen gleichzeitig erfassen, als bezahlt markieren, filtern und offene Beträge teilen.')+
+      hilfeItem(lcIcon('circle-check'),'Anwesenheit','Schnell-Erfassung für alle auf einmal oder Einzel-Erfassung; „Zu spät" erzeugt automatisch eine Strafe gemäß Strafenkatalog.')+
+      hilfeItem(lcIcon('calendar'),'Kalender','Termine und Antrittszeiten anlegen.')+
+      hilfeItem(lcIcon('trophy'),'Ranking','Zugsau-Ranking nach Gesamtbetrag und Ranking pro Strafart.')+
+      hilfeItem(lcIcon('history'),'Chronik','Vollständiger Verlauf aller Strafen und Zahlungen im Zug.')+
+      hilfeItem(lcIcon('bar-chart-2'),'Abstimmungen','Umfragen mit Einzel- oder Mehrfachauswahl erstellen, Ergebnisse live verfolgen und Abstimmungen schließen.')+
+      hilfeItem(lcIcon('landmark'),'Kasse','Einnahmen und Ausgaben buchen, Kassenstand im Blick behalten und bezahlte Strafen direkt als Einnahme übernehmen.')+
+      hilfeItem(lcIcon('users'),'Mitglieder','Mitglieder anlegen, Rollen vergeben, Profilbilder setzen und individuelle Abzeichen verleihen.')+
+      hilfeItem(lcIcon('settings'),'Einstellungen','Strafarten mit Beträgen pflegen (Strafenkatalog), Zugname und Logo anpassen, Einladungscode anzeigen, Saison abschließen und Abzeichen verwalten.')+
+      hilfeItem(lcIcon('user'),'Profil','Eigene Spielerkarte mit Statistik, Abzeichen und den letzten Strafen.')+
       '</div>'+
       '<div class="unterkarte" style="margin-top:16px">'+
-      '<h3 style="margin-top:0">🔑 Einladungscode</h3>'+
+      '<h3 style="margin-top:0">'+lcIcon('key')+' Einladungscode</h3>'+
       '<p>Den Code findest du oben in den Einstellungen. Gib ihn an neue Mitglieder weiter, damit sie dem Zug beitreten können.</p>'+
-      '<h3>💸 Offiziere zahlen doppelt</h3>'+
+      '<h3>'+lcIcon('banknote')+' Offiziere zahlen doppelt</h3>'+
       '<p>Strafen für Offiziere werden automatisch mit dem doppelten Betrag berechnet – faire Führung heißt höhere Verantwortung.</p>'+
       '</div>'+
       '</div>';
   } else {
     ziel.innerHTML =
       '<div class="hilfe-bereich">'+
-      '<h3>👁️ Deine Ansichten</h3>'+
+      '<h3><i data-lucide="eye"></i> Deine Ansichten</h3>'+
       '<div class="hilfe-grid">'+
-      hilfeItem('🏠','Start','Überblick über deine eigenen offenen Strafen und das nächste Antreten.')+
-      hilfeItem('💰','Strafen','Alle Strafen im Zug einsehen – deine eigenen im Detail, inklusive Zahlungsstatus.')+
-      hilfeItem('⚙️','Strafenkatalog','Unter Einstellungen nachschauen, welche Strafe wie viel kostet.')+
-      hilfeItem('✅','Anwesenheit','Deine eigene Anwesenheitshistorie einsehen.')+
-      hilfeItem('📅','Kalender','Termine und Antrittszeiten des Zuges ansehen.')+
-      hilfeItem('🏆','Ranking','Sehen, wo du im Zugsau-Ranking stehst – und wer gerade Spitzenreiter ist.')+
-      hilfeItem('📜','Chronik','Den Verlauf aller Aktivitäten im Zug verfolgen.')+
-      hilfeItem('📊','Abstimmungen','An Umfragen des Zuges teilnehmen und Ergebnisse einsehen.')+
-      hilfeItem('👤','Profil','Deine Spielerkarte mit Statistik, Abzeichen und deinen letzten Strafen.')+
+      hilfeItem(lcIcon('home'),'Start','Überblick über deine eigenen offenen Strafen und das nächste Antreten.')+
+      hilfeItem(lcIcon('wallet'),'Strafen','Alle Strafen im Zug einsehen – deine eigenen im Detail, inklusive Zahlungsstatus.')+
+      hilfeItem(lcIcon('settings'),'Strafenkatalog','Unter Einstellungen nachschauen, welche Strafe wie viel kostet.')+
+      hilfeItem(lcIcon('circle-check'),'Anwesenheit','Deine eigene Anwesenheitshistorie einsehen.')+
+      hilfeItem(lcIcon('calendar'),'Kalender','Termine und Antrittszeiten des Zuges ansehen.')+
+      hilfeItem(lcIcon('trophy'),'Ranking','Sehen, wo du im Zugsau-Ranking stehst – und wer gerade Spitzenreiter ist.')+
+      hilfeItem(lcIcon('history'),'Chronik','Den Verlauf aller Aktivitäten im Zug verfolgen.')+
+      hilfeItem(lcIcon('bar-chart-2'),'Abstimmungen','An Umfragen des Zuges teilnehmen und Ergebnisse einsehen.')+
+      hilfeItem(lcIcon('user'),'Profil','Deine Spielerkarte mit Statistik, Abzeichen und deinen letzten Strafen.')+
       '</div>'+
       '<div class="unterkarte" style="margin-top:16px">'+
-      '<h3 style="margin-top:0">🎖️ Automatische Abzeichen</h3>'+
+      '<h3 style="margin-top:0">'+lcIcon('award')+' Automatische Abzeichen</h3>'+
       '<p style="font-size:13px;color:var(--ink-soft);margin-bottom:10px">Diese Abzeichen werden automatisch vergeben, sobald du die Kriterien erfüllst:</p>'+
       '<div class="hilfe-grid">'+
       ABZEICHEN.map(b =>
@@ -2034,6 +2045,7 @@ function renderHilfe(){
       '</div>'+
       '</div>';
   }
+  lucide.createIcons();
 }
 
 /* ============================================================
@@ -2106,7 +2118,7 @@ function renderAbstimmungen(){
     if(darfBearbeiten()){
       aktionenHtml = '<div class="btn-row" style="margin-top:12px">' +
         (istOffen
-          ? '<button class="btn-ghost" style="width:auto" onclick="umfrageSchliessen(\'' + u.id + '\')">🔒 Schließen</button>'
+          ? '<button class="btn-ghost" style="width:auto" onclick="umfrageSchliessen(\'' + u.id + '\')">'+lcIcon('lock')+' Schließen</button>'
           : '') +
         '<button class="delete-button" style="width:auto" onclick="umfrageLoeschen(\'' + u.id + '\')">Löschen</button>' +
         '</div>';
@@ -2124,6 +2136,7 @@ function renderAbstimmungen(){
       aktionenHtml +
       '</div>';
   }).join('');
+  lucide.createIcons();
 }
 
 function umfrageOptionHinzufuegen(){
@@ -2266,7 +2279,7 @@ function renderKasse(){
       '</div>' +
       '<div class="btn-row" style="margin-top:10px">' +
       '<button class="btn-gold" onclick="kassenbuchungHinzufuegen()">Buchung speichern</button>' +
-      '<button class="btn-ghost" style="width:auto" onclick="bezahlteStrafenUebernehmen()">💰 Bezahlte Strafen übernehmen</button>' +
+      '<button class="btn-ghost" style="width:auto" onclick="bezahlteStrafenUebernehmen()">'+lcIcon('wallet')+' Bezahlte Strafen übernehmen</button>' +
       '</div></div>';
   }
 
@@ -2277,7 +2290,7 @@ function renderKasse(){
   });
 
   const listeHtml = !sorted.length
-    ? leerZustand('💶','Noch keine Buchungen.','Buchung hinzufügen','focusKasseBuchung()')
+    ? leerZustand(lcIcon('landmark'),'Noch keine Buchungen.','Buchung hinzufügen','focusKasseBuchung()')
     : sorted.map(b => {
         const istEin = b.typ === 'einnahme';
         return '<div class="strafen-list-zeile">' +
@@ -2290,13 +2303,14 @@ function renderKasse(){
           '<span class="sz-betrag" style="color:' + (istEin ? 'var(--paid-tx)' : 'var(--bordeaux)') + '">' +
           (istEin ? '+' : '−') + euro(b.betrag) + '</span>' +
           '</div>' +
-          (darf ? '<div class="sz-aktionen"><button class="mini-btn delete-button" onclick="kassenbuchungLoeschen(\'' + b.id + '\')" title="Löschen">🗑</button></div>' : '') +
+          (darf ? '<div class="sz-aktionen"><button class="mini-btn delete-button" onclick="kassenbuchungLoeschen(\'' + b.id + '\')" title="Löschen">'+lcIcon('trash-2')+'</button></div>' : '') +
           '</div>';
       }).join('');
 
   ziel.innerHTML = heroHtml + formHtml +
     '<h3>Buchungen</h3>' +
     '<div class="strafen-list">' + listeHtml + '</div>';
+  lucide.createIcons();
 }
 
 async function kassenbuchungHinzufuegen(){
@@ -2435,8 +2449,9 @@ window.addEventListener('beforeinstallprompt', e => {
   if(document.getElementById('installHint')) return;
   const h = document.createElement('div');
   h.id = 'installHint'; h.className = 'install-hint';
-  h.innerHTML = '📲 App installieren? <button class="btn-gold" onclick="appInstallieren()">Installieren</button><button class="schliess" onclick="this.parentElement.remove()">×</button>';
+  h.innerHTML = lcIcon('smartphone')+' App installieren? <button class="btn-gold" onclick="appInstallieren()">Installieren</button><button class="schliess" onclick="this.parentElement.remove()">×</button>';
   document.body.appendChild(h);
+  lucide.createIcons({el:h});
 });
 function appInstallieren(){
   if(!installPrompt) return;

@@ -5,7 +5,9 @@
       "PowerShell(node -e \"const fs=require\\('fs'\\);const src=fs.readFileSync\\('c:/Users/manso/OneDrive/Desktop/Strafenkatalog-App/schuetzen-app/script.js','utf8'\\);try{new Function\\(src\\);console.log\\('OK'\\)}catch\\(e\\){console.log\\('FEHLER:',e.message\\)}\")",
       "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\manso\\\\OneDrive\\\\Desktop\\\\Strafenkatalog-App\\\\schuetzen-app\" -Force)",
       "Bash(Select-Object Name)",
-      "Read(//c/Users/manso/OneDOpen/Desktop/Strafenkatalog-App/schuetzen-app/**)"
+      "Read(//c/Users/manso/OneDOpen/Desktop/Strafenkatalog-App/schuetzen-app/**)",
+      "Bash(node --check script.js)",
+      "PowerShell(node --check \"c:\\\\Users\\\\manso\\\\OneDrive\\\\Desktop\\\\Strafenkatalog-App\\\\schuetzen-app\\\\script.js\" 2>&1)"
     ]
   }
 }

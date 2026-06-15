@@ -721,3 +721,27 @@ img.mini-avatar{object-fit:cover;background:var(--green-soft)}
 }
 .leer-zustand-icon{font-size:42px;margin-bottom:12px;opacity:.55}
 .leer-zustand-text{font-size:14px;max-width:240px;line-height:1.55}
+
+/* === Lucide Icons === */
+svg.lucide{display:inline-block;vertical-align:middle;flex:none;stroke-width:1.75;width:16px;height:16px}
+/* Sidebar nav */
+.ic svg.lucide{width:16px;height:16px;color:var(--green)}
+/* Tabbar */
+.tic svg.lucide{width:20px;height:20px;color:currentColor}
+.tab.add .tic svg.lucide{width:24px;height:24px}
+/* Menü-Overlay */
+.menue-link svg.lucide{width:16px;height:16px;color:currentColor;vertical-align:-2px}
+/* Hilfe-Grid */
+.hilfe-item-icon svg.lucide{width:18px;height:18px;color:var(--green)}
+/* Leer-Zustand */
+.leer-zustand-icon svg.lucide{width:38px;height:38px;opacity:1}
+/* Abschnitts-Überschriften */
+.seite-head h2 svg.lucide,.seite-head h2 svg.lucide{width:20px;height:20px;color:var(--green);vertical-align:-3px}
+h3 svg.lucide{width:16px;height:16px;color:var(--green);vertical-align:-2px}
+/* Toast */
+.toast span:first-child svg.lucide{width:15px;height:15px;vertical-align:-2px}
+/* Inline-Buttons und Footer */
+button svg.lucide,a svg.lucide{width:14px;height:14px;vertical-align:-2px}
+.mini-label svg.lucide{width:14px;height:14px;vertical-align:-2px}
+/* Chronik-Icon-Spalte */
+.strafen-list-zeile > div[style*="font-size:20px"] svg.lucide{width:18px;height:18px}
