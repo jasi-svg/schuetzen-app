@@ -184,14 +184,8 @@
 
   <!-- DASHBOARD -->
   <section class="card app-seite" id="dashboardSeite">
-    <div class="seite-head"><h2>Dashboard</h2><span id="dashboardDatum" class="muted"></span></div>
-    <div class="dashboard" id="dashboardKacheln"></div>
-
-    <h3>Nächstes Antreten</h3>
-    <div id="dashboardNaechsterTermin"></div>
-
-    <h3 style="cursor:pointer" onclick="seiteAnzeigen('ranking')">🐷 Zugsau-Podium</h3>
-    <div id="dashboardPodium" class="podium" style="cursor:pointer" onclick="seiteAnzeigen('ranking')"></div>
+    <span id="dashboardDatum" class="hidden"></span>
+    <div id="dashboardInhalt"></div>
   </section>
 
   <!-- PROFIL -->
@@ -202,16 +196,22 @@
 
   <!-- STRAFEN -->
   <section class="card app-seite hidden" id="strafenSeite">
-    <div class="seite-head"><h2>Strafe erfassen</h2></div>
-    <div class="form-grid">
-      <select id="schuetzeSelect"></select>
-      <select id="strafartSelect" onchange="betragAktualisieren()"></select>
-      <input id="betrag" type="number" placeholder="Betrag in €" oninput="betragManuell()">
-      <input id="kommentar" type="text" placeholder="Kommentar (optional)">
+    <div class="seite-head"><h2>Strafen</h2></div>
+
+    <div id="strafErfassenBereich" class="unterkarte hidden">
+      <div class="mini-label mb-10">＋ Strafe erfassen</div>
+      <div class="form-grid">
+        <select id="schuetzeSelect"></select>
+        <select id="strafartSelect" onchange="betragAktualisieren()"></select>
+        <input id="betrag" type="number" placeholder="Betrag in €" oninput="betragManuell()">
+        <input id="kommentar" type="text" placeholder="Kommentar (optional)">
+      </div>
+      <div id="betragInfo" style="display:none;color:var(--gruen-700);font-size:13px;font-weight:600;margin:-4px 0 4px"></div>
+      <div id="betragOverrideLink" style="display:none;margin-bottom:10px"><a href="#" style="font-size:12px;color:var(--grau)" onclick="betragUeberschreiben();return false">Betrag manuell überschreiben</a></div>
+      <button onclick="strafeSpeichern()">＋ Strafe speichern</button>
     </div>
-    <div id="betragInfo" style="display:none;color:var(--gruen-700);font-size:13px;font-weight:600;margin:-4px 0 4px"></div>
-    <div id="betragOverrideLink" style="display:none;margin-bottom:10px"><a href="#" style="font-size:12px;color:var(--grau)" onclick="betragUeberschreiben();return false">Betrag manuell überschreiben</a></div>
-    <button class="btn-gold" onclick="strafeSpeichern()">Strafe speichern</button>
+
+    <div id="strafenChips" class="chip-zeile"></div>
 
     <div class="filter-bar">
       <select id="filterSchuetze" onchange="renderStrafen()"><option value="">Alle Schützen</option></select>
@@ -227,12 +227,7 @@
       <h3 id="gesamtbetrag">Gesamtsumme: 0 €</h3>
       <input id="strafenSuche" type="text" class="suche" placeholder="🔍 Suchen (Name, Strafe …)" oninput="renderStrafen()">
     </div>
-    <div class="tabelle-scroll">
-      <table>
-        <thead><tr><th>Datum</th><th>Schütze</th><th>Strafe</th><th>Betrag</th><th>Kommentar</th><th>Status</th><th>Aktion</th></tr></thead>
-        <tbody id="strafenTabelle"></tbody>
-      </table>
-    </div>
+    <div id="strafenListe" class="strafen-list"></div>
   </section>
 
   <!-- KALENDER -->
@@ -268,16 +263,12 @@
   <!-- RANKING -->
   <section class="card app-seite hidden" id="rankingSeite">
     <div class="seite-head"><h2>🏆 Ranking</h2></div>
-    <h3>🐷 Zugsau-Podium</h3>
-    <div id="rankingPodium" class="podium"></div>
+    <div class="mini-label mb-10">🐷 Zugsau-Podium</div>
+    <div id="rankingPodium" class="podium-zeilen" style="margin-bottom:20px"></div>
     <h3>Gesamtes Strafen-Ranking</h3>
-    <div class="tabelle-scroll">
-      <table><thead><tr><th>Platz</th><th>Schütze</th><th>Strafsumme</th></tr></thead><tbody id="zugsauTabelle"></tbody></table>
-    </div>
+    <div id="zugsauListe" class="strafen-list" style="margin-bottom:16px"></div>
     <h3>Offene Beträge</h3>
-    <div class="tabelle-scroll">
-      <table><thead><tr><th>Schütze</th><th>Offen</th></tr></thead><tbody id="schuldenTabelle"></tbody></table>
-    </div>
+    <div id="schuldenListe" class="strafen-list"></div>
   </section>
 
   <!-- MITGLIEDER -->

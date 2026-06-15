@@ -593,3 +593,54 @@ table tbody tr:hover{background:var(--canvas)}
 @media(prefers-reduced-motion:reduce){
   *{animation-duration:.01ms !important;transition-duration:.01ms !important}
 }
+
+/* ============================================================
+   REDESIGN SCHRITT 2 – Einzelne Seiten
+   ============================================================ */
+
+/* ---- Dashboard: Kopfzeile ---- */
+.db-kopf{display:flex;align-items:center;gap:12px;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--line)}
+.db-kopf-logo{width:46px;height:46px;border-radius:50%;object-fit:cover;border:2px solid var(--gold);flex:none}
+.db-kopf-zugname{font-family:'Fraunces',serif;font-size:18px;font-weight:700;color:var(--green-deep);line-height:1.2}
+.db-kopf-gruss{font-size:13px;color:var(--ink-soft)}
+
+/* ---- Dashboard: Hero-Karte ---- */
+.db-hero{background:linear-gradient(150deg,var(--green-deep),var(--green));color:var(--canvas);border-radius:20px;padding:22px 24px;margin-bottom:12px;position:relative;overflow:hidden;cursor:pointer;transition:opacity .15s}
+.db-hero:hover{opacity:.95}
+.db-hero::after{content:"";position:absolute;right:-40px;bottom:-40px;width:160px;height:160px;background:radial-gradient(circle,rgba(193,154,62,.25),transparent 65%)}
+.db-hero-label{font-size:11px;text-transform:uppercase;letter-spacing:.14em;color:var(--gold-soft);font-weight:700;margin-bottom:10px;position:relative;z-index:1}
+.db-hero-zahl{font-family:'Fraunces',serif;font-size:44px;font-weight:800;color:#fff;line-height:1.1;display:inline-block;border-bottom:2px solid var(--gold);padding-bottom:3px;margin-bottom:8px;position:relative;z-index:1}
+.db-hero-info{font-size:13px;color:rgba(246,248,247,.75);position:relative;z-index:1}
+
+/* ---- Dashboard: Mini-Karten ---- */
+.db-mini-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.db-mini-card{background:var(--white);border:1px solid var(--line);border-radius:18px;padding:16px;box-shadow:var(--schatten-klein);cursor:pointer;transition:transform .2s,box-shadow .2s}
+.db-mini-card:hover{transform:translateY(-2px);box-shadow:var(--schatten)}
+.db-mini-label{font-size:11px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-soft);font-weight:700;margin-bottom:6px}
+.db-mini-zahl{font-family:'Fraunces',serif;font-size:22px;font-weight:700;color:var(--green-deep)}
+
+/* ---- Podium als Zeilen ---- */
+.podium-zeilen{display:flex;flex-direction:column;gap:8px;margin:10px 0 4px}
+.podium-zeile-row{display:flex;align-items:center;gap:12px;background:var(--white);border:1px solid var(--line);border-radius:14px;padding:10px 14px;box-shadow:var(--schatten-klein)}
+.podium-zeile-row.platz1{background:var(--gold-soft);border-color:var(--gold)}
+.pz-rang{font-family:'Fraunces',serif;font-size:15px;font-weight:800;width:22px;text-align:center;flex:none;color:var(--ink-soft)}
+.platz1 .pz-rang{color:var(--gold)}
+.pz-name{flex:1;font-weight:700;font-size:14px}
+.pz-sum{font-size:14px;font-weight:700;color:var(--green-deep);white-space:nowrap}
+.platz1 .pz-sum{color:var(--gold)}
+
+/* ---- Strafen: Chip-Zeile & Listen-Zeilen ---- */
+.chip-zeile{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.strafen-list{display:flex;flex-direction:column;gap:8px;margin-top:4px}
+.strafen-list-zeile{display:flex;align-items:center;gap:12px;background:var(--white);border:1px solid var(--line);border-radius:14px;padding:10px 14px;box-shadow:var(--schatten-klein)}
+.sz-mitte{flex:1;min-width:0}
+.sz-name{font-weight:700;font-size:14px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sz-info{font-size:12px;color:var(--ink-soft)}
+.sz-rechts{display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex:none}
+.sz-betrag{font-family:'Fraunces',serif;font-size:16px;font-weight:700;color:var(--green-deep);white-space:nowrap}
+.sz-aktionen{display:flex;gap:6px;align-items:center;margin-left:4px}
+.leer-zeile{padding:20px;text-align:center;color:var(--ink-soft);font-size:14px}
+
+/* Mini-Label spacing helper */
+.mb-10{margin-bottom:10px}
+.mb-12{margin-bottom:12px}

@@ -51,6 +51,7 @@ let customBadgeTypes = [];
 let umfragen = [];
 let umfrageOptionen = [];
 let umfrageStimmen = [];
+let strafenStatusFilter = 'alle';
 
 /* ---------- Hilfen ---------- */
 function neueId(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
@@ -959,70 +960,128 @@ function appAktualisieren(){
 }
 
 function renderDashboard(){
-  const kacheln = document.getElementById('dashboardKacheln');
-  if(kacheln){
-    // Mein-Zug-Kachel (P4) – immer sichtbar, für alle Rollen
-    const zugTile = '<div class="dashboard-card dashboard-card-zug" style="grid-column:1/-1;display:flex;align-items:center;gap:16px;cursor:default">'+
-      (logo ? '<img src="'+escapeHtml(logo)+'" alt="Logo" style="width:56px;height:56px;border-radius:50%;object-fit:cover;border:2px solid var(--gold);flex:none">' : '')+
-      '<span style="font-family:\'Fraunces\',serif;font-size:22px;font-weight:700;color:var(--gruen-900)">'+escapeHtml(zugname||'Mein Zug')+'</span>'+
+  const ziel = document.getElementById('dashboardInhalt');
+  if(!ziel) return;
+
+  const datum = new Date().toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  const vorname = aktuellerBenutzer ? aktuellerBenutzer.name.split(' ')[0] : '';
+  const logoHtml = logo
+    ? '<img src="'+escapeHtml(logo)+'" class="db-kopf-logo" alt="Logo">'
+    : '<svg style="width:44px;height:44px;flex:none" viewBox="0 0 100 116"><use href="#appWappen"/></svg>';
+
+  const kopfHtml = '<div class="db-kopf">'+logoHtml+
+    '<div><div class="db-kopf-zugname">'+escapeHtml(zugname||'Mein Zug')+'</div>'+
+    (vorname?'<div class="db-kopf-gruss">Moin, '+escapeHtml(vorname)+' 👋</div>':'')+'</div>'+
+    '<span style="margin-left:auto;font-size:12px;color:var(--ink-soft);text-align:right;flex:none">'+datum+'</span>'+
     '</div>';
 
-    let kachelHtml = '';
-    if(istOffizier(aktuellerBenutzer)){
-      // Offiziere: Zug-Gesamtzahlen + eigene Kachel
-      const gesamt  = strafen.reduce((a,x)=>a+x.betrag,0);
-      const bezahlt = strafen.filter(x=>x.bezahlt).reduce((a,x)=>a+x.betrag,0);
-      const meinMember = sbSession ? schuetzen.find(s => s.user_id === sbSession.user.id) : null;
-      const eigeneSum  = meinMember ? statsFuer(meinMember).gesamt : 0;
-      kachelHtml =
-        '<div class="dashboard-card" onclick="seiteAnzeigen(\'strafen\')"><span class="dashboard-icon">💰</span><p>'+euro(gesamt)+'</p><strong>Gesamt</strong></div>'+
-        '<div class="dashboard-card" onclick="seiteAnzeigen(\'strafen\')"><span class="dashboard-icon">✅</span><p>'+euro(bezahlt)+'</p><strong>Bezahlt</strong></div>'+
-        '<div class="dashboard-card offen" onclick="seiteAnzeigen(\'strafen\')"><span class="dashboard-icon">🔥</span><p>'+euro(gesamt-bezahlt)+'</p><strong>Offen</strong></div>'+
-        '<div class="dashboard-card" onclick="seiteAnzeigen(\'strafen\')"><span class="dashboard-icon">🐷</span><p>'+strafen.length+'</p><strong>Strafen</strong></div>'+
-        '<div class="dashboard-card" onclick="seiteAnzeigen(\'anwesenheit\')"><span class="dashboard-icon">📅</span><p>'+anwesenheiten.filter(a=>a.status==='Anwesend').length+'</p><strong>Anwesenheiten</strong></div>'+
-        '<div class="dashboard-card" onclick="seiteAnzeigen(\'profil\')"><span class="dashboard-icon">👤</span><p>'+euro(eigeneSum)+'</p><strong>Meine Strafen</strong></div>';
-    } else {
-      // Schützen: nur eigene Werte
-      const meinMember = sbSession ? schuetzen.find(s => s.user_id === sbSession.user.id) : null;
-      const st = meinMember ? statsFuer(meinMember) : { gesamt:0, offen:0, anzahl:0, anwesend:0 };
-      kachelHtml =
-        '<div class="dashboard-card" onclick="seiteAnzeigen(\'profil\')"><span class="dashboard-icon">💰</span><p>'+euro(st.gesamt)+'</p><strong>Meine Strafen</strong></div>'+
-        '<div class="dashboard-card offen" onclick="seiteAnzeigen(\'profil\')"><span class="dashboard-icon">🔥</span><p>'+euro(st.offen)+'</p><strong>Offen</strong></div>'+
-        '<div class="dashboard-card" onclick="seiteAnzeigen(\'profil\')"><span class="dashboard-icon">🐷</span><p>'+st.anzahl+'</p><strong>Strafen</strong></div>'+
-        '<div class="dashboard-card" onclick="seiteAnzeigen(\'anwesenheit\')"><span class="dashboard-icon">📅</span><p>'+st.anwesend+'</p><strong>Anwesenheiten</strong></div>';
-    }
-    kacheln.innerHTML = zugTile + kachelHtml;
+  // Hero-Karte
+  let heroLabel, heroZahl, heroInfo;
+  if(istOffizier(aktuellerBenutzer)){
+    const offenSum    = strafen.filter(x=>!x.bezahlt).reduce((a,x)=>a+x.betrag,0);
+    const offenAnzahl = strafen.filter(x=>!x.bezahlt).length;
+    heroLabel = 'Offene Strafen im Zug';
+    heroZahl  = euro(offenSum);
+    heroInfo  = offenAnzahl+(offenAnzahl===1?' offener Posten':' offene Posten');
+  } else {
+    const meinMember = sbSession ? schuetzen.find(s=>s.user_id===sbSession.user.id) : null;
+    const st = meinMember ? statsFuer(meinMember) : {offen:0};
+    heroLabel = 'Meine offenen Strafen';
+    heroZahl  = euro(st.offen);
+    heroInfo  = '';
   }
+
+  const heroHtml = '<div class="db-hero" onclick="seiteAnzeigen(\'strafen\')">'+
+    '<div class="db-hero-label">'+escapeHtml(heroLabel)+'</div>'+
+    '<div><div class="db-hero-zahl">'+heroZahl+'</div></div>'+
+    (heroInfo?'<div class="db-hero-info">'+escapeHtml(heroInfo)+'</div>':'')+
+    '</div>';
+
+  // Zwei Mini-Karten
+  let m1l,m1z,m2l,m2z;
+  if(istOffizier(aktuellerBenutzer)){
+    const meinMember = sbSession ? schuetzen.find(s=>s.user_id===sbSession.user.id) : null;
+    const meinSt = meinMember ? statsFuer(meinMember) : {offen:0};
+    const bezahltGes = strafen.filter(x=>x.bezahlt).reduce((a,x)=>a+x.betrag,0);
+    m1l='Meine offen';      m1z=euro(meinSt.offen);
+    m2l='Bezahlt gesamt';   m2z=euro(bezahltGes);
+  } else {
+    const meinMember = sbSession ? schuetzen.find(s=>s.user_id===sbSession.user.id) : null;
+    const st = meinMember ? statsFuer(meinMember) : {gesamt:0,offen:0};
+    m1l='Meine Strafen gesamt'; m1z=euro(st.gesamt);
+    m2l='Davon offen';          m2z=euro(st.offen);
+  }
+
+  const miniHtml = '<div class="db-mini-grid">'+
+    '<div class="db-mini-card" onclick="seiteAnzeigen(\'profil\')">'+
+      '<div class="db-mini-label">'+escapeHtml(m1l)+'</div>'+
+      '<div class="db-mini-zahl">'+m1z+'</div>'+
+    '</div>'+
+    '<div class="db-mini-card" onclick="seiteAnzeigen(\'strafen\')">'+
+      '<div class="db-mini-label">'+escapeHtml(m2l)+'</div>'+
+      '<div class="db-mini-zahl">'+m2z+'</div>'+
+    '</div>'+
+    '</div>';
+
+  // Podium-Karte
+  const top3 = rankingListe().filter(r=>r.gesamt>0).slice(0,3);
+  let podiumRows = top3.length===0 ? '<p class="leer">Noch keine Strafen erfasst.</p>' :
+    top3.map((r,i)=>{
+      const ini = r.s.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+      return '<div class="podium-zeile-row'+(i===0?' platz1':'')+'">'+
+        '<div class="pz-rang">'+(i+1)+'</div>'+
+        '<div class="mini-avatar'+(i===0?' gold':'')+'">'+escapeHtml(ini)+'</div>'+
+        '<div class="pz-name">'+escapeHtml(r.s.name)+(i===0?' 👑':'')+'</div>'+
+        '<div class="pz-sum">'+euro(r.gesamt)+'</div>'+
+      '</div>';
+    }).join('');
+
+  const podiumKarteHtml = '<div class="card" style="margin-bottom:14px;cursor:pointer" onclick="seiteAnzeigen(\'ranking\')">'+
+    '<div class="mini-label mb-10">🐷 Zugsau-Ranking</div>'+
+    '<div class="podium-zeilen">'+podiumRows+'</div>'+
+    '</div>';
 
   // Nächstes Antreten
   const nt = naechsterTermin();
-  const box = document.getElementById('dashboardNaechsterTermin');
+  let terminKarteHtml;
   if(nt){
     const d = datumKurz(nt.datum);
-    box.innerHTML = '<div class="kal-next"><div class="t">Nächstes Antreten</div>'+
-      '<div class="ev">'+escapeHtml(nt.titel)+'</div>'+
-      '<div class="zeit">'+d.lang+(nt.zeit?' · '+nt.zeit+' Uhr':'')+(nt.ort?' · '+escapeHtml(nt.ort):'')+(nt.hinweis?' · '+escapeHtml(nt.hinweis):'')+'</div></div>';
+    terminKarteHtml = '<div class="card">'+
+      '<div class="mini-label mb-12">Nächstes Antreten</div>'+
+      '<div style="display:flex;align-items:center;gap:14px">'+
+        '<div style="text-align:center;flex:none;min-width:44px">'+
+          '<div style="font-family:\'Fraunces\',serif;font-size:28px;font-weight:800;color:var(--green-deep);line-height:1">'+d.tag+'</div>'+
+          '<div style="font-size:9px;text-transform:uppercase;color:var(--ink-soft);font-weight:700">'+escapeHtml(d.monat)+'</div>'+
+        '</div>'+
+        '<div>'+
+          '<div style="font-weight:700;font-size:15px">'+escapeHtml(nt.titel)+'</div>'+
+          '<div style="font-size:13px;color:var(--ink-soft)">'+(nt.zeit?nt.zeit+' Uhr':'')+(nt.ort?' · '+escapeHtml(nt.ort):'')+(nt.hinweis?' · '+escapeHtml(nt.hinweis):'')+'</div>'+
+        '</div>'+
+      '</div>'+
+    '</div>';
   } else {
-    box.innerHTML = '<p class="leer">Keine kommenden Termine. Lege welche im Kalender an.</p>';
+    terminKarteHtml = '<div class="card">'+
+      '<div class="mini-label mb-10">Nächstes Antreten</div>'+
+      '<p class="leer">Keine kommenden Termine. Lege welche im Kalender an.</p>'+
+    '</div>';
   }
 
-  podiumRender(document.getElementById('dashboardPodium'));
+  ziel.innerHTML = kopfHtml + heroHtml + miniHtml + podiumKarteHtml + terminKarteHtml;
 }
 
 function podiumRender(ziel){
+  if(!ziel) return;
   const top = rankingListe().filter(r=>r.gesamt>0).slice(0,3);
   if(top.length === 0){ ziel.innerHTML = '<p class="leer">Noch keine Strafen erfasst.</p>'; return; }
-  const reihenfolge = [1,0,2]; // Silber, Gold, Bronze (Mitte = 1.)
-  const kronen = ['🥈','👑','🥉'];
-  const klassen= ['s2','s1','s3'];
-  let html = '';
-  reihenfolge.forEach((idx,pos)=>{
-    const r = top[idx];
-    if(!r) return;
-    html += '<div class="platz"><div class="saeule '+klassen[pos]+'"><span class="krone">'+kronen[pos]+'</span>'+(idx+1)+'</div>'+
-      '<div class="name">'+escapeHtml(r.s.name)+(idx===0?' 🐷':'')+'</div><div class="sum">'+euro(r.gesamt)+'</div></div>';
-  });
-  ziel.innerHTML = html;
+  ziel.innerHTML = top.map((r,i)=>{
+    const ini = r.s.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    return '<div class="podium-zeile-row'+(i===0?' platz1':'')+'">'+
+      '<div class="pz-rang">'+(i+1)+'</div>'+
+      '<div class="mini-avatar'+(i===0?' gold':'')+'">'+escapeHtml(ini)+'</div>'+
+      '<div class="pz-name">'+escapeHtml(r.s.name)+(i===0?' 👑':'')+'</div>'+
+      '<div class="pz-sum">'+euro(r.gesamt)+'</div>'+
+    '</div>';
+  }).join('');
 }
 
 function renderProfil(){
@@ -1088,7 +1147,22 @@ function renderStrafen(){
   const filterBis      = document.getElementById('filterBis')?.value || '';
   const suche          = (document.getElementById('strafenSuche')?.value || '').toLowerCase();
 
+  // Formular nur für Offiziere zeigen
+  const formBereich = document.getElementById('strafErfassenBereich');
+  if(formBereich) formBereich.classList.toggle('hidden', !darfBearbeiten());
+
+  // Status-Chips rendern
+  const chipsEl = document.getElementById('strafenChips');
+  if(chipsEl){
+    chipsEl.innerHTML = [['alle','Alle'],['offen','Offen'],['bezahlt','Bezahlt']].map(([val,label])=>
+      '<button class="filter-chip'+(strafenStatusFilter===val?' aktiv':'')+
+      '" onclick="strafenStatusFilter=\''+val+'\';renderStrafen()">'+label+'</button>'
+    ).join('');
+  }
+
   const liste = strafen.slice().reverse().filter(x => {
+    if(strafenStatusFilter==='offen'   &&  x.bezahlt) return false;
+    if(strafenStatusFilter==='bezahlt' && !x.bezahlt) return false;
     if(filterSchuetze && x.schuetzeId !== filterSchuetze) return false;
     if(filterStrafart && x.strafart !== filterStrafart) return false;
     if(filterVon && x.datum < filterVon) return false;
@@ -1097,24 +1171,42 @@ function renderStrafen(){
     return true;
   });
 
-  const hatFilter = filterSchuetze || filterStrafart || filterVon || filterBis || suche;
+  const hatFilter = strafenStatusFilter!=='alle' || filterSchuetze || filterStrafart || filterVon || filterBis || suche;
   const gefiltSum = liste.reduce((a,x) => a + x.betrag, 0);
   document.getElementById('gesamtbetrag').textContent = (hatFilter ? 'Gefiltert: ' : 'Gesamtsumme: ') + euro(gefiltSum);
   const darf = darfBearbeiten();
   document.getElementById('kassenberichtBereich')?.classList.toggle('hidden', !darf);
-  document.getElementById('strafenTabelle').innerHTML = liste.map(x =>
-    '<tr><td>'+x.datum+'</td><td>'+escapeHtml(x.schuetze)+'</td><td>'+escapeHtml(x.strafart)+'</td>'+
-    '<td>'+euro(x.betrag)+'</td><td>'+escapeHtml(x.kommentar||'')+'</td>'+
-    '<td><span class="'+(x.bezahlt?'status-bezahlt':'status-offen')+'">'+(x.bezahlt?'Bezahlt':'Offen')+'</span>'+
-      (x.bezahlt && x.bezahltArt ? '<br><span class="muted">'+escapeHtml(x.bezahltArt)+(x.bezahltDatum?' · '+datumKurz(x.bezahltDatum).tag+'.'+(datumKurz(x.bezahltDatum).monat):'')+'</span>' : '')+'</td>'+
-    '<td>'+ (darf
-      ? '<button class="mini-btn" onclick="strafeBezahltToggle(\''+x.id+'\')">'+(x.bezahlt?'↩︎':'✓')+'</button> '+
-        '<button class="mini-btn delete-button" onclick="strafeLoeschen(\''+x.id+'\')">🗑</button>'
-      : '–') +'</td></tr>'
-  ).join('') || '<tr><td colspan="7" class="leer">Keine Einträge.</td></tr>';
+
+  const ziel = document.getElementById('strafenListe');
+  if(!ziel) return;
+  if(!liste.length){ ziel.innerHTML = '<div class="leer-zeile">Keine Einträge.</div>'; return; }
+
+  ziel.innerHTML = liste.map(x=>{
+    const initialen = (x.schuetze||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    const aktionen = darf
+      ? '<div class="sz-aktionen">'+
+          '<button class="mini-btn" onclick="strafeBezahltToggle(\''+x.id+'\')" title="'+(x.bezahlt?'Als offen markieren':'Als bezahlt markieren')+'">'+(x.bezahlt?'↩︎':'✓')+'</button>'+
+          '<button class="mini-btn delete-button" onclick="strafeLoeschen(\''+x.id+'\')" title="Löschen">🗑</button>'+
+        '</div>'
+      : '';
+    return '<div class="strafen-list-zeile">'+
+      '<div class="mini-avatar">'+escapeHtml(initialen)+'</div>'+
+      '<div class="sz-mitte">'+
+        '<span class="sz-name">'+escapeHtml(x.schuetze)+'</span>'+
+        '<span class="sz-info">'+escapeHtml(x.strafart)+' · '+x.datum+(x.kommentar?' · '+escapeHtml(x.kommentar):'')+'</span>'+
+      '</div>'+
+      '<div class="sz-rechts">'+
+        '<span class="sz-betrag">'+euro(x.betrag)+'</span>'+
+        '<span class="'+(x.bezahlt?'status-bezahlt':'status-offen')+'">'+(x.bezahlt?'Bezahlt':'Offen')+'</span>'+
+        (x.bezahlt&&x.bezahltArt?'<span style="font-size:11px;color:var(--ink-soft)">'+escapeHtml(x.bezahltArt)+'</span>':'')+
+      '</div>'+
+      aktionen+
+    '</div>';
+  }).join('');
 }
 
 function resetStrafenFilter(){
+  strafenStatusFilter = 'alle';
   ['filterSchuetze','filterStrafart','filterVon','filterBis','strafenSuche'].forEach(id => {
     const el = document.getElementById(id);
     if(el) el.value = '';
@@ -1145,14 +1237,40 @@ function renderKalender(){
 
 function renderRanking(){
   podiumRender(document.getElementById('rankingPodium'));
+
   const rang = rankingListe();
-  document.getElementById('zugsauTabelle').innerHTML = rang.map((r,i)=>
-    '<tr><td>'+(i+1)+'</td><td>'+escapeHtml(r.s.name)+'</td><td>'+euro(r.gesamt)+'</td></tr>'
-  ).join('') || '<tr><td colspan="3" class="leer">Keine Daten.</td></tr>';
+  const zugsauListe = document.getElementById('zugsauListe');
+  if(zugsauListe){
+    zugsauListe.innerHTML = rang.length===0
+      ? '<div class="leer-zeile">Keine Daten.</div>'
+      : rang.map((r,i)=>{
+          const ini = r.s.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+          return '<div class="strafen-list-zeile">'+
+            '<div class="pz-rang">'+(i+1)+'</div>'+
+            '<div class="mini-avatar'+(i===0?' gold':'')+'">'+escapeHtml(ini)+'</div>'+
+            '<div class="sz-mitte"><span class="sz-name">'+escapeHtml(r.s.name)+'</span></div>'+
+            '<div class="sz-betrag">'+euro(r.gesamt)+'</div>'+
+          '</div>';
+        }).join('');
+  }
+
   const offene = rang.filter(r=>r.offen>0).sort((a,b)=>b.offen-a.offen);
-  document.getElementById('schuldenTabelle').innerHTML = offene.map(r=>
-    '<tr><td>'+escapeHtml(r.s.name)+'</td><td><span class="status-offen">'+euro(r.offen)+'</span></td></tr>'
-  ).join('') || '<tr><td colspan="2" class="leer">Alles bezahlt 🎉</td></tr>';
+  const schuldenListe = document.getElementById('schuldenListe');
+  if(schuldenListe){
+    schuldenListe.innerHTML = offene.length===0
+      ? '<div class="leer-zeile">Alles bezahlt 🎉</div>'
+      : offene.map(r=>{
+          const ini = r.s.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+          return '<div class="strafen-list-zeile">'+
+            '<div class="mini-avatar">'+escapeHtml(ini)+'</div>'+
+            '<div class="sz-mitte"><span class="sz-name">'+escapeHtml(r.s.name)+'</span></div>'+
+            '<div class="sz-rechts">'+
+              '<span class="sz-betrag" style="color:var(--bordeaux)">'+euro(r.offen)+'</span>'+
+              '<span class="status-offen">Offen</span>'+
+            '</div>'+
+          '</div>';
+        }).join('');
+  }
 }
 
 function renderMitglieder(){
@@ -1160,15 +1278,16 @@ function renderMitglieder(){
   document.getElementById('schuetzenListe').innerHTML = schuetzen.map(s=>{
     const initialen = s.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
     const avatar = s.bild ? '<img class="mini-avatar" src="'+s.bild+'" alt="">' : '<div class="mini-avatar">'+escapeHtml(initialen)+'</div>';
-    let akt = '<button class="mini-btn" onclick="schuetzenakteOeffnen(\''+s.id+'\')">Akte</button>';
+    let akt = '<button class="mini-btn btn-ghost" onclick="schuetzenakteOeffnen(\''+s.id+'\')">Akte</button>';
     if(darf){
-      akt += ' <button class="mini-btn" onclick="abzeichenModalOeffnen(\''+s.id+'\')">🎖️ Abzeichen</button>'+
-        ' <label class="mini-btn btn-ghost" style="cursor:pointer;display:inline-flex;align-items:center">Bild<input type="file" accept="image/*" style="display:none" onchange="mitgliedBildHochladen(\''+s.id+'\',this)"></label>'+
-        ' <button class="mini-btn" onclick="schuetzeAktivToggle(\''+s.id+'\')">'+(s.aktiv?'Deaktiv.':'Aktiv.')+'</button>'+
-        ' <button class="mini-btn delete-button" onclick="schuetzeLoeschen(\''+s.id+'\')">🗑</button>';
+      akt += ' <button class="mini-btn btn-ghost" onclick="abzeichenModalOeffnen(\''+s.id+'\')">🎖️</button>'+
+        ' <label class="mini-btn btn-ghost" style="cursor:pointer;display:inline-flex;align-items:center" title="Bild ändern">📷<input type="file" accept="image/*" style="display:none" onchange="mitgliedBildHochladen(\''+s.id+'\',this)"></label>'+
+        ' <button class="mini-btn btn-ghost" onclick="schuetzeAktivToggle(\''+s.id+'\')" title="'+(s.aktiv?'Deaktivieren':'Aktivieren')+'">'+(s.aktiv?'⏸':'▶')+'</button>'+
+        ' <button class="mini-btn delete-button" onclick="schuetzeLoeschen(\''+s.id+'\')" title="Löschen">🗑</button>';
     }
     return '<li class="'+(s.aktiv?'':'inaktiv')+'">'+avatar+
-      '<div><div class="mname">'+escapeHtml(s.name)+'</div><div class="mrolle">'+escapeHtml(s.rolle)+(s.benutzername?' · @'+escapeHtml(s.benutzername):'')+'</div></div>'+
+      '<div><div class="mname">'+escapeHtml(s.name)+'</div>'+
+      '<div class="mrolle">'+escapeHtml(s.rolle)+'</div></div>'+
       '<div class="aktionen">'+akt+'</div></li>';
   }).join('');
 }
