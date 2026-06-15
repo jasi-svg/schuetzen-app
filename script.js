@@ -53,6 +53,7 @@ let umfrageOptionen = [];
 let umfrageStimmen = [];
 let kassenbuchungen = [];
 let strafenStatusFilter = 'alle';
+let datenGeladen = false;
 
 /* ---------- Hilfen ---------- */
 function neueId(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
@@ -65,6 +66,39 @@ function kassenstandBerechnen(){
   const ein = kassenbuchungen.filter(b => b.typ === 'einnahme').reduce((a, b) => a + b.betrag, 0);
   const aus = kassenbuchungen.filter(b => b.typ === 'ausgabe').reduce((a, b) => a + b.betrag, 0);
   return ein - aus;
+}
+
+/* ---------- Skeleton- & Leer-Zustand-Helfer ---------- */
+function skeletonReihen(n, h){
+  h = h || '40px';
+  return Array.from({length:n}, () => '<div class="skeleton" style="height:'+h+';margin-bottom:8px"></div>').join('');
+}
+function leerZustand(icon, text, aktionLabel, onAktion){
+  const btn = (aktionLabel && onAktion && darfBearbeiten())
+    ? '<button class="btn-gold" style="margin-top:14px;width:auto;padding:10px 22px" onclick="'+onAktion+'">'+escapeHtml(aktionLabel)+'</button>'
+    : '';
+  return '<div class="leer-zustand"><div class="leer-zustand-icon">'+icon+'</div>'+
+    '<p class="leer-zustand-text">'+escapeHtml(text)+'</p>'+btn+'</div>';
+}
+function focusStrafErfassen(){
+  const el = document.getElementById('strafErfassenBereich');
+  if(el){ el.classList.remove('hidden'); const f = el.querySelector('select,input'); if(f) f.focus(); el.scrollIntoView({behavior:'smooth',block:'start'}); }
+}
+function focusMitgliedHinzufuegen(){
+  const el = document.getElementById('mitgliedHinzufuegenBereich');
+  if(el){ el.classList.remove('hidden'); const f = el.querySelector('input'); if(f) f.focus(); el.scrollIntoView({behavior:'smooth',block:'start'}); }
+}
+function focusTerminHinzufuegen(){
+  const el = document.getElementById('kalenderFormBereich');
+  if(el){ el.classList.remove('hidden'); const f = el.querySelector('input'); if(f) f.focus(); el.scrollIntoView({behavior:'smooth',block:'start'}); }
+}
+function focusUmfrageErstellen(){
+  const el = document.getElementById('umfrageFormBereich');
+  if(el){ el.classList.remove('hidden'); const f = el.querySelector('input'); if(f) f.focus(); el.scrollIntoView({behavior:'smooth',block:'start'}); }
+}
+function focusKasseBuchung(){
+  const el = document.getElementById('kasseBuchungBetrag');
+  if(el){ el.focus(); el.scrollIntoView({behavior:'smooth',block:'center'}); }
 }
 
 /* ---------- Speichern / Laden ---------- */
@@ -275,6 +309,7 @@ async function onboardingBeitreten(){
 }
 
 async function ausloggen(){
+  datenGeladen = false;
   realtimeStoppen();
   await sb.auth.signOut();
   aktuellerBenutzer = null;
@@ -323,6 +358,8 @@ async function checkAppState(){
 
     zustandSetzen('app');
     seiteAnzeigen('dashboard');
+    datenGeladen = false;
+    renderDashboard();
     await clubDatenLaden();
     realtimeStarten();
   } catch(e){
@@ -385,6 +422,7 @@ async function clubDatenLaden(){
     umfrageStimmen  = stimmenRes.data   || [];
     kassenbuchungen = kasseRes.data     || [];
 
+    datenGeladen = true;
     appAktualisieren();
   } catch(e){
     console.error('clubDatenLaden:', e);
@@ -1082,6 +1120,38 @@ function renderDashboard(){
     '<div class="db-kopf-datum">'+datum+'</div>'+
     '</div>';
 
+  if(!datenGeladen){
+    ziel.innerHTML = kopfHtml+
+      '<div class="db-hero">'+
+        '<div class="db-hero-label">&nbsp;</div>'+
+        '<div class="skeleton" style="height:52px;width:160px;margin:10px 0 6px;border-radius:12px"></div>'+
+        '<div class="skeleton" style="height:14px;width:100px;border-radius:6px"></div>'+
+      '</div>'+
+      '<div class="db-mini-grid">'+
+        '<div class="db-mini-card">'+
+          '<div class="skeleton" style="height:13px;width:70%;margin-bottom:8px;border-radius:6px"></div>'+
+          '<div class="skeleton" style="height:26px;width:90%;border-radius:8px"></div>'+
+        '</div>'+
+        '<div class="db-mini-card">'+
+          '<div class="skeleton" style="height:13px;width:70%;margin-bottom:8px;border-radius:6px"></div>'+
+          '<div class="skeleton" style="height:26px;width:90%;border-radius:8px"></div>'+
+        '</div>'+
+      '</div>'+
+      '<div class="db-mini-card" style="margin-bottom:14px">'+
+        '<div class="skeleton" style="height:13px;width:50%;margin-bottom:8px;border-radius:6px"></div>'+
+        '<div class="skeleton" style="height:26px;width:70%;border-radius:8px"></div>'+
+      '</div>'+
+      '<div class="card" style="margin-bottom:14px">'+
+        '<div class="mini-label mb-10">🐷 Zugsau-Ranking</div>'+
+        skeletonReihen(3,'44px')+
+      '</div>'+
+      '<div class="card">'+
+        '<div class="mini-label mb-10">Nächstes Antreten</div>'+
+        skeletonReihen(1,'58px')+
+      '</div>';
+    return;
+  }
+
   // Hero-Karte
   let heroLabel, heroZahl, heroInfo;
   if(istOffizier(aktuellerBenutzer)){
@@ -1286,6 +1356,13 @@ function renderStrafen(){
     ).join('');
   }
 
+  if(!datenGeladen){
+    document.getElementById('gesamtbetrag').textContent = 'Gesamtsumme: –';
+    const stEl = document.getElementById('strafenListe');
+    if(stEl) stEl.innerHTML = skeletonReihen(4,'52px');
+    return;
+  }
+
   const liste = strafen.slice().reverse().filter(x => {
     if(strafenStatusFilter==='offen'   &&  x.bezahlt) return false;
     if(strafenStatusFilter==='bezahlt' && !x.bezahlt) return false;
@@ -1305,7 +1382,13 @@ function renderStrafen(){
 
   const ziel = document.getElementById('strafenListe');
   if(!ziel) return;
-  if(!liste.length){ ziel.innerHTML = '<div class="leer-zeile">Keine Einträge.</div>'; return; }
+  if(!liste.length){
+    const hatAktivFilter = strafenStatusFilter!=='alle'||filterSchuetze||filterStrafart||filterVon||filterBis||suche;
+    ziel.innerHTML = hatAktivFilter
+      ? '<div class="leer-zeile">Keine Einträge für diesen Filter.</div>'
+      : leerZustand('🐷','Noch keine Strafen erfasst.','Strafe erfassen','focusStrafErfassen()');
+    return;
+  }
 
   ziel.innerHTML = liste.map(x=>{
     const initialen = (x.schuetze||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
@@ -1342,6 +1425,13 @@ function resetStrafenFilter(){
 
 function renderKalender(){
   document.getElementById('kalenderFormBereich').classList.toggle('hidden', !darfBearbeiten());
+
+  if(!datenGeladen){
+    document.getElementById('kalenderNaechster').innerHTML = '';
+    document.getElementById('kalenderListe').innerHTML = skeletonReihen(3,'56px');
+    return;
+  }
+
   const nt = naechsterTermin();
   const nbox = document.getElementById('kalenderNaechster');
   if(nt){
@@ -1358,17 +1448,27 @@ function renderKalender(){
       '<div class="kal-info"><b>'+escapeHtml(t.titel)+(t.antreten?' <span class="kal-badge">Antreten</span>':'')+'</b>'+
       '<span>'+(t.zeit?'<span class="an">'+t.zeit+' Uhr</span>':'')+(t.ort?' · '+escapeHtml(t.ort):'')+(t.hinweis?' · '+escapeHtml(t.hinweis):'')+'</span></div>'+
       (darf?'<button class="mini-btn delete-button" onclick="terminLoeschen(\''+t.id+'\')">🗑</button>':'')+'</div>';
-  }).join('') || '<p class="leer">Noch keine Termine angelegt.</p>';
+  }).join('') || leerZustand('📅','Noch keine Termine.','Termin anlegen','focusTerminHinzufuegen()');
 }
 
 function renderRanking(){
+  if(!datenGeladen){
+    const pod = document.getElementById('rankingPodium');
+    if(pod) pod.innerHTML = skeletonReihen(3,'44px');
+    const zl = document.getElementById('zugsauListe');
+    if(zl) zl.innerHTML = skeletonReihen(4,'44px');
+    const sl = document.getElementById('schuldenListe');
+    if(sl) sl.innerHTML = skeletonReihen(3,'44px');
+    return;
+  }
+
   podiumRender(document.getElementById('rankingPodium'));
 
   const rang = rankingListe();
   const zugsauListe = document.getElementById('zugsauListe');
   if(zugsauListe){
     zugsauListe.innerHTML = rang.length===0
-      ? '<div class="leer-zeile">Keine Daten.</div>'
+      ? leerZustand('🏆','Noch keine Daten fürs Ranking.')
       : rang.map((r,i)=>{
           const ini = r.s.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
           return '<div class="strafen-list-zeile">'+
@@ -1453,6 +1553,12 @@ let chronikLimit = 50;
 function renderChronik(){
   const el = document.getElementById('chronikListe');
   if(!el) return;
+
+  if(!datenGeladen){
+    el.innerHTML = skeletonReihen(4,'52px');
+    return;
+  }
+
   const ereignisse = [];
   strafen.forEach(x => {
     const s = findSchuetze(x.schuetzeId);
@@ -1475,7 +1581,7 @@ function renderChronik(){
   });
   ereignisse.sort((a,b) => b.ts - a.ts);
   if(!ereignisse.length){
-    el.innerHTML = '<div class="leer-zeile">Noch keine Aktivitäten.</div>';
+    el.innerHTML = leerZustand('📜','Noch keine Aktivitäten.');
     return;
   }
   const zeige = ereignisse.slice(0, chronikLimit);
@@ -1503,6 +1609,12 @@ function chronikAlleAnzeigen(){
 function renderMitglieder(){
   const darf = darfBearbeiten();
   document.getElementById('mitgliedHinzufuegenBereich')?.classList.toggle('hidden', !darf);
+
+  if(!datenGeladen){
+    document.getElementById('schuetzenListe').innerHTML = '<li style="list-style:none">'+skeletonReihen(3,'52px')+'</li>';
+    return;
+  }
+
   document.getElementById('schuetzenListe').innerHTML = schuetzen.map(s=>{
     const initialen = s.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
     const avatar = s.bild ? '<img class="mini-avatar" src="'+s.bild+'" alt="">' : '<div class="mini-avatar">'+escapeHtml(initialen)+'</div>';
@@ -1517,7 +1629,7 @@ function renderMitglieder(){
       '<div><div class="mname">'+escapeHtml(s.name)+'</div>'+
       '<div class="mrolle">'+escapeHtml(s.rolle)+'</div></div>'+
       '<div class="aktionen">'+akt+'</div></li>';
-  }).join('') || '<li class="leer" style="list-style:none;padding:18px;text-align:center">Noch keine Mitglieder angelegt.</li>';
+  }).join('') || '<li style="list-style:none">'+leerZustand('👤','Noch keine Mitglieder.','Mitglied anlegen','focusMitgliedHinzufuegen()')+'</li>';
 }
 
 function renderEinstellungen(){
@@ -1539,13 +1651,20 @@ function renderStrafarten(){
 function renderAnwesenheit(){
   renderSchnellErfassung();
   const darf = darfBearbeiten();
+
+  if(!datenGeladen){
+    document.getElementById('anwesenheitenTabelle').innerHTML = '<tr><td colspan="6" style="padding:12px">'+skeletonReihen(3,'40px')+'</td></tr>';
+    document.getElementById('statistikTabelle').innerHTML = '<tr><td colspan="5" style="padding:12px">'+skeletonReihen(3,'40px')+'</td></tr>';
+    return;
+  }
+
   document.getElementById('anwesenheitenTabelle').innerHTML = anwesenheiten.slice().reverse().map(a=>{
     const klasse = {'Anwesend':'status-anwesend','Zu spät':'status-zuspaet','Entschuldigt':'status-entschuldigt','Fehlend':'status-fehlend'}[a.status]||'';
     return '<tr><td>'+escapeHtml(a.tag)+'</td><td>'+escapeHtml(a.schuetze)+'</td>'+
       '<td><span class="'+klasse+'">'+escapeHtml(a.status)+'</span></td><td>'+(a.minuten||0)+'</td>'+
       '<td>'+(a.kommentar ? '<span class="anw-kommentar">'+escapeHtml(a.kommentar)+'</span>' : '–')+'</td>'+
       '<td>'+(darf?'<button class="mini-btn delete-button" onclick="anwesenheitLoeschen(\''+a.id+'\')">🗑</button>':'–')+'</td></tr>';
-  }).join('') || '<tr><td colspan="6" class="leer">Keine Einträge.</td></tr>';
+  }).join('') || '<tr><td colspan="6" class="leer">Noch keine Anwesenheiten erfasst.</td></tr>';
 
   document.getElementById('statistikTabelle').innerHTML = schuetzen.filter(s=>s.aktiv).map(s=>{
     const anw = anwesenheiten.filter(x=>x.schuetzeId===s.id);
@@ -1883,11 +2002,16 @@ function renderAbstimmungen(){
     formBereich.classList.toggle('hidden', !darfBearbeiten());
   }
 
+  if(!datenGeladen){
+    liste.innerHTML = skeletonReihen(2,'120px');
+    return;
+  }
+
   const myUserId = sbSession?.user?.id;
   const sorted = umfragen.slice().sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
 
   if(!sorted.length){
-    liste.innerHTML = '<p class="leer">Noch keine Abstimmungen vorhanden.</p>';
+    liste.innerHTML = leerZustand('🗳️','Noch keine Abstimmungen.','Abstimmung erstellen','focusUmfrageErstellen()');
     return;
   }
 
@@ -2055,6 +2179,19 @@ async function umfrageAbstimmen(umfrageId){
 function renderKasse(){
   const ziel = document.getElementById('kasseInhalt');
   if(!ziel) return;
+
+  if(!datenGeladen){
+    ziel.innerHTML =
+      '<div class="db-hero" style="cursor:default;margin-bottom:14px">'+
+        '<div class="db-hero-label">Kassenstand</div>'+
+        '<div class="skeleton" style="height:52px;width:160px;margin:10px 0 4px;border-radius:12px"></div>'+
+        '<div class="skeleton" style="height:14px;width:180px;margin-top:4px;border-radius:6px"></div>'+
+      '</div>'+
+      '<h3>Buchungen</h3>'+
+      '<div class="strafen-list">'+skeletonReihen(4,'52px')+'</div>';
+    return;
+  }
+
   const ksEinnahmen = kassenbuchungen.filter(b => b.typ === 'einnahme').reduce((a, b) => a + b.betrag, 0);
   const ksAusgaben  = kassenbuchungen.filter(b => b.typ === 'ausgabe').reduce((a, b) => a + b.betrag, 0);
   const ksStand     = ksEinnahmen - ksAusgaben;
@@ -2094,7 +2231,7 @@ function renderKasse(){
   });
 
   const listeHtml = !sorted.length
-    ? '<div class="leer-zeile">Noch keine Buchungen vorhanden.</div>'
+    ? leerZustand('💶','Noch keine Buchungen.','Buchung hinzufügen','focusKasseBuchung()')
     : sorted.map(b => {
         const istEin = b.typ === 'einnahme';
         return '<div class="strafen-list-zeile">' +
