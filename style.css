@@ -212,7 +212,7 @@ button{
   transition:background .15s ease, transform .12s ease, opacity .15s ease;
 }
 button:hover{background:var(--green-deep);transform:translateY(-1px)}
-button:active{transform:translateY(0)}
+button:active{transform:scale(.97);opacity:.88}
 .btn-gold{background:var(--gold);color:#fff}
 .btn-gold:hover{background:var(--green-deep)}
 .btn-ghost{background:var(--white);border:1px solid var(--line);color:var(--ink)}
@@ -388,6 +388,8 @@ table tbody tr:hover{background:var(--canvas)}
 }
 /* Platz-1-Variante: Gold */
 .mini-avatar.gold{background:var(--gold-soft);color:var(--gold)}
+/* Profilbild als Mini-Avatar */
+img.mini-avatar{object-fit:cover;background:var(--green-soft)}
 
 .inaktiv{opacity:.5}
 
@@ -605,6 +607,34 @@ table tbody tr:hover{background:var(--canvas)}
 .umfrage-option-entfernen{width:auto !important;padding:6px 12px;flex:none}
 @media(max-width:500px){
   .umfrage-ergebnis-zeile{grid-template-columns:1fr 80px 50px;gap:5px}
+}
+
+/* ---------- Tap-Feedback: klickbare Karten ---------- */
+.db-hero:active,.db-mini-card:active,.dashboard-card:active{
+  transform:scale(.99);opacity:.90;
+  transition:transform .08s ease,opacity .08s ease;
+}
+/* Umfrage-Optionen beim Antippen */
+.umfrage-option-check:active{background:var(--green-soft)}
+
+/* ---------- Mikro-Animationen (Seitenwechsel + Karten) ---------- */
+@keyframes seiteFadeIn{
+  from{opacity:0}
+  to{opacity:1}
+}
+@keyframes karteEinblenden{
+  from{opacity:0;transform:translateY(10px)}
+  to{opacity:1;transform:translateY(0)}
+}
+.seite-wechsel{
+  animation:seiteFadeIn .18s ease;
+}
+.seite-wechsel .card,
+.seite-wechsel .db-hero,
+.seite-wechsel .db-mini-card,
+.seite-wechsel .unterkarte,
+.seite-wechsel .kal-next{
+  animation:karteEinblenden .22s ease var(--karte-verz,0ms) both;
 }
 
 /* ---------- Barrierefreiheit ---------- */

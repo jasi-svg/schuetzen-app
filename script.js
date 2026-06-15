@@ -54,6 +54,7 @@ let umfrageStimmen = [];
 let kassenbuchungen = [];
 let strafenStatusFilter = 'alle';
 let datenGeladen = false;
+let dashboardZahlAnimiert = false;
 
 /* ---------- Hilfen ---------- */
 function neueId(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
@@ -66,6 +67,37 @@ function kassenstandBerechnen(){
   const ein = kassenbuchungen.filter(b => b.typ === 'einnahme').reduce((a, b) => a + b.betrag, 0);
   const aus = kassenbuchungen.filter(b => b.typ === 'ausgabe').reduce((a, b) => a + b.betrag, 0);
   return ein - aus;
+}
+
+/* ---------- Avatar-Helfer ---------- */
+function avatarHTML(mitglied, groesse, istGold){
+  const klasse = (groesse === 'gross')
+    ? 'sk-avatar'
+    : 'mini-avatar' + (istGold ? ' gold' : '');
+  if(mitglied && mitglied.bild){
+    return '<img class="'+klasse+'" src="'+escapeHtml(mitglied.bild)+'" alt="">';
+  }
+  const ini = mitglied ? mitglied.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase() : '?';
+  return '<div class="'+klasse+'">'+escapeHtml(ini)+'</div>';
+}
+
+/* ---------- Zahl-Hochzähl-Animation ---------- */
+function zahlAnimieren(container){
+  if(window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const elemente = container.querySelectorAll('[data-ziel]');
+  elemente.forEach(function(el){
+    const zielWert = parseFloat(el.dataset.ziel) || 0;
+    const dauer = 650;
+    const start = performance.now();
+    function schritt(jetzt){
+      const t = Math.min((jetzt - start) / dauer, 1);
+      const eased = 1 - Math.pow(1 - t, 3);
+      el.textContent = euro(zielWert * eased);
+      if(t < 1) requestAnimationFrame(schritt);
+      else el.textContent = euro(zielWert);
+    }
+    requestAnimationFrame(schritt);
+  });
 }
 
 /* ---------- Skeleton- & Leer-Zustand-Helfer ---------- */
@@ -160,7 +192,19 @@ const seitenMap = {
 function seiteAnzeigen(seite){
   aktuelleSeite = seite;
   Object.values(seitenMap).forEach(id => document.getElementById(id)?.classList.add('hidden'));
-  document.getElementById(seitenMap[seite])?.classList.remove('hidden');
+  const zielEl = document.getElementById(seitenMap[seite]);
+  zielEl?.classList.remove('hidden');
+
+  // Sanfter Seitenwechsel: Einblenden mit gestaffelten Karten
+  if(zielEl){
+    zielEl.classList.add('seite-wechsel');
+    const karten = zielEl.querySelectorAll('.card, .db-hero, .db-mini-card, .unterkarte, .kal-next');
+    karten.forEach(function(k, i){ k.style.setProperty('--karte-verz', Math.min(i * 35, 180) + 'ms'); });
+    setTimeout(function(){
+      zielEl.classList.remove('seite-wechsel');
+      karten.forEach(function(k){ k.style.removeProperty('--karte-verz'); });
+    }, 600);
+  }
 
   document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
   document.getElementById('nav-'+seite)?.classList.add('active');
@@ -1153,24 +1197,26 @@ function renderDashboard(){
   }
 
   // Hero-Karte
-  let heroLabel, heroZahl, heroInfo;
+  let heroLabel, heroZahl, heroInfo, heroRoh = 0;
   if(istOffizier(aktuellerBenutzer)){
     const offenSum    = strafen.filter(x=>!x.bezahlt).reduce((a,x)=>a+x.betrag,0);
     const offenAnzahl = strafen.filter(x=>!x.bezahlt).length;
     heroLabel = 'Offene Strafen im Zug';
     heroZahl  = euro(offenSum);
+    heroRoh   = offenSum;
     heroInfo  = offenAnzahl+(offenAnzahl===1?' offener Posten':' offene Posten');
   } else {
     const meinMember = sbSession ? schuetzen.find(s=>s.user_id===sbSession.user.id) : null;
     const st = meinMember ? statsFuer(meinMember) : {offen:0};
     heroLabel = 'Meine offenen Strafen';
     heroZahl  = euro(st.offen);
+    heroRoh   = st.offen;
     heroInfo  = '';
   }
 
   const heroHtml = '<div class="db-hero" onclick="seiteAnzeigen(\'strafen\')">'+
     '<div class="db-hero-label">'+escapeHtml(heroLabel)+'</div>'+
-    '<div><div class="db-hero-zahl">'+heroZahl+'</div></div>'+
+    '<div><div class="db-hero-zahl" data-ziel="'+heroRoh+'">'+heroZahl+'</div></div>'+
     (heroInfo?'<div class="db-hero-info">'+escapeHtml(heroInfo)+'</div>':'')+
     '</div>';
 
@@ -1204,10 +1250,9 @@ function renderDashboard(){
   const top3 = rankingListe().filter(r=>r.gesamt>0).slice(0,3);
   let podiumRows = top3.length===0 ? '<p class="leer">Noch keine Strafen erfasst.</p>' :
     top3.map((r,i)=>{
-      const ini = r.s.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
       return '<div class="podium-zeile-row'+(i===0?' platz1':'')+'">'+
         '<div class="pz-rang">'+(i+1)+'</div>'+
-        '<div class="mini-avatar'+(i===0?' gold':'')+'">'+escapeHtml(ini)+'</div>'+
+        avatarHTML(r.s, 'mini', i===0)+
         '<div class="pz-name">'+escapeHtml(r.s.name)+(i===0?' 👑':'')+'</div>'+
         '<div class="pz-sum">'+euro(r.gesamt)+'</div>'+
       '</div>';
@@ -1247,10 +1292,16 @@ function renderDashboard(){
   const kassenstandKarteHtml =
     '<div class="db-mini-card" style="cursor:pointer;margin-bottom:14px" onclick="seiteAnzeigen(\'kasse\')">' +
     '<div class="db-mini-label">💶 Kassenstand</div>' +
-    '<div class="db-mini-zahl" style="font-family:\'Fraunces\',serif;color:' + (ks >= 0 ? 'var(--green-deep)' : 'var(--bordeaux)') + ';border-bottom:2px solid var(--gold);display:inline-block;padding-bottom:2px">' + euro(ks) + '</div>' +
+    '<div class="db-mini-zahl" data-ziel="'+ks+'" style="font-family:\'Fraunces\',serif;color:' + (ks >= 0 ? 'var(--green-deep)' : 'var(--bordeaux)') + ';border-bottom:2px solid var(--gold);display:inline-block;padding-bottom:2px">' + euro(ks) + '</div>' +
     '</div>';
 
   ziel.innerHTML = kopfHtml + heroHtml + miniHtml + kassenstandKarteHtml + podiumKarteHtml + terminKarteHtml;
+
+  // Hero-Zahlen beim ersten Anzeigen hochzählen
+  if(!dashboardZahlAnimiert){
+    dashboardZahlAnimiert = true;
+    zahlAnimieren(ziel);
+  }
 }
 
 function podiumRender(ziel){
@@ -1258,10 +1309,9 @@ function podiumRender(ziel){
   const top = rankingListe().filter(r=>r.gesamt>0).slice(0,3);
   if(top.length === 0){ ziel.innerHTML = '<p class="leer">Noch keine Strafen erfasst.</p>'; return; }
   ziel.innerHTML = top.map((r,i)=>{
-    const ini = r.s.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
     return '<div class="podium-zeile-row'+(i===0?' platz1':'')+'">'+
       '<div class="pz-rang">'+(i+1)+'</div>'+
-      '<div class="mini-avatar'+(i===0?' gold':'')+'">'+escapeHtml(ini)+'</div>'+
+      avatarHTML(r.s, 'mini', i===0)+
       '<div class="pz-name">'+escapeHtml(r.s.name)+(i===0?' 👑':'')+'</div>'+
       '<div class="pz-sum">'+euro(r.gesamt)+'</div>'+
     '</div>';
@@ -1279,8 +1329,7 @@ function renderProfil(){
   const bannerHtml = st.offen > 0
     ? '<div class="banner-offen">⚠️ Du hast noch <b>' + euro(st.offen) + '</b> offen</div>'
     : (st.anzahl > 0 ? '<div class="banner-ok">✓ Alles bezahlt</div>' : '');
-  const initialen = s.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
-  const avatar = s.bild ? '<img class="sk-avatar" src="'+s.bild+'" alt="">' : '<div class="sk-avatar">'+escapeHtml(initialen)+'</div>';
+  const avatar = avatarHTML(s, 'gross');
   const badges = abzeichenFuer(s);
 
   let letzte = strafen.filter(x=>x.schuetzeId===s.id).slice(-5).reverse()
@@ -1391,7 +1440,8 @@ function renderStrafen(){
   }
 
   ziel.innerHTML = liste.map(x=>{
-    const initialen = (x.schuetze||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    const sm = findSchuetze(x.schuetzeId);
+    const avatarEl = sm ? avatarHTML(sm) : '<div class="mini-avatar">'+escapeHtml((x.schuetze||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase())+'</div>';
     const aktionen = darf
       ? '<div class="sz-aktionen">'+
           '<button class="mini-btn" onclick="strafeBezahltToggle(\''+x.id+'\')" title="'+(x.bezahlt?'Als offen markieren':'Als bezahlt markieren')+'">'+(x.bezahlt?'↩︎':'✓')+'</button>'+
@@ -1399,7 +1449,7 @@ function renderStrafen(){
         '</div>'
       : '';
     return '<div class="strafen-list-zeile">'+
-      '<div class="mini-avatar">'+escapeHtml(initialen)+'</div>'+
+      avatarEl+
       '<div class="sz-mitte">'+
         '<span class="sz-name">'+escapeHtml(x.schuetze)+'</span>'+
         '<span class="sz-info">'+escapeHtml(x.strafart)+' · '+x.datum+(x.kommentar?' · '+escapeHtml(x.kommentar):'')+'</span>'+
@@ -1470,10 +1520,9 @@ function renderRanking(){
     zugsauListe.innerHTML = rang.length===0
       ? leerZustand('🏆','Noch keine Daten fürs Ranking.')
       : rang.map((r,i)=>{
-          const ini = r.s.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
           return '<div class="strafen-list-zeile">'+
             '<div class="pz-rang">'+(i+1)+'</div>'+
-            '<div class="mini-avatar'+(i===0?' gold':'')+'">'+escapeHtml(ini)+'</div>'+
+            avatarHTML(r.s, 'mini', i===0)+
             '<div class="sz-mitte"><span class="sz-name">'+escapeHtml(r.s.name)+'</span></div>'+
             '<div class="sz-betrag">'+euro(r.gesamt)+'</div>'+
           '</div>';
@@ -1486,9 +1535,8 @@ function renderRanking(){
     schuldenListe.innerHTML = offene.length===0
       ? '<div class="leer-zeile">Alles bezahlt 🎉</div>'
       : offene.map(r=>{
-          const ini = r.s.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
           return '<div class="strafen-list-zeile">'+
-            '<div class="mini-avatar">'+escapeHtml(ini)+'</div>'+
+            avatarHTML(r.s)+
             '<div class="sz-mitte"><span class="sz-name">'+escapeHtml(r.s.name)+'</span></div>'+
             '<div class="sz-rechts">'+
               '<span class="sz-betrag" style="color:var(--bordeaux)">'+euro(r.offen)+'</span>'+
@@ -1535,10 +1583,9 @@ function renderStrafartRanking(){
     return;
   }
   liste.innerHTML = mitDaten.map((r,i) => {
-    const ini = r.s.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
     return '<div class="strafen-list-zeile">'+
       '<div class="pz-rang">'+(i+1)+'</div>'+
-      '<div class="mini-avatar'+(i===0?' gold':'')+'">'+escapeHtml(ini)+'</div>'+
+      avatarHTML(r.s, 'mini', i===0)+
       '<div class="sz-mitte"><span class="sz-name">'+escapeHtml(r.s.name)+'</span></div>'+
       '<div class="sz-rechts">'+
         '<span class="sz-betrag">'+r.anzahl+'×</span>'+
@@ -1616,8 +1663,7 @@ function renderMitglieder(){
   }
 
   document.getElementById('schuetzenListe').innerHTML = schuetzen.map(s=>{
-    const initialen = s.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
-    const avatar = s.bild ? '<img class="mini-avatar" src="'+s.bild+'" alt="">' : '<div class="mini-avatar">'+escapeHtml(initialen)+'</div>';
+    const avatar = avatarHTML(s);
     let akt = '<button class="mini-btn btn-ghost" onclick="schuetzenakteOeffnen(\''+s.id+'\')">Akte</button>';
     if(darf){
       akt += ' <button class="mini-btn btn-ghost" onclick="abzeichenModalOeffnen(\''+s.id+'\')">🎖️</button>'+
@@ -1714,7 +1760,7 @@ function schuetzenakteOeffnen(id){
   const anw = anwesenheiten.filter(x=>x.schuetzeId===s.id);
   let strafenHtml = eigene.map(x=>'<div class="kal-row"><div class="kal-info"><b>'+escapeHtml(x.strafart)+'</b><span>'+x.datum+' · '+euro(x.betrag)+' · '+(x.bezahlt?'<span class="an">bezahlt</span>':'offen')+(x.kommentar?' · '+escapeHtml(x.kommentar):'')+'</span></div></div>').join('') || '<p class="leer">Keine Strafen.</p>';
   document.getElementById('schuetzenakteInhalt').innerHTML =
-    '<div class="spielerkarte"><div class="sk-top"><div class="sk-avatar">'+escapeHtml(s.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase())+'</div>'+
+    '<div class="spielerkarte"><div class="sk-top">'+avatarHTML(s, 'gross')+
     '<div><h3>'+escapeHtml(s.name)+'</h3><div class="mrolle">'+escapeHtml(s.rolle)+'</div><div class="rang">'+titelFuer(s)+'</div></div></div>'+
     '<div class="sk-stats"><div class="sk-stat"><b>'+euro(st.gesamt)+'</b><span>Gesamt</span></div><div class="sk-stat"><b>'+euro(st.offen)+'</b><span>Offen</span></div>'+
     '<div class="sk-stat"><b>'+st.anzahl+'</b><span>Strafen</span></div><div class="sk-stat"><b>'+st.anwesend+'</b><span>Anwesend</span></div></div></div>'+
