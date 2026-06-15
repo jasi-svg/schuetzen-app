@@ -619,6 +619,77 @@ async function strafeLoeschen(id){
   showToast('Strafe gelöscht','warning');
   await clubDatenLaden();
 }
+/* ---------- Offene Beträge teilen ---------- */
+async function offeneBetraegeTeilen(){
+  if(!darfBearbeiten()){ showToast('Keine Berechtigung','error'); return; }
+  const summenMap = {};
+  strafen.filter(x => !x.bezahlt).forEach(x => {
+    summenMap[x.schuetze] = (summenMap[x.schuetze] || 0) + x.betrag;
+  });
+  const eintraege = Object.entries(summenMap).filter(([,v]) => v > 0).sort((a,b) => b[1] - a[1]);
+  if(!eintraege.length){ showToast('Aktuell sind keine Beträge offen 🎉','info'); return; }
+  const gesamt = eintraege.reduce((a,[,v]) => a + v, 0);
+  const fmt = n => n.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' €';
+  const datum = new Date().toLocaleDateString('de-DE');
+  const text = 'Offene Strafen – ' + zugname + ' (Stand ' + datum + ')\n\n' +
+    eintraege.map(([name,betrag]) => name + ': ' + fmt(betrag)).join('\n') +
+    '\n\nGesamt offen: ' + fmt(gesamt) + '\nBitte zeitnah begleichen – danke! 🍺';
+  if(navigator.share){
+    try { await navigator.share({ text }); }
+    catch(e){ if(e.name !== 'AbortError') showToast('Teilen fehlgeschlagen: ' + e.message,'error'); }
+  } else {
+    try { await navigator.clipboard.writeText(text); showToast('In Zwischenablage kopiert ✓'); }
+    catch(e){ showToast('Kopieren fehlgeschlagen','error'); }
+  }
+}
+
+/* ---------- Mehrfach-Erfassung ---------- */
+let mehrfachAusgewaehlt = new Set();
+
+function mehrfachChipToggle(btn){
+  const id = btn.dataset.id;
+  if(mehrfachAusgewaehlt.has(id)){ mehrfachAusgewaehlt.delete(id); btn.classList.remove('aktiv'); }
+  else { mehrfachAusgewaehlt.add(id); btn.classList.add('aktiv'); }
+}
+
+function mehrfachBetragAktualisieren(){
+  const i = document.getElementById('mehrfachStrafartSelect').value;
+  const a = (i !== '') ? strafarten[parseInt(i)] : null;
+  const betragEl   = document.getElementById('mehrfachBetrag');
+  const betragInfo = document.getElementById('mehrfachBetragInfo');
+  if(a && betragEl){
+    betragEl.value = a.betrag;
+    betragEl.style.display = 'none';
+    if(betragInfo){ betragInfo.style.display = 'block'; betragInfo.textContent = 'Betrag: ' + euro(a.betrag) + ' (aus Strafart)'; }
+  } else if(betragEl){
+    betragEl.style.display = '';
+    if(betragInfo) betragInfo.style.display = 'none';
+  }
+}
+
+async function mehrfachStrafeSpeichern(){
+  if(!darfBearbeiten()){ showToast('Nur Offiziere dürfen Strafen erfassen','error'); return; }
+  if(!mehrfachAusgewaehlt.size){ showToast('Mindestens einen Schützen auswählen','error'); return; }
+  const ai = document.getElementById('mehrfachStrafartSelect').value;
+  const basis = parseFloat(document.getElementById('mehrfachBetrag').value);
+  const kommentar = document.getElementById('mehrfachKommentar').value.trim();
+  if(isNaN(basis) || basis <= 0){ showToast('Betrag eingeben','error'); return; }
+  const art = strafarten[ai] ? strafarten[ai].bezeichnung : 'Strafe';
+  const datum = new Date().toISOString().slice(0,10);
+  const eintraege = [...mehrfachAusgewaehlt].map(id => {
+    const s = findSchuetze(id); if(!s) return null;
+    return { club_id: sbClubId, member_id: s.id, schuetze: s.name, strafart: art,
+      basisbetrag: basis, betrag: istOffizier(s) ? basis*2 : basis, kommentar, datum, bezahlt: false };
+  }).filter(Boolean);
+  if(!eintraege.length){ showToast('Keine gültigen Mitglieder','error'); return; }
+  const { error } = await sb.from('strafen').insert(eintraege);
+  if(error){ console.error(error); showToast('Fehler: ' + error.message,'error'); return; }
+  mehrfachAusgewaehlt = new Set();
+  document.getElementById('mehrfachKommentar').value = '';
+  showToast(eintraege.length + (eintraege.length === 1 ? ' Strafe' : ' Strafen') + ' erfasst');
+  await clubDatenLaden();
+}
+
 let zahlungStrafeId = null;
 async function strafeBezahltToggle(id){
   if(!darfBearbeiten()){ showToast('Keine Berechtigung','error'); return; }
@@ -1151,6 +1222,19 @@ function renderStrafen(){
   const formBereich = document.getElementById('strafErfassenBereich');
   if(formBereich) formBereich.classList.toggle('hidden', !darfBearbeiten());
 
+  const mehrfachBereich = document.getElementById('mehrfachErfassenBereich');
+  if(mehrfachBereich){
+    mehrfachBereich.classList.toggle('hidden', !darfBearbeiten());
+    if(darfBearbeiten()){
+      const aktive = schuetzen.filter(s => s.aktiv);
+      document.getElementById('mehrfachMitgliederChips').innerHTML =
+        aktive.map(s =>
+          '<button type="button" class="filter-chip'+(mehrfachAusgewaehlt.has(s.id)?' aktiv':'')+
+          '" data-id="'+s.id+'" onclick="mehrfachChipToggle(this)">'+escapeHtml(s.name)+'</button>'
+        ).join('') || '<span class="muted">Keine aktiven Mitglieder</span>';
+    }
+  }
+
   // Status-Chips rendern
   const chipsEl = document.getElementById('strafenChips');
   if(chipsEl){
@@ -1325,6 +1409,8 @@ function renderSelects(){
   const as = document.getElementById('anwesenheitSchuetzeSelect'); if(as) as.innerHTML = '<option value="">Schütze auswählen</option>'+opt;
   const art = document.getElementById('strafartSelect');
   if(art) art.innerHTML = '<option value="">Strafart wählen (optional)</option>'+strafarten.map((a,i)=>'<option value="'+i+'">'+escapeHtml(a.bezeichnung)+' ('+euro(a.betrag)+')</option>').join('');
+  const mart = document.getElementById('mehrfachStrafartSelect');
+  if(mart) mart.innerHTML = '<option value="">Strafart wählen (optional)</option>'+strafarten.map((a,i)=>'<option value="'+i+'">'+escapeHtml(a.bezeichnung)+' ('+euro(a.betrag)+')</option>').join('');
 
   // Strafen-Filter-Dropdowns befüllen (aktuelle Auswahl erhalten)
   const fSchuetze = document.getElementById('filterSchuetze');
@@ -1344,6 +1430,7 @@ function renderSelects(){
   }
 
   betragAktualisieren();
+  mehrfachBetragAktualisieren();
 }
 
 /* ============================================================

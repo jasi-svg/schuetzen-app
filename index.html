@@ -211,6 +211,19 @@
       <button onclick="strafeSpeichern()">＋ Strafe speichern</button>
     </div>
 
+    <div id="mehrfachErfassenBereich" class="unterkarte hidden">
+      <div class="mini-label mb-10">⚡ Mehrere Schützen bestrafen</div>
+      <p class="muted" style="font-size:12px;margin:-2px 0 10px">Schützen antippen zum Auswählen:</p>
+      <div id="mehrfachMitgliederChips" class="chip-zeile"></div>
+      <div class="form-grid" style="margin-top:12px">
+        <select id="mehrfachStrafartSelect" onchange="mehrfachBetragAktualisieren()"></select>
+        <input id="mehrfachBetrag" type="number" placeholder="Betrag in €">
+        <input id="mehrfachKommentar" type="text" placeholder="Kommentar (optional)">
+      </div>
+      <div id="mehrfachBetragInfo" style="display:none;color:var(--gruen-700);font-size:13px;font-weight:600;margin:-4px 0 10px"></div>
+      <button class="btn-gold" onclick="mehrfachStrafeSpeichern()">Strafe für alle Ausgewählten erfassen</button>
+    </div>
+
     <div id="strafenChips" class="chip-zeile"></div>
 
     <div class="filter-bar">
@@ -221,7 +234,10 @@
       <button class="btn-reset" onclick="resetStrafenFilter()">↺ Zurücksetzen</button>
     </div>
     <div id="kassenberichtBereich" class="hidden" style="margin:4px 0 8px">
-      <button onclick="kassenberichtPdf()">📄 Kassenbericht als PDF</button>
+      <div class="btn-row">
+        <button onclick="kassenberichtPdf()">📄 Kassenbericht als PDF</button>
+        <button onclick="offeneBetraegeTeilen()">📤 Offene Beträge teilen</button>
+      </div>
     </div>
     <div class="tabelle-head">
       <h3 id="gesamtbetrag">Gesamtsumme: 0 €</h3>
