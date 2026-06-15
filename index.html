@@ -60,6 +60,7 @@
     <button class="menue-link" onclick="seiteAnzeigen('strafen')">💰 Strafen</button>
     <button class="menue-link" onclick="seiteAnzeigen('kalender')">📅 Kalender</button>
     <button class="menue-link" onclick="seiteAnzeigen('ranking')">🏆 Ranking</button>
+    <button class="menue-link" onclick="seiteAnzeigen('kasse')">💶 Kasse</button>
     <button class="menue-link" onclick="seiteAnzeigen('profil')">👤 Profil</button>
     <button class="menue-link" onclick="seiteAnzeigen('mitglieder')">👥 Mitglieder</button>
     <button class="menue-link" onclick="seiteAnzeigen('anwesenheit')">✅ Anwesenheit</button>
@@ -132,6 +133,7 @@
   <button id="nav-strafen" class="nav-item" onclick="seiteAnzeigen('strafen')"><span class="ic">💰</span> Strafen</button>
   <button id="nav-kalender" class="nav-item" onclick="seiteAnzeigen('kalender')"><span class="ic">📅</span> Kalender</button>
   <button id="nav-ranking" class="nav-item" onclick="seiteAnzeigen('ranking')"><span class="ic">🏆</span> Ranking</button>
+  <button id="nav-kasse" class="nav-item" onclick="seiteAnzeigen('kasse')"><span class="ic">💶</span> Kasse</button>
   <button id="nav-profil" class="nav-item" onclick="seiteAnzeigen('profil')"><span class="ic">👤</span> Profil</button>
   <button id="nav-mitglieder" class="nav-item" onclick="seiteAnzeigen('mitglieder')"><span class="ic">👥</span> Mitglieder</button>
   <button id="nav-anwesenheit" class="nav-item" onclick="seiteAnzeigen('anwesenheit')"><span class="ic">✅</span> Anwesenheit</button>
@@ -292,6 +294,12 @@
       <select id="strafartRankingSelect" onchange="renderStrafartRanking()"></select>
       <div id="strafartRankingListe" class="strafen-list" style="margin-top:12px"></div>
     </div>
+  </section>
+
+  <!-- KASSE -->
+  <section class="card app-seite hidden" id="kasseSeite">
+    <div class="seite-head"><h2>💶 Kasse</h2></div>
+    <div id="kasseInhalt"></div>
   </section>
 
   <!-- MITGLIEDER -->

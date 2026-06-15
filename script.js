@@ -24,7 +24,7 @@ function datenNeuLadenDebounced(){
 function realtimeStarten(){
   if(realtimeChannel) return;
   realtimeChannel = sb.channel('club-live');
-  ['strafen','anwesenheiten','members','termine','strafarten','clubs','saisons','umfragen','umfrage_optionen','umfrage_stimmen'].forEach(tabelle => {
+  ['strafen','anwesenheiten','members','termine','strafarten','clubs','saisons','umfragen','umfrage_optionen','umfrage_stimmen','kassenbuchungen'].forEach(tabelle => {
     realtimeChannel.on('postgres_changes',
       { event: '*', schema: 'public', table: tabelle },
       () => datenNeuLadenDebounced()
@@ -51,6 +51,7 @@ let customBadgeTypes = [];
 let umfragen = [];
 let umfrageOptionen = [];
 let umfrageStimmen = [];
+let kassenbuchungen = [];
 let strafenStatusFilter = 'alle';
 
 /* ---------- Hilfen ---------- */
@@ -60,6 +61,11 @@ function euro(n){ return (Math.round(n*100)/100).toLocaleString('de-DE',{minimum
 function istOffizier(s){ return !!s && (s.rolle==='Spieß' || s.rolle==='Oberleutnant' || s.rolle==='Leutnant'); }
 function darfBearbeiten(){ return istOffizier(aktuellerBenutzer); }
 function findSchuetze(id){ return schuetzen.find(s => s.id === id); }
+function kassenstandBerechnen(){
+  const ein = kassenbuchungen.filter(b => b.typ === 'einnahme').reduce((a, b) => a + b.betrag, 0);
+  const aus = kassenbuchungen.filter(b => b.typ === 'ausgabe').reduce((a, b) => a + b.betrag, 0);
+  return ein - aus;
+}
 
 /* ---------- Speichern / Laden ---------- */
 function speichern(){
@@ -110,7 +116,8 @@ function datenLaden(){
    ============================================================ */
 const seitenMap = {
   dashboard:'dashboardSeite', profil:'profilSeite', strafen:'strafenSeite',
-  kalender:'kalenderSeite', ranking:'rankingSeite', mitglieder:'mitgliederSeite',
+  kalender:'kalenderSeite', ranking:'rankingSeite', kasse:'kasseSeite',
+  mitglieder:'mitgliederSeite',
   anwesenheit:'anwesenheitSeite', abstimmungen:'abstimmungenSeite',
   akten:'aktenSeite', einstellungen:'einstellungenSeite', hilfe:'hilfeSeite',
   chronik:'chronikSeite'
@@ -310,7 +317,7 @@ async function checkAppState(){
    ============================================================ */
 async function clubDatenLaden(){
   try{
-    const [membersRes, startenRes, strafenRes, anwRes, termineRes, saisonsRes, clubRes, umfragenRes, optionenRes, stimmenRes] = await Promise.all([
+    const [membersRes, startenRes, strafenRes, anwRes, termineRes, saisonsRes, clubRes, umfragenRes, optionenRes, stimmenRes, kasseRes] = await Promise.all([
       sb.from('members').select('*'),
       sb.from('strafarten').select('*'),
       sb.from('strafen').select('*'),
@@ -320,7 +327,8 @@ async function clubDatenLaden(){
       sb.from('clubs').select('custom_badge_types, logo').eq('id', sbClubId).single(),
       sb.from('umfragen').select('*'),
       sb.from('umfrage_optionen').select('*'),
-      sb.from('umfrage_stimmen').select('*')
+      sb.from('umfrage_stimmen').select('*'),
+      sb.from('kassenbuchungen').select('*')
     ]);
 
     customBadgeTypes = clubRes.data?.custom_badge_types || [];
@@ -353,9 +361,10 @@ async function clubDatenLaden(){
       daten: s.daten || { strafen: [], anwesenheiten: [], summary: {} }
     }));
 
-    umfragen      = umfragenRes.data  || [];
-    umfrageOptionen = optionenRes.data || [];
-    umfrageStimmen  = stimmenRes.data  || [];
+    umfragen        = umfragenRes.data  || [];
+    umfrageOptionen = optionenRes.data  || [];
+    umfrageStimmen  = stimmenRes.data   || [];
+    kassenbuchungen = kasseRes.data     || [];
 
     appAktualisieren();
   } catch(e){
@@ -1028,6 +1037,7 @@ function appAktualisieren(){
   renderHilfe();
   renderAbstimmungen();
   renderChronik();
+  renderKasse();
   // Einstellungen-Felder
   document.getElementById('zugnameInput').value = zugname;
 }
@@ -1139,7 +1149,14 @@ function renderDashboard(){
     '</div>';
   }
 
-  ziel.innerHTML = kopfHtml + heroHtml + miniHtml + podiumKarteHtml + terminKarteHtml;
+  const ks = kassenstandBerechnen();
+  const kassenstandKarteHtml =
+    '<div class="db-mini-card" style="cursor:pointer;margin-bottom:14px;background:var(--gold-soft)" onclick="seiteAnzeigen(\'kasse\')">' +
+    '<div class="db-mini-label">💶 Kassenstand</div>' +
+    '<div class="db-mini-zahl" style="font-family:\'Fraunces\',serif;color:' + (ks >= 0 ? 'var(--green-deep)' : 'var(--bordeaux)') + '">' + euro(ks) + '</div>' +
+    '</div>';
+
+  ziel.innerHTML = kopfHtml + heroHtml + miniHtml + kassenstandKarteHtml + podiumKarteHtml + terminKarteHtml;
 }
 
 function podiumRender(ziel){
@@ -1982,6 +1999,112 @@ async function umfrageAbstimmen(umfrageId){
   const { error } = await sb.from('umfrage_stimmen').insert(inserts);
   if(error){ console.error(error); showToast('Fehler: ' + error.message,'error'); return; }
   showToast('Stimme gespeichert ✓');
+  await clubDatenLaden();
+}
+
+/* ============================================================
+   KASSE (Einnahmen / Ausgaben / Kassenstand)
+   ============================================================ */
+function renderKasse(){
+  const ziel = document.getElementById('kasseInhalt');
+  if(!ziel) return;
+  const ksEinnahmen = kassenbuchungen.filter(b => b.typ === 'einnahme').reduce((a, b) => a + b.betrag, 0);
+  const ksAusgaben  = kassenbuchungen.filter(b => b.typ === 'ausgabe').reduce((a, b) => a + b.betrag, 0);
+  const ksStand     = ksEinnahmen - ksAusgaben;
+  const darf        = darfBearbeiten();
+
+  const heroHtml =
+    '<div class="db-hero" style="cursor:default;margin-bottom:14px">' +
+    '<div class="db-hero-label">Kassenstand</div>' +
+    '<div class="db-hero-zahl" style="color:' + (ksStand >= 0 ? '' : 'var(--bordeaux)') + '">' + euro(ksStand) + '</div>' +
+    '<div style="display:flex;gap:20px;margin-top:8px;flex-wrap:wrap">' +
+    '<span style="font-size:13px;color:var(--paid-tx)">▲ Einnahmen: ' + euro(ksEinnahmen) + '</span>' +
+    '<span style="font-size:13px;color:var(--bordeaux)">▼ Ausgaben: ' + euro(ksAusgaben) + '</span>' +
+    '</div></div>';
+
+  let formHtml = '';
+  if(darf){
+    const heute = new Date().toISOString().slice(0,10);
+    formHtml =
+      '<div class="unterkarte">' +
+      '<div class="mini-label mb-10">＋ Buchung erfassen</div>' +
+      '<div class="form-grid">' +
+      '<select id="kasseBuchungTyp"><option value="einnahme">Einnahme</option><option value="ausgabe">Ausgabe</option></select>' +
+      '<input id="kasseBuchungBetrag" type="number" placeholder="Betrag in €" min="0" step="0.01">' +
+      '<input id="kasseBuchungZweck" type="text" placeholder="Zweck (z. B. Bierkauf)">' +
+      '<input id="kasseBuchungDatum" type="date" value="' + heute + '">' +
+      '</div>' +
+      '<div class="btn-row" style="margin-top:10px">' +
+      '<button class="btn-gold" onclick="kassenbuchungHinzufuegen()">Buchung speichern</button>' +
+      '<button class="btn-ghost" style="width:auto" onclick="bezahlteStrafenUebernehmen()">💰 Bezahlte Strafen übernehmen</button>' +
+      '</div></div>';
+  }
+
+  const sorted = kassenbuchungen.slice().sort((a, b) => {
+    const d = (b.datum || '').localeCompare(a.datum || '');
+    if(d !== 0) return d;
+    return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+  });
+
+  const listeHtml = !sorted.length
+    ? '<div class="leer-zeile">Noch keine Buchungen vorhanden.</div>'
+    : sorted.map(b => {
+        const istEin = b.typ === 'einnahme';
+        return '<div class="strafen-list-zeile">' +
+          '<div style="font-size:18px;min-width:28px;text-align:center;color:' + (istEin ? 'var(--paid-tx)' : 'var(--bordeaux)') + '">' + (istEin ? '▲' : '▼') + '</div>' +
+          '<div class="sz-mitte">' +
+          '<span class="sz-name">' + escapeHtml(b.zweck || '–') + '</span>' +
+          '<span class="sz-info">' + (b.datum || '') + '</span>' +
+          '</div>' +
+          '<div class="sz-rechts">' +
+          '<span class="sz-betrag" style="color:' + (istEin ? 'var(--paid-tx)' : 'var(--bordeaux)') + '">' +
+          (istEin ? '+' : '−') + euro(b.betrag) + '</span>' +
+          '</div>' +
+          (darf ? '<div class="sz-aktionen"><button class="mini-btn delete-button" onclick="kassenbuchungLoeschen(\'' + b.id + '\')" title="Löschen">🗑</button></div>' : '') +
+          '</div>';
+      }).join('');
+
+  ziel.innerHTML = heroHtml + formHtml +
+    '<h3>Buchungen</h3>' +
+    '<div class="strafen-list">' + listeHtml + '</div>';
+}
+
+async function kassenbuchungHinzufuegen(){
+  if(!darfBearbeiten()){ showToast('Keine Berechtigung','error'); return; }
+  const typ    = document.getElementById('kasseBuchungTyp').value;
+  const betrag = parseFloat(document.getElementById('kasseBuchungBetrag').value);
+  const zweck  = document.getElementById('kasseBuchungZweck').value.trim();
+  const datum  = document.getElementById('kasseBuchungDatum').value || new Date().toISOString().slice(0,10);
+  if(isNaN(betrag) || betrag <= 0){ showToast('Gültigen Betrag eingeben','error'); return; }
+  if(!zweck){ showToast('Bitte Zweck eingeben','error'); return; }
+  const { error } = await sb.from('kassenbuchungen').insert({ club_id: sbClubId, typ, betrag, zweck, datum });
+  if(error){ console.error(error); showToast('Fehler: ' + error.message, 'error'); return; }
+  document.getElementById('kasseBuchungBetrag').value = '';
+  document.getElementById('kasseBuchungZweck').value = '';
+  showToast((typ === 'einnahme' ? 'Einnahme' : 'Ausgabe') + ' gespeichert');
+  await clubDatenLaden();
+}
+
+async function kassenbuchungLoeschen(id){
+  if(!darfBearbeiten()){ showToast('Keine Berechtigung','error'); return; }
+  if(!confirm('Buchung wirklich löschen?')) return;
+  const { error } = await sb.from('kassenbuchungen').delete().eq('id', id);
+  if(error){ console.error(error); showToast('Fehler: ' + error.message, 'error'); return; }
+  showToast('Buchung gelöscht','warning');
+  await clubDatenLaden();
+}
+
+async function bezahlteStrafenUebernehmen(){
+  if(!darfBearbeiten()){ showToast('Keine Berechtigung','error'); return; }
+  const summe = strafen.filter(x => x.bezahlt).reduce((a, x) => a + x.betrag, 0);
+  if(summe <= 0){ showToast('Keine bezahlten Strafen vorhanden','info'); return; }
+  const datum = new Date().toISOString().slice(0,10);
+  const fmt = n => n.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' €';
+  if(!confirm('Bezahlte Strafen als Einnahme buchen?\n\nBetrag: ' + fmt(summe) + '\nZweck: „Strafen ' + datum + '"')) return;
+  const zweck = 'Strafen ' + datum;
+  const { error } = await sb.from('kassenbuchungen').insert({ club_id: sbClubId, typ: 'einnahme', betrag: summe, zweck, datum });
+  if(error){ console.error(error); showToast('Fehler: ' + error.message, 'error'); return; }
+  showToast('Einnahme von ' + fmt(summe) + ' gebucht');
   await clubDatenLaden();
 }
 
