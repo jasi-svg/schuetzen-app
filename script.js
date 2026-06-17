@@ -1059,6 +1059,17 @@ function abzeichenFuer(s){
   const st = statsFuer(s);
   return ABZEICHEN.map(b => ({ ...b, hat: b.pruef(st, platz) }));
 }
+function extraAbzeichenHTML(s){
+  let html = '';
+  if(zugKoenigId && s.id === zugKoenigId){
+    html += '<div class="badge on">👑<span class="badge-name">Zugkönig</span></div>';
+  }
+  const tvAnzahl = tagesvollsterListe.filter(t => t.member_id === s.id).length;
+  if(tvAnzahl > 0){
+    html += '<div class="badge on">🍺<span class="badge-name">Tagesvollster '+tvAnzahl+'×</span></div>';
+  }
+  return html;
+}
 
 function koenigModalOeffnen(){
   if(!darfBearbeiten()){ showToast('Keine Berechtigung','error'); return; }
@@ -1439,7 +1450,7 @@ function renderProfil(){
     '<div class="badges-grid">'+ badges.map(b=>'<div class="badge '+(b.hat?'on':'off')+'">'+b.e+
       '<span class="badge-name">'+b.name+'</span>'+
       '<span class="badge-tipp">'+escapeHtml(b.tipp)+'</span>'+
-    '</div>').join('') +'</div>'+
+    '</div>').join('') + extraAbzeichenHTML(s) +'</div>'+
     '<div id="customBadgesProfilBereich"></div>'+
     '<h3>Letzte Strafen</h3>'+ letzte;
 
@@ -1850,11 +1861,20 @@ function schuetzenakteOeffnen(id){
   const eigene = strafen.filter(x=>x.schuetzeId===s.id).slice().reverse();
   const anw = anwesenheiten.filter(x=>x.schuetzeId===s.id);
   let strafenHtml = eigene.map(x=>'<div class="kal-row"><div class="kal-info"><b>'+escapeHtml(x.strafart)+'</b><span>'+x.datum+' · '+euro(x.betrag)+' · '+(x.bezahlt?'<span class="an">bezahlt</span>':'offen')+(x.kommentar?' · '+escapeHtml(x.kommentar):'')+'</span></div></div>').join('') || '<p class="leer">Keine Strafen.</p>';
+  const badges = abzeichenFuer(s);
+  const vergeben = (s.awarded_custom_badges || []);
+  const matchedTypes = customBadgeTypes.filter(b => vergeben.some(v => v.badge_id === b.id));
+  const customBadgesHtml = matchedTypes.map(b=>'<div class="badge on">'+escapeHtml(b.emoji)+'<span class="badge-name">'+escapeHtml(b.name)+'</span></div>').join('');
   document.getElementById('schuetzenakteInhalt').innerHTML =
     '<div class="spielerkarte"><div class="sk-top">'+avatarHTML(s, 'gross')+
     '<div><h3>'+escapeHtml(s.name)+'</h3><div class="mrolle">'+escapeHtml(s.rolle)+'</div><div class="rang">'+titelFuer(s)+'</div></div></div>'+
     '<div class="sk-stats"><div class="sk-stat"><b>'+euro(st.gesamt)+'</b><span>Gesamt</span></div><div class="sk-stat"><b>'+euro(st.offen)+'</b><span>Offen</span></div>'+
     '<div class="sk-stat"><b>'+st.anzahl+'</b><span>Strafen</span></div><div class="sk-stat"><b>'+st.anwesend+'</b><span>Anwesend</span></div></div></div>'+
+    '<h3>Abzeichen</h3>'+
+    '<div class="badges-grid">'+ badges.map(b=>'<div class="badge '+(b.hat?'on':'off')+'">'+b.e+
+      '<span class="badge-name">'+b.name+'</span>'+
+      '<span class="badge-tipp">'+escapeHtml(b.tipp)+'</span>'+
+    '</div>').join('') + extraAbzeichenHTML(s) + customBadgesHtml +'</div>'+
     '<h3>Strafen</h3>'+strafenHtml;
   seiteAnzeigen('akten');
 }
@@ -2040,6 +2060,7 @@ function renderAbzeichenSeite(){
     koenigMeta.textContent = koenig ? ('Aktuell ' + koenig.name) : 'Noch niemand gekürt';
   }
   document.getElementById('abzeichenKoenigBtn')?.classList.toggle('hidden', !darf);
+  document.getElementById('abzeichenSpiessHinweis')?.classList.toggle('hidden', darf);
 
   // Block 2b: Tagesvollster (vom Spieß vergeben)
   const tvMeta = document.getElementById('abzeichenTagesvollsterMeta');

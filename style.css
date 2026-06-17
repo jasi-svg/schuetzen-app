@@ -268,7 +268,7 @@ button:active{transform:scale(.97);opacity:.88}
 
 /* ---------- Untere Leiste (mobil) ---------- */
 .tabbar{
-  display:none;position:fixed;left:0;right:0;bottom:0;z-index:900;
+  display:none;position:fixed;left:0;right:0;bottom:0;z-index:1000;
   justify-content:space-around;align-items:stretch;
   background:var(--white);border-top:1px solid var(--line);
   height:calc(56px + env(safe-area-inset-bottom,0px));
