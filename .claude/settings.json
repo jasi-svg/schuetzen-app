@@ -19,7 +19,10 @@
       "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:8765/index.html)",
       "Bash(cmd /c \"where chromium-cli\")",
       "Bash(cmd /c \"where npx\")",
-      "Bash(cmd /c \"where npm\")"
+      "Bash(cmd /c \"where npm\")",
+      "Bash(node -c script.js)",
+      "PowerShell(node -c script.js)",
+      "PowerShell(if\\($?\\) {\"OK\"})"
     ]
   }
 }

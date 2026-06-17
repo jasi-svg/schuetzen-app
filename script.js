@@ -24,7 +24,7 @@ function datenNeuLadenDebounced(){
 function realtimeStarten(){
   if(realtimeChannel) return;
   realtimeChannel = sb.channel('club-live');
-  ['strafen','anwesenheiten','members','termine','strafarten','clubs','saisons','umfragen','umfrage_optionen','umfrage_stimmen','kassenbuchungen'].forEach(tabelle => {
+  ['strafen','anwesenheiten','members','termine','strafarten','clubs','saisons','umfragen','umfrage_optionen','umfrage_stimmen','kassenbuchungen','tagesvollster'].forEach(tabelle => {
     realtimeChannel.on('postgres_changes',
       { event: '*', schema: 'public', table: tabelle },
       () => datenNeuLadenDebounced()
@@ -56,6 +56,8 @@ let strafenStatusFilter = 'alle';
 let datenGeladen = false;
 let dashboardZahlAnimiert = false;
 let zugKoenigId = null;
+let tagesvollsterListe = [];
+let tagesvollsterVerlaufOffen = false;
 
 /* ---------- Hilfen ---------- */
 function neueId(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
@@ -65,6 +67,10 @@ function euro(n){ return (Math.round(n*100)/100).toLocaleString('de-DE',{minimum
 function istOffizier(s){ return !!s && (s.rolle==='Spieß' || s.rolle==='Oberleutnant' || s.rolle==='Leutnant'); }
 function darfBearbeiten(){ return istOffizier(aktuellerBenutzer); }
 function findSchuetze(id){ return schuetzen.find(s => s.id === id); }
+function heuteLokalISO(){
+  const d = new Date();
+  return new Date(d.getTime() - d.getTimezoneOffset()*60000).toISOString().slice(0,10);
+}
 function kassenstandBerechnen(){
   const ein = kassenbuchungen.filter(b => b.typ === 'einnahme').reduce((a, b) => a + b.betrag, 0);
   const aus = kassenbuchungen.filter(b => b.typ === 'ausgabe').reduce((a, b) => a + b.betrag, 0);
@@ -420,7 +426,7 @@ async function checkAppState(){
    ============================================================ */
 async function clubDatenLaden(){
   try{
-    const [membersRes, startenRes, strafenRes, anwRes, termineRes, saisonsRes, clubRes, umfragenRes, optionenRes, stimmenRes, kasseRes] = await Promise.all([
+    const [membersRes, startenRes, strafenRes, anwRes, termineRes, saisonsRes, clubRes, umfragenRes, optionenRes, stimmenRes, kasseRes, tagesvollsterRes] = await Promise.all([
       sb.from('members').select('*'),
       sb.from('strafarten').select('*'),
       sb.from('strafen').select('*'),
@@ -431,12 +437,16 @@ async function clubDatenLaden(){
       sb.from('umfragen').select('*'),
       sb.from('umfrage_optionen').select('*'),
       sb.from('umfrage_stimmen').select('*'),
-      sb.from('kassenbuchungen').select('*')
+      sb.from('kassenbuchungen').select('*'),
+      sb.from('tagesvollster').select('*').eq('club_id', sbClubId).order('datum', { ascending: false })
     ]);
 
     customBadgeTypes = clubRes.data?.custom_badge_types || [];
     logo = clubRes.data?.logo || '';
     zugKoenigId = clubRes.data?.koenig_member_id || null;
+
+    if(tagesvollsterRes.error){ console.error(tagesvollsterRes.error); }
+    tagesvollsterListe = tagesvollsterRes.data || [];
 
     schuetzen = (membersRes.data || []).map(m => ({
       id: m.id, name: m.name, rolle: m.role,
@@ -1069,6 +1079,37 @@ async function koenigSpeichern(){
   koenigModalSchliessen();
   showToast(memberId ? 'Neuer Zugkönig gekürt!' : 'Zugkönig entfernt');
   await clubDatenLaden();
+}
+
+function tagesvollsterModalOeffnen(){
+  if(!darfBearbeiten()){ showToast('Keine Berechtigung','error'); return; }
+  const sel = document.getElementById('tagesvollsterAuswahl');
+  const aktive = schuetzen.filter(s=>s.aktiv);
+  const heute = heuteLokalISO();
+  const heutigerEintrag = tagesvollsterListe.find(t => t.datum === heute);
+  sel.innerHTML = aktive.map(s => '<option value="'+s.id+'"'+(s.id===heutigerEintrag?.member_id?' selected':'')+'>'+escapeHtml(s.name)+'</option>').join('');
+  document.getElementById('tagesvollsterModal').classList.remove('hidden');
+}
+function tagesvollsterModalSchliessen(){
+  document.getElementById('tagesvollsterModal')?.classList.add('hidden');
+}
+async function tagesvollsterSpeichern(){
+  if(!darfBearbeiten()){ showToast('Keine Berechtigung','error'); return; }
+  const memberId = document.getElementById('tagesvollsterAuswahl').value;
+  if(!memberId){ showToast('Bitte ein Mitglied wählen','error'); return; }
+  const heute = heuteLokalISO();
+  const heutigerEintrag = tagesvollsterListe.find(t => t.datum === heute);
+  const { error } = heutigerEintrag
+    ? await sb.from('tagesvollster').update({ member_id: memberId }).eq('id', heutigerEintrag.id)
+    : await sb.from('tagesvollster').insert({ club_id: sbClubId, member_id: memberId, datum: heute });
+  if(error){ console.error(error); showToast('Fehler: ' + error.message, 'error'); return; }
+  tagesvollsterModalSchliessen();
+  showToast('Tagesvollster gespeichert');
+  await clubDatenLaden();
+}
+function tagesvollsterVerlaufUmschalten(){
+  tagesvollsterVerlaufOffen = !tagesvollsterVerlaufOffen;
+  renderAbzeichenSeite();
 }
 
 /* ============================================================
@@ -1999,6 +2040,40 @@ function renderAbzeichenSeite(){
     koenigMeta.textContent = koenig ? ('Aktuell ' + koenig.name) : 'Noch niemand gekürt';
   }
   document.getElementById('abzeichenKoenigBtn')?.classList.toggle('hidden', !darf);
+
+  // Block 2b: Tagesvollster (vom Spieß vergeben)
+  const tvMeta = document.getElementById('abzeichenTagesvollsterMeta');
+  if(tvMeta){
+    const heute = heuteLokalISO();
+    const heutigerEintrag = tagesvollsterListe.find(t => t.datum === heute);
+    const heutiger = heutigerEintrag ? findSchuetze(heutigerEintrag.member_id) : null;
+    tvMeta.textContent = heutiger ? ('Heute: ' + heutiger.name) : 'Heute noch niemand gekürt';
+  }
+  document.getElementById('abzeichenTagesvollsterBtn')?.classList.toggle('hidden', !darf);
+
+  const tvVerlaufListe = document.getElementById('tagesvollsterVerlaufListe');
+  if(tvVerlaufListe){
+    if(!tagesvollsterListe.length){
+      tvVerlaufListe.innerHTML = '<li class="leer">Noch kein Tagesvollster gekürt.</li>';
+    } else {
+      const zaehlung = {};
+      tagesvollsterListe.forEach(t => { zaehlung[t.member_id] = (zaehlung[t.member_id]||0) + 1; });
+      const chips = Object.entries(zaehlung)
+        .sort((a,b) => b[1]-a[1])
+        .map(([id,anz]) => { const s = findSchuetze(id); return s ? '<span class="mini-label">'+escapeHtml(s.name)+' '+anz+'×</span>' : ''; })
+        .filter(Boolean).join(' ');
+      const zeilen = tagesvollsterListe.map(t => {
+        const s = findSchuetze(t.member_id);
+        const datumStr = new Date(t.datum).toLocaleDateString('de-DE');
+        return '<li>'+datumStr+' — '+escapeHtml(s ? s.name : '?')+'</li>';
+      }).join('');
+      tvVerlaufListe.innerHTML = zeilen + (chips ? '<li style="margin-top:8px">'+chips+'</li>' : '');
+    }
+  }
+  const tvVerlaufBereich = document.getElementById('tagesvollsterVerlaufBereich');
+  if(tvVerlaufBereich) tvVerlaufBereich.classList.toggle('hidden', !tagesvollsterVerlaufOffen);
+  const tvVerlaufLink = document.getElementById('tagesvollsterVerlaufLink');
+  if(tvVerlaufLink) tvVerlaufLink.textContent = 'Verlauf anzeigen ' + (tagesvollsterVerlaufOffen ? '▴' : '▾');
 
   // Block 3: Freie Abzeichen
   const ziel = document.getElementById('customBadgeListe');

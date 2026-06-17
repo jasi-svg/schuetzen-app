@@ -460,6 +460,18 @@
         </div>
         <button class="mini-btn btn-gold hidden" id="abzeichenKoenigBtn" onclick="koenigModalOeffnen()">Neu küren</button>
       </div>
+      <div class="abz-zeile">
+        <div class="abz-emoji">🍺</div>
+        <div class="abz-mitte">
+          <div class="abz-name">Tagesvollster</div>
+          <div class="abz-meta" id="abzeichenTagesvollsterMeta">Heute noch niemand gekürt</div>
+        </div>
+        <button class="mini-btn btn-gold hidden" id="abzeichenTagesvollsterBtn" onclick="tagesvollsterModalOeffnen()">Heute küren</button>
+      </div>
+      <p style="margin:6px 0 0"><a href="#" id="tagesvollsterVerlaufLink" onclick="tagesvollsterVerlaufUmschalten();return false;" style="color:var(--grau);font-size:12px;text-decoration:none">Verlauf anzeigen ▾</a></p>
+      <div class="hidden" id="tagesvollsterVerlaufBereich" style="margin-top:6px">
+        <ul id="tagesvollsterVerlaufListe" class="strafart-liste"></ul>
+      </div>
     </div>
 
     <div class="unterkarte" id="customBadgeErstellen">
@@ -529,6 +541,18 @@
     </div>
     <select id="koenigAuswahl" style="width:100%;margin-bottom:14px"></select>
     <button class="btn-gold" style="width:100%" onclick="koenigSpeichern()">Speichern</button>
+  </div>
+</div>
+
+<!-- TAGESVOLLSTER-MODAL -->
+<div id="tagesvollsterModal" class="modal-overlay hidden" onclick="if(event.target===this)tagesvollsterModalSchliessen()">
+  <div class="modal-sheet">
+    <div class="seite-head">
+      <h3>🍺 Tagesvollster küren</h3>
+      <button class="btn-ghost" style="width:auto" onclick="tagesvollsterModalSchliessen()">× Schließen</button>
+    </div>
+    <select id="tagesvollsterAuswahl" style="width:100%;margin-bottom:14px"></select>
+    <button class="btn-gold" style="width:100%" onclick="tagesvollsterSpeichern()">Speichern</button>
   </div>
 </div>
 
