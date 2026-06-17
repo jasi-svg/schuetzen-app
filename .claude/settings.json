@@ -7,7 +7,19 @@
       "Bash(Select-Object Name)",
       "Read(//c/Users/manso/OneDOpen/Desktop/Strafenkatalog-App/schuetzen-app/**)",
       "Bash(node --check script.js)",
-      "PowerShell(node --check \"c:\\\\Users\\\\manso\\\\OneDrive\\\\Desktop\\\\Strafenkatalog-App\\\\schuetzen-app\\\\script.js\" 2>&1)"
+      "PowerShell(node --check \"c:\\\\Users\\\\manso\\\\OneDrive\\\\Desktop\\\\Strafenkatalog-App\\\\schuetzen-app\\\\script.js\" 2>&1)",
+      "Skill(run)",
+      "Skill(run:*)",
+      "Bash(d=\"c:/Users/manso/OneDrive/Desktop/Strafenkatalog-App/schuetzen-app\"; ls -la \"$d/.claude/skills\" 2>/dev/null; find \"c:/Users/manso/OneDrive/Desktop/Strafenkatalog-App\" -name \"SKILL.md\" 2>/dev/null)",
+      "Read(//c/Users/manso/OneDrive/Desktop/Strafenkatalog-App/**)",
+      "Bash(cmd /c \"where python\")",
+      "Bash(cmd /c \"where py\")",
+      "Bash(python -m http.server 8765)",
+      "Read(//tmp/**)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:8765/index.html)",
+      "Bash(cmd /c \"where chromium-cli\")",
+      "Bash(cmd /c \"where npx\")",
+      "Bash(cmd /c \"where npm\")"
     ]
   }
 }

@@ -55,6 +55,7 @@ let kassenbuchungen = [];
 let strafenStatusFilter = 'alle';
 let datenGeladen = false;
 let dashboardZahlAnimiert = false;
+let zugKoenigId = null;
 
 /* ---------- Hilfen ---------- */
 function neueId(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
@@ -426,7 +427,7 @@ async function clubDatenLaden(){
       sb.from('anwesenheiten').select('*'),
       sb.from('termine').select('*'),
       sb.from('saisons').select('*'),
-      sb.from('clubs').select('custom_badge_types, logo').eq('id', sbClubId).single(),
+      sb.from('clubs').select('custom_badge_types, logo, koenig_member_id').eq('id', sbClubId).single(),
       sb.from('umfragen').select('*'),
       sb.from('umfrage_optionen').select('*'),
       sb.from('umfrage_stimmen').select('*'),
@@ -435,6 +436,7 @@ async function clubDatenLaden(){
 
     customBadgeTypes = clubRes.data?.custom_badge_types || [];
     logo = clubRes.data?.logo || '';
+    zugKoenigId = clubRes.data?.koenig_member_id || null;
 
     schuetzen = (membersRes.data || []).map(m => ({
       id: m.id, name: m.name, rolle: m.role,
@@ -1029,48 +1031,43 @@ function rankingListe(){
     .map(s => ({ s, ...statsFuer(s) }))
     .sort((a,b)=> b.gesamt - a.gesamt);
 }
-function maxAnzahl(){ return Math.max(0, ...schuetzen.map(s=>statsFuer(s).anzahl)); }
 
 function titelFuer(s){
   const rang = rankingListe();
   const platz = rang.findIndex(r => r.s.id === s.id);
   const st = statsFuer(s);
-  if(platz === 0 && st.gesamt > 0) return '👑 König der Zugsauen';
   if(platz >= 0 && platz <= 2 && st.gesamt > 0) return '🐷 Zugsau';
-  if(st.anzahl > 0 && st.anzahl === maxAnzahl()) return '🍺 Bierkönig';
-  if(st.anwesend >= 5) return '🔥 Serienmeister';
-  if(st.offen === 0 && st.bezahlt > 0) return '🏅 Ehrenmann';
   return '🎖️ ' + (s.rolle || 'Schütze');
 }
 
 const ABZEICHEN = [
-  { id:'koenig',       e:'👑', name:'König',         tipp:'Du hast die höchste Strafsumme im ganzen Zug.',                               pruef:(st,p)=> p===0 && st.gesamt>0 },
-  { id:'zugsau',       e:'🐷', name:'Zugsau',        tipp:'Du bist unter den Top 3 mit der höchsten Strafsumme.',                        pruef:(st,p)=> p>=0 && p<=2 && st.gesamt>0 },
-  { id:'bierkoenig',   e:'🍺', name:'Bierkönig',     tipp:'Du hast die meisten Einzel-Strafen kassiert.',                                pruef:(st)=> st.anzahl>0 && st.anzahl===maxAnzahl() },
-  { id:'serienmeister',e:'🔥', name:'Serienmeister', tipp:'Du warst 5-mal oder öfter pünktlich anwesend.',                               pruef:(st)=> st.anwesend>=5 },
-  { id:'ehrenmann',    e:'🏅', name:'Ehrenmann',     tipp:'Alle deine Strafen sind bezahlt – kein einziger offener Betrag.',             pruef:(st)=> st.offen===0 && st.bezahlt>0 },
-  { id:'stammgast',    e:'📅', name:'Stammgast',     tipp:'Du warst 10-mal oder öfter anwesend.',                                        pruef:(st)=> st.anwGesamt>=10 },
-  { id:'makellos',     e:'💎', name:'Makellos',      tipp:'Noch keine einzige Strafe und mindestens 3-mal anwesend.',                    pruef:(st)=> st.anzahl===0 && st.anwGesamt>=3 },
-  { id:'zahlmeister',  e:'💰', name:'Zahlmeister',   tipp:'Du hast mindestens eine Strafe vollständig bezahlt.',                         pruef:(st)=> st.bezahlt>0 }
+  { id:'zugsau', e:'🐷', name:'Zugsau', tipp:'Du bist unter den Top 3 mit der höchsten Strafsumme.', pruef:(st,p)=> p>=0 && p<=2 && st.gesamt>0 }
 ];
 function abzeichenFuer(s){
   const rang = rankingListe();
   const platz = rang.findIndex(r => r.s.id === s.id);
   const st = statsFuer(s);
-  const deaktiviert = customBadgeTypes.filter(b => b.type === 'disabled_auto').map(b => b.id);
-  return ABZEICHEN
-    .filter(b => !deaktiviert.includes(b.id))
-    .map(b => ({ ...b, hat: b.pruef(st, platz) }));
+  return ABZEICHEN.map(b => ({ ...b, hat: b.pruef(st, platz) }));
 }
 
-async function autoAbzeichenToggle(id){
+function koenigModalOeffnen(){
   if(!darfBearbeiten()){ showToast('Keine Berechtigung','error'); return; }
-  const istDeaktiviert = customBadgeTypes.some(b => b.type === 'disabled_auto' && b.id === id);
-  const neueTypes = istDeaktiviert
-    ? customBadgeTypes.filter(b => !(b.type === 'disabled_auto' && b.id === id))
-    : [...customBadgeTypes, { type: 'disabled_auto', id }];
-  const { error } = await sb.from('clubs').update({ custom_badge_types: neueTypes }).eq('id', sbClubId);
-  if(error){ showToast('Fehler: ' + error.message, 'error'); return; }
+  const sel = document.getElementById('koenigAuswahl');
+  const aktive = schuetzen.filter(s=>s.aktiv);
+  sel.innerHTML = '<option value="">Kein König</option>' +
+    aktive.map(s => '<option value="'+s.id+'"'+(s.id===zugKoenigId?' selected':'')+'>'+escapeHtml(s.name)+'</option>').join('');
+  document.getElementById('koenigModal').classList.remove('hidden');
+}
+function koenigModalSchliessen(){
+  document.getElementById('koenigModal')?.classList.add('hidden');
+}
+async function koenigSpeichern(){
+  if(!darfBearbeiten()){ showToast('Keine Berechtigung','error'); return; }
+  const memberId = document.getElementById('koenigAuswahl').value || null;
+  const { error } = await sb.from('clubs').update({ koenig_member_id: memberId }).eq('id', sbClubId);
+  if(error){ console.error(error); showToast('Fehler: ' + error.message, 'error'); return; }
+  koenigModalSchliessen();
+  showToast(memberId ? 'Neuer Zugkönig gekürt!' : 'Zugkönig entfernt');
   await clubDatenLaden();
 }
 
@@ -1140,7 +1137,7 @@ function appAktualisieren(){
   renderAnwesenheit();
   renderSelects();
   renderSaisons();
-  renderCustomBadgeSettings();
+  renderAbzeichenSeite();
   renderHilfe();
   renderAbstimmungen();
   renderChronik();
@@ -1985,42 +1982,39 @@ function renderSaisons(){
   lucide.createIcons();
 }
 
-function renderCustomBadgeSettings(){
-  const ziel = document.getElementById('customBadgeListe');
-  if(!ziel) return;
+function renderAbzeichenSeite(){
   const darf = darfBearbeiten();
-  const bereich = document.getElementById('customBadgeErstellen');
-  if(bereich) bereich.classList.toggle('hidden', !darf);
 
-  const individuelleTypes = customBadgeTypes.filter(b => !b.type);
-  if(!individuelleTypes.length){
-    ziel.innerHTML = '<li class="leer">Noch keine individuellen Abzeichen angelegt.</li>';
-  } else {
-    ziel.innerHTML = individuelleTypes.map(b =>
-      '<li><div><b>'+escapeHtml(b.emoji)+' '+escapeHtml(b.name)+'</b></div>'+
-      '<div class="aktionen">'+(darf ? '<button class="mini-btn delete-button" onclick="customBadgeLoeschen(\''+b.id+'\')">'+lcIcon('trash-2')+'</button>' : '')+'</div></li>'
-    ).join('');
+  // Block 1: Zugsau (automatisch)
+  const zugsauMeta = document.getElementById('abzeichenZugsauMeta');
+  if(zugsauMeta){
+    const top = rankingListe().filter(r=>r.gesamt>0)[0];
+    zugsauMeta.textContent = 'Höchste Strafen · aktuell ' + (top ? top.s.name : '–');
   }
 
-  // Auto-Abzeichen verwalten (nur Offiziere)
-  const autoBereich = document.getElementById('autoBadgeVerwaltung');
-  if(autoBereich){
-    if(darf){
-      autoBereich.classList.remove('hidden');
-      const deaktiviert = customBadgeTypes.filter(b => b.type === 'disabled_auto').map(b => b.id);
-      autoBereich.innerHTML = '<h3>Auto-Abzeichen verwalten</h3>'+
-        '<p class="muted" style="margin-bottom:10px">Abzeichen, die dein Zug nicht anzeigen möchte, hier deaktivieren.</p>'+
-        ABZEICHEN.map(b => {
-          const aktiv = !deaktiviert.includes(b.id);
-          return '<div class="badge-modal-row" style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--linie)">'+
-            '<span>'+b.e+' <b>'+escapeHtml(b.name)+'</b></span>'+
-            '<button class="mini-btn '+(aktiv?'btn-gold':'')+'" onclick="autoAbzeichenToggle(\''+b.id+'\')">'+
-            (aktiv ? 'Aktiv' : 'Deaktiviert')+'</button></div>';
-        }).join('');
+  // Block 2: Zugkönig (vom Spieß vergeben)
+  const koenigMeta = document.getElementById('abzeichenKoenigMeta');
+  if(koenigMeta){
+    const koenig = zugKoenigId ? findSchuetze(zugKoenigId) : null;
+    koenigMeta.textContent = koenig ? ('Aktuell ' + koenig.name) : 'Noch niemand gekürt';
+  }
+  document.getElementById('abzeichenKoenigBtn')?.classList.toggle('hidden', !darf);
+
+  // Block 3: Freie Abzeichen
+  const ziel = document.getElementById('customBadgeListe');
+  if(ziel){
+    const individuelleTypes = customBadgeTypes.filter(b => !b.type);
+    if(!individuelleTypes.length){
+      ziel.innerHTML = '<li class="leer">Noch keine individuellen Abzeichen angelegt.</li>';
     } else {
-      autoBereich.classList.add('hidden');
+      ziel.innerHTML = individuelleTypes.map(b =>
+        '<li><div><b>'+escapeHtml(b.emoji)+' '+escapeHtml(b.name)+'</b></div>'+
+        '<div class="aktionen">'+(darf ? '<button class="mini-btn delete-button" onclick="customBadgeLoeschen(\''+b.id+'\')">'+lcIcon('trash-2')+'</button>' : '')+'</div></li>'
+      ).join('');
     }
   }
+  document.getElementById('customBadgeNeuBereich')?.classList.toggle('hidden', !darf);
+
   lucide.createIcons();
 }
 

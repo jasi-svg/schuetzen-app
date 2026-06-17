@@ -436,6 +436,18 @@ img.mini-avatar{object-fit:cover;background:var(--green-soft)}
 .badge-modal-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line)}
 .badge-modal-row:last-child{border-bottom:none}
 
+/* ---------- Abzeichen-Bereich (Einstellungen) ---------- */
+.abz-gruppe-kopf{padding:0 2px 10px}
+.abz-gruppe-kopf .abz-titel{font-family:'Fraunces',serif;font-weight:600;font-size:16px;color:var(--green-deep);display:flex;align-items:center;gap:8px}
+.abz-gruppe-kopf .abz-sub{font-size:12.5px;color:var(--ink-soft);margin-top:3px;line-height:1.45}
+.abz-pill-auto{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;background:var(--gold-soft);color:var(--amber-tx);padding:3px 8px;border-radius:999px}
+.abz-pill-spiess{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;background:var(--green-soft);color:var(--green);padding:3px 8px;border-radius:999px}
+.abz-zeile{display:flex;align-items:center;gap:13px;padding:6px 2px}
+.abz-emoji{font-size:22px;width:40px;height:40px;display:flex;align-items:center;justify-content:center;background:var(--canvas);border-radius:12px;flex:0 0 auto}
+.abz-zeile .abz-mitte{flex:1 1 auto;min-width:0}
+.abz-zeile .abz-name{font-weight:700;font-size:14.5px}
+.abz-zeile .abz-meta{font-size:12.5px;color:var(--ink-soft);margin-top:1px}
+
 /* ---------- Hilfe ---------- */
 .hilfe-bereich h3{margin:20px 0 10px;font-family:'Fraunces',serif}
 .hilfe-bereich h3:first-child{margin-top:0}

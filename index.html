@@ -435,18 +435,47 @@
       <div id="saisonListe"></div>
     </div>
 
-    <div class="unterkarte" id="customBadgeErstellen">
-      <h3><i data-lucide="award"></i> Individuelle Abzeichen</h3>
-      <p class="muted">Erstelle eigene Abzeichen, die du Schützen manuell verleihen kannst.</p>
-      <div class="form-grid">
-        <input id="customBadgeEmoji" type="text" placeholder="Emoji (z. B. 🦅)" maxlength="4" style="max-width:90px">
-        <input id="customBadgeName" type="text" placeholder="Name (z. B. Adler des Zuges)">
+    <div class="unterkarte" id="abzeichenAutoBereich">
+      <div class="abz-gruppe-kopf">
+        <div class="abz-titel">Automatisch <span class="abz-pill-auto">Auto</span></div>
       </div>
-      <button class="btn-gold" onclick="customBadgeHinzufuegen()">Abzeichen-Typ erstellen</button>
-      <ul id="customBadgeListe" class="strafart-liste" style="margin-top:12px"></ul>
+      <div class="abz-zeile">
+        <div class="abz-emoji">🐷</div>
+        <div class="abz-mitte">
+          <div class="abz-name">Zugsau</div>
+          <div class="abz-meta" id="abzeichenZugsauMeta">Höchste Strafen · aktuell –</div>
+        </div>
+      </div>
     </div>
 
-    <div id="autoBadgeVerwaltung" class="unterkarte hidden"></div>
+    <div class="unterkarte" id="abzeichenSpiessBereich">
+      <div class="abz-gruppe-kopf">
+        <div class="abz-titel">Vom Spieß vergeben <span class="abz-pill-spiess">Spieß</span></div>
+      </div>
+      <div class="abz-zeile">
+        <div class="abz-emoji">👑</div>
+        <div class="abz-mitte">
+          <div class="abz-name">Zugkönig</div>
+          <div class="abz-meta" id="abzeichenKoenigMeta">Noch niemand gekürt</div>
+        </div>
+        <button class="mini-btn btn-gold hidden" id="abzeichenKoenigBtn" onclick="koenigModalOeffnen()">Neu küren</button>
+      </div>
+    </div>
+
+    <div class="unterkarte" id="customBadgeErstellen">
+      <div class="abz-gruppe-kopf">
+        <div class="abz-titel"><i data-lucide="award"></i> Freie Abzeichen</div>
+        <div class="abz-sub">Eigene Abzeichen für euren Zug – leg sie an und verteil sie frei.</div>
+      </div>
+      <ul id="customBadgeListe" class="strafart-liste" style="margin-top:4px"></ul>
+      <div id="customBadgeNeuBereich" style="margin-top:12px">
+        <div class="form-grid">
+          <input id="customBadgeEmoji" type="text" placeholder="Emoji (z. B. 🦅)" maxlength="4" style="max-width:90px">
+          <input id="customBadgeName" type="text" placeholder="Name (z. B. Adler des Zuges)">
+        </div>
+        <button class="btn-gold" onclick="customBadgeHinzufuegen()">＋ Neues Abzeichen anlegen</button>
+      </div>
+    </div>
 
     <p style="text-align:center;padding-top:4px"><a href="#" onclick="datenschutzAnzeigen();return false;" style="color:var(--grau);font-size:12px;text-decoration:none"><i data-lucide="shield"></i> Datenschutz</a></p>
   </section>
@@ -488,6 +517,18 @@
       <button class="btn-ghost" style="width:auto" onclick="abzeichenModalSchliessen()">× Schließen</button>
     </div>
     <div id="abzeichenModalInhalt"></div>
+  </div>
+</div>
+
+<!-- ZUGKÖNIG-MODAL -->
+<div id="koenigModal" class="modal-overlay hidden" onclick="if(event.target===this)koenigModalSchliessen()">
+  <div class="modal-sheet">
+    <div class="seite-head">
+      <h3>👑 Neuen Zugkönig küren</h3>
+      <button class="btn-ghost" style="width:auto" onclick="koenigModalSchliessen()">× Schließen</button>
+    </div>
+    <select id="koenigAuswahl" style="width:100%;margin-bottom:14px"></select>
+    <button class="btn-gold" style="width:100%" onclick="koenigSpeichern()">Speichern</button>
   </div>
 </div>
 
