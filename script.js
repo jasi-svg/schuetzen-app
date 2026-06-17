@@ -554,7 +554,7 @@ function abzeichenModalSchliessen(){
    MITGLIEDER
    ============================================================ */
 async function schuetzeHinzufuegen(){
-  if(!darfBearbeiten()){ showToast('Nur Offiziere dürfen Mitglieder anlegen','error'); return; }
+  if(!darfBearbeiten()){ showToast('Nur Chargierte dürfen Mitglieder anlegen','error'); return; }
   const name  = document.getElementById('neuerSchuetze').value.trim();
   const rolle = document.getElementById('rolleSelect').value;
   if(!name){ showToast('Name ist nötig','error'); return; }
@@ -642,7 +642,7 @@ function eigenesBildHochladen(input){
    STRAFARTEN
    ============================================================ */
 async function strafartHinzufuegen(){
-  if(!darfBearbeiten()){ showToast('Nur Offiziere dürfen Strafarten anlegen','error'); return; }
+  if(!darfBearbeiten()){ showToast('Nur Chargierte dürfen Strafarten anlegen','error'); return; }
   const bezeichnung = document.getElementById('neueStrafart').value.trim();
   const betrag = parseFloat(document.getElementById('neuerBetrag').value);
   if(!bezeichnung || isNaN(betrag)){ showToast('Bezeichnung und Betrag nötig','error'); return; }
@@ -693,7 +693,7 @@ function betragUeberschreiben(){
   betragEl?.focus();
 }
 async function strafeSpeichern(){
-  if(!darfBearbeiten()){ showToast('Nur Offiziere dürfen Strafen erfassen','error'); return; }
+  if(!darfBearbeiten()){ showToast('Nur Chargierte dürfen Strafen erfassen','error'); return; }
   if(!sbClubId){
     console.error('strafeSpeichern: sbClubId ist null – Verein nicht geladen');
     showToast('Vereins-ID fehlt, bitte Seite neu laden', 'error');
@@ -719,7 +719,7 @@ async function strafeSpeichern(){
     return;
   }
   document.getElementById('kommentar').value='';
-  showToast('Strafe gespeichert' + (istOffizier(s)?' (Offizier × 2)':''));
+  showToast('Strafe gespeichert' + (istOffizier(s)?' (Chargierter × 2)':''));
   await clubDatenLaden();
 }
 async function strafeLoeschen(id){
@@ -782,7 +782,7 @@ function mehrfachBetragAktualisieren(){
 }
 
 async function mehrfachStrafeSpeichern(){
-  if(!darfBearbeiten()){ showToast('Nur Offiziere dürfen Strafen erfassen','error'); return; }
+  if(!darfBearbeiten()){ showToast('Nur Chargierte dürfen Strafen erfassen','error'); return; }
   if(!mehrfachAusgewaehlt.size){ showToast('Mindestens einen Schützen auswählen','error'); return; }
   const ai = document.getElementById('mehrfachStrafartSelect').value;
   const basis = parseFloat(document.getElementById('mehrfachBetrag').value);
@@ -845,7 +845,7 @@ async function zahlungSpeichern(){
    ANWESENHEIT
    ============================================================ */
 async function anwesenheitSpeichern(){
-  if(!darfBearbeiten()){ showToast('Nur Offiziere dürfen Anwesenheit erfassen','error'); return; }
+  if(!darfBearbeiten()){ showToast('Nur Chargierte dürfen Anwesenheit erfassen','error'); return; }
   const tag    = document.getElementById('tagSelect').value;
   const sid    = document.getElementById('anwesenheitSchuetzeSelect').value;
   const status = document.getElementById('statusSelect').value;
@@ -932,7 +932,7 @@ function schnellStatusWaehlen(btn){
 }
 
 async function schnellAnwesenheitSpeichern(){
-  if(!darfBearbeiten()){ showToast('Nur Offiziere dürfen Anwesenheit erfassen','error'); return; }
+  if(!darfBearbeiten()){ showToast('Nur Chargierte dürfen Anwesenheit erfassen','error'); return; }
   const datum = document.getElementById('schnellDatum').value || new Date().toISOString().slice(0,10);
   const tag   = document.getElementById('schnellTag').value;
   const zeilen = document.querySelectorAll('#schnellMitgliederListe .schnell-zeile');
@@ -976,7 +976,7 @@ async function schnellAnwesenheitSpeichern(){
    KALENDER
    ============================================================ */
 async function terminSpeichern(){
-  if(!darfBearbeiten()){ showToast('Nur Offiziere dürfen Termine anlegen','error'); return; }
+  if(!darfBearbeiten()){ showToast('Nur Chargierte dürfen Termine anlegen','error'); return; }
   const titel = document.getElementById('terminTitel').value.trim();
   const datum = document.getElementById('terminDatum').value;
   const zeit  = document.getElementById('terminZeit').value;
@@ -1895,7 +1895,7 @@ function importDataFromJSON(){
    Strafarten und Termine bleiben erhalten.
    ============================================================ */
 async function saisonAbschliessen(){
-  if(!darfBearbeiten()){ showToast('Nur Offiziere dürfen die Saison abschließen','error'); return; }
+  if(!darfBearbeiten()){ showToast('Nur Chargierte dürfen die Saison abschließen','error'); return; }
   if(strafen.length === 0 && anwesenheiten.length === 0){ showToast('Es gibt nichts zum Abschließen','info'); return; }
   const vorschlag = 'Saison ' + new Date().getFullYear();
   const name = prompt('Name der Saison (zum Archivieren):', vorschlag);
@@ -2056,8 +2056,8 @@ function renderHilfe(){
       '<div class="unterkarte" style="margin-top:16px">'+
       '<h3 style="margin-top:0">'+lcIcon('key')+' Einladungscode</h3>'+
       '<p>Den Code findest du oben in den Einstellungen. Gib ihn an neue Mitglieder weiter, damit sie dem Zug beitreten können.</p>'+
-      '<h3>'+lcIcon('banknote')+' Offiziere zahlen doppelt</h3>'+
-      '<p>Strafen für Offiziere werden automatisch mit dem doppelten Betrag berechnet – faire Führung heißt höhere Verantwortung.</p>'+
+      '<h3>'+lcIcon('banknote')+' Chargierte zahlen doppelt</h3>'+
+      '<p>Strafen für Chargierte werden automatisch mit dem doppelten Betrag berechnet – faire Führung heißt höhere Verantwortung.</p>'+
       '</div>'+
       '</div>';
   } else {
