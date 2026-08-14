@@ -1893,19 +1893,42 @@ async function zugnameSpeichern(){
   showToast('Zugname gespeichert');
   await clubDatenLaden();
 }
-function logoSpeichern(){
+function logoAlsDataUrlVerkleinern(datei, maxGroesse){
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onerror = () => reject(r.error);
+    r.onload = e => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('Bild konnte nicht gelesen werden'));
+      img.onload = () => {
+        const scale = Math.min(1, maxGroesse / Math.max(img.width, img.height));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL('image/png'));
+      };
+      img.src = e.target.result;
+    };
+    r.readAsDataURL(datei);
+  });
+}
+async function logoSpeichern(){
   if(!darfBearbeiten()){ showToast('Keine Berechtigung','error'); return; }
   const f = document.getElementById('logoInput').files[0];
   if(!f){ showToast('Bitte ein Bild wählen','error'); return; }
-  const r = new FileReader();
-  r.onload = async e => {
-    logo = e.target.result;
-    const { error } = await sb.from('clubs').update({ logo }).eq('id', sbClubId);
+  try{
+    const dataUrl = await logoAlsDataUrlVerkleinern(f, 400);
+    const { data, error } = await sb.from('clubs').update({ logo: dataUrl }).eq('id', sbClubId).select();
     if(error){ showToast('Fehler beim Speichern: ' + error.message, 'error'); return; }
+    if(!data || data.length === 0){ showToast('Logo wurde nicht gespeichert (keine Berechtigung?)', 'error'); return; }
+    logo = dataUrl;
     showToast('Logo gespeichert');
     appAktualisieren();
-  };
-  r.readAsDataURL(f);
+  } catch(e){
+    console.error('logoSpeichern:', e);
+    showToast('Fehler beim Speichern: ' + e.message, 'error');
+  }
 }
 
 /* ============================================================
