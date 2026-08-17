@@ -325,7 +325,7 @@ async function authAktion(){
       const { error } = await sb.auth.signInWithPassword({ email, password: pw });
       if(error) throw error;
     } else {
-      const { error } = await sb.auth.signUp({ email, password: pw });
+      const { error } = await sb.auth.signUp({ email, password: pw, options: { emailRedirectTo: window.location.origin + window.location.pathname } });
       if(error) throw error;
       showToast('Registrierung erfolgreich – bitte E-Mail bestätigen falls nötig.','info');
     }
@@ -1298,7 +1298,7 @@ function renderDashboard(){
     '</div>'+
     '</div>';
 
-  // Podium-Karte
+  // Podium-Karte (Ranking der aktuell vergebenen Strafen)
   const top3 = rankingListe().filter(r=>r.gesamt>0).slice(0,3);
   let podiumRows = top3.length===0 ? '<p class="leer">Noch keine Strafen erfasst.</p>' :
     top3.map((r,i)=>{
@@ -1315,12 +1315,39 @@ function renderDashboard(){
     '<div class="podium-zeilen">'+podiumRows+'</div>'+
     '</div>';
 
+  // Zuletzt vergebene Strafen
+  const letzteStrafen = strafen.slice(-5).reverse();
+  let letzteStrafenRows = letzteStrafen.length===0 ? '<p class="leer">Noch keine Strafen erfasst.</p>' :
+    letzteStrafen.map(x=>{
+      const sm = findSchuetze(x.schuetzeId);
+      const avatarEl = sm ? avatarHTML(sm,'mini') : '<div class="mini-avatar">'+escapeHtml((x.schuetze||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase())+'</div>';
+      return '<div class="podium-zeile-row">'+avatarEl+
+        '<div class="pz-name">'+escapeHtml(x.schuetze)+'<span style="display:block;font-size:11px;font-weight:400;color:var(--ink-soft)">'+escapeHtml(x.strafart)+' · '+x.datum+'</span></div>'+
+        '<div class="pz-sum">'+euro(x.betrag)+'</div>'+
+      '</div>';
+    }).join('');
+
+  const letzteStrafenKarteHtml = '<div class="card" style="margin-bottom:14px;cursor:pointer" onclick="seiteAnzeigen(\'strafen\')">'+
+    '<div class="mini-label mb-10">Zuletzt vergebene Strafen</div>'+
+    '<div class="podium-zeilen">'+letzteStrafenRows+'</div>'+
+    '</div>';
+
+  // Tagesvollster
+  const tvHeute = tagesvollsterListe.find(t => t.datum === heuteLokalISO());
+  const tvMember = tvHeute ? findSchuetze(tvHeute.member_id) : null;
+  const tagesvollsterKarteHtml = '<div class="card" style="margin-bottom:14px;cursor:pointer" onclick="seiteAnzeigen(\'einstellungen\')">'+
+    '<div class="mini-label mb-10">🍺 Tagesvollster</div>'+
+    (tvMember
+      ? '<div style="display:flex;align-items:center;gap:12px">'+avatarHTML(tvMember,'mini')+'<div style="font-weight:700;font-size:15px">'+escapeHtml(tvMember.name)+'</div></div>'
+      : '<p class="leer">Heute noch niemand gekürt.</p>')+
+    '</div>';
+
   // Nächstes Antreten
   const nt = naechsterTermin();
   let terminKarteHtml;
   if(nt){
     const d = datumKurz(nt.datum);
-    terminKarteHtml = '<div class="card">'+
+    terminKarteHtml = '<div class="card" style="margin-bottom:14px">'+
       '<div class="mini-label mb-12">Nächstes Antreten</div>'+
       '<div style="display:flex;align-items:center;gap:14px">'+
         '<div style="text-align:center;flex:none;min-width:44px">'+
@@ -1334,7 +1361,7 @@ function renderDashboard(){
       '</div>'+
     '</div>';
   } else {
-    terminKarteHtml = '<div class="card">'+
+    terminKarteHtml = '<div class="card" style="margin-bottom:14px">'+
       '<div class="mini-label mb-10">Nächstes Antreten</div>'+
       '<p class="leer">Keine kommenden Termine. Lege welche im Kalender an.</p>'+
     '</div>';
@@ -1386,7 +1413,9 @@ function renderDashboard(){
     }
   }
 
-  ziel.innerHTML = kopfHtml + ersteSchritteHtml + heroHtml + miniHtml + kassenstandKarteHtml + podiumKarteHtml + terminKarteHtml;
+  ziel.innerHTML = kopfHtml + ersteSchritteHtml +
+    podiumKarteHtml + letzteStrafenKarteHtml + tagesvollsterKarteHtml + terminKarteHtml +
+    heroHtml + miniHtml + kassenstandKarteHtml;
 
   // Hero-Zahlen beim ersten Anzeigen hochzählen
   if(!dashboardZahlAnimiert){
@@ -1762,6 +1791,9 @@ function renderMitglieder(){
     return;
   }
 
+  const heute = heuteLokalISO();
+  const heutigerTvEintrag = tagesvollsterListe.find(t => t.datum === heute);
+
   document.getElementById('schuetzenListe').innerHTML = schuetzen.map(s=>{
     const avatar = avatarHTML(s);
     let akt = '<button class="mini-btn btn-ghost" onclick="schuetzenakteOeffnen(\''+s.id+'\')">Akte</button>';
@@ -1771,9 +1803,14 @@ function renderMitglieder(){
         ' <button class="mini-btn btn-ghost" onclick="schuetzeAktivToggle(\''+s.id+'\')" title="'+(s.aktiv?'Deaktivieren':'Aktivieren')+'">'+(s.aktiv?'⏸':'▶')+'</button>'+
         ' <button class="mini-btn delete-button" onclick="schuetzeLoeschen(\''+s.id+'\')" title="Löschen">'+lcIcon('trash-2')+'</button>';
     }
+    const istTvHeute = heutigerTvEintrag && heutigerTvEintrag.member_id === s.id;
+    const istKoenig = zugKoenigId && s.id === zugKoenigId;
+    const abzeichenZeile = (istKoenig || istTvHeute)
+      ? '<div class="mabzeichen">'+(istKoenig?'👑 Zugkönig':'')+(istKoenig&&istTvHeute?' · ':'')+(istTvHeute?'🍺 Tagesvollster':'')+'</div>'
+      : '';
     return '<li class="'+(s.aktiv?'':'inaktiv')+'">'+avatar+
       '<div><div class="mname">'+escapeHtml(s.name)+'</div>'+
-      '<div class="mrolle">'+escapeHtml(s.rolle)+'</div></div>'+
+      '<div class="mrolle">'+escapeHtml(s.rolle)+'</div>'+abzeichenZeile+'</div>'+
       '<div class="aktionen">'+akt+'</div></li>';
   }).join('') || '<li style="list-style:none">'+leerZustand(lcIcon('user'),'Noch keine Mitglieder.','Mitglied anlegen','focusMitgliedHinzufuegen()')+'</li>';
   lucide.createIcons();
