@@ -67,6 +67,14 @@ function euro(n){ return (Math.round(n*100)/100).toLocaleString('de-DE',{minimum
 function istOffizier(s){ return !!s && (s.rolle==='Spieß' || s.rolle==='Oberleutnant' || s.rolle==='Leutnant'); }
 function darfBearbeiten(){ return istOffizier(aktuellerBenutzer); }
 function findSchuetze(id){ return schuetzen.find(s => s.id === id); }
+/* Supabase-Update mit .select(), damit ein von RLS still verworfenes Update
+   (0 betroffene Zeilen, aber kein Fehler) als Fehler erkannt wird statt als Erfolg. */
+async function sbUpdateGeprueft(tabelle, werte, spalte, wert){
+  const { data, error } = await sb.from(tabelle).update(werte).eq(spalte, wert).select();
+  if(error) return { ok:false, message: error.message };
+  if(!data || !data.length) return { ok:false, message: 'Keine Berechtigung oder Eintrag nicht gefunden' };
+  return { ok:true, data };
+}
 function heuteLokalISO(){
   const d = new Date();
   return new Date(d.getTime() - d.getTimezoneOffset()*60000).toISOString().slice(0,10);
@@ -497,8 +505,8 @@ async function customBadgeHinzufuegen(){
   const name  = document.getElementById('customBadgeName').value.trim();
   if(!emoji || !name){ showToast('Emoji und Name eingeben','error'); return; }
   const neueTypes = [...customBadgeTypes, { id: neueId(), emoji, name }];
-  const { error } = await sb.from('clubs').update({ custom_badge_types: neueTypes }).eq('id', sbClubId);
-  if(error){ showToast('Fehler: ' + error.message, 'error'); return; }
+  const res = await sbUpdateGeprueft('clubs', { custom_badge_types: neueTypes }, 'id', sbClubId);
+  if(!res.ok){ showToast('Fehler: ' + res.message, 'error'); return; }
   document.getElementById('customBadgeEmoji').value = '';
   document.getElementById('customBadgeName').value = '';
   showToast('Abzeichen-Typ „'+name+'" erstellt');
@@ -508,8 +516,8 @@ async function customBadgeHinzufuegen(){
 async function customBadgeLoeschen(id){
   if(!darfBearbeiten()){ showToast('Keine Berechtigung','error'); return; }
   const neueTypes = customBadgeTypes.filter(b => b.id !== id);
-  const { error } = await sb.from('clubs').update({ custom_badge_types: neueTypes }).eq('id', sbClubId);
-  if(error){ showToast('Fehler: ' + error.message, 'error'); return; }
+  const res = await sbUpdateGeprueft('clubs', { custom_badge_types: neueTypes }, 'id', sbClubId);
+  if(!res.ok){ showToast('Fehler: ' + res.message, 'error'); return; }
   showToast('Abzeichen-Typ gelöscht','warning');
   await clubDatenLaden();
 }
@@ -520,8 +528,8 @@ async function customBadgeVerleihen(memberId, badgeId){
   const vorhanden = (s.awarded_custom_badges||[]).some(b => b.badge_id === badgeId);
   if(vorhanden){ showToast('Bereits vergeben','info'); return; }
   const neu = [...(s.awarded_custom_badges||[]), { badge_id: badgeId, awarded_at: new Date().toISOString(), note: '' }];
-  const { error } = await sb.from('members').update({ awarded_custom_badges: neu }).eq('id', memberId);
-  if(error){ showToast('Fehler: ' + error.message, 'error'); return; }
+  const res = await sbUpdateGeprueft('members', { awarded_custom_badges: neu }, 'id', memberId);
+  if(!res.ok){ showToast('Fehler: ' + res.message, 'error'); return; }
   showToast('Abzeichen vergeben!');
   await clubDatenLaden();
 }
@@ -530,8 +538,8 @@ async function customBadgeEntziehen(memberId, badgeId){
   if(!darfBearbeiten()){ showToast('Keine Berechtigung','error'); return; }
   const s = findSchuetze(memberId); if(!s) return;
   const neu = (s.awarded_custom_badges||[]).filter(b => b.badge_id !== badgeId);
-  const { error } = await sb.from('members').update({ awarded_custom_badges: neu }).eq('id', memberId);
-  if(error){ showToast('Fehler: ' + error.message, 'error'); return; }
+  const res = await sbUpdateGeprueft('members', { awarded_custom_badges: neu }, 'id', memberId);
+  if(!res.ok){ showToast('Fehler: ' + res.message, 'error'); return; }
   showToast('Abzeichen entzogen','warning');
   await clubDatenLaden();
 }
@@ -591,8 +599,8 @@ function schuetzeLoeschen(id){
 async function schuetzeAktivToggle(id){
   if(!darfBearbeiten()){ showToast('Keine Berechtigung','error'); return; }
   const s = findSchuetze(id); if(!s) return;
-  const { error } = await sb.from('members').update({ aktiv: !s.aktiv }).eq('id', id);
-  if(error){ console.error('schuetzeAktivToggle:', error); showToast('Fehler: ' + error.message, 'error'); return; }
+  const res = await sbUpdateGeprueft('members', { aktiv: !s.aktiv }, 'id', id);
+  if(!res.ok){ console.error('schuetzeAktivToggle:', res.message); showToast('Fehler: ' + res.message, 'error'); return; }
   await clubDatenLaden();
 }
 function mitgliedBildHochladen(id, input){
@@ -600,8 +608,8 @@ function mitgliedBildHochladen(id, input){
   const r = new FileReader();
   r.onload = async e => {
     const bild = e.target.result;
-    const { error } = await sb.from('members').update({ bild }).eq('id', id);
-    if(error){ console.error('mitgliedBildHochladen:', error); showToast('Fehler: ' + error.message, 'error'); return; }
+    const res = await sbUpdateGeprueft('members', { bild }, 'id', id);
+    if(!res.ok){ console.error('mitgliedBildHochladen:', res.message); showToast('Fehler: ' + res.message, 'error'); return; }
     showToast('Profilbild gespeichert');
     await clubDatenLaden();
   };
@@ -626,8 +634,8 @@ async function saveProfilEdit(){
   const email= document.getElementById('editEmail').value.trim();
   const neuPw= document.getElementById('editNewPassword').value;
   if(!name){ showToast('Name darf nicht leer sein','error'); return; }
-  const { error: memberErr } = await sb.from('members').update({ name, email }).eq('user_id', sbSession.user.id);
-  if(memberErr){ console.error('saveProfilEdit:', memberErr); showToast('Fehler: ' + memberErr.message, 'error'); return; }
+  const memberRes = await sbUpdateGeprueft('members', { name, email }, 'user_id', sbSession.user.id);
+  if(!memberRes.ok){ console.error('saveProfilEdit:', memberRes.message); showToast('Fehler: ' + memberRes.message, 'error'); return; }
   if(neuPw){
     const { error: pwErr } = await sb.auth.updateUser({ password: neuPw });
     if(pwErr){ console.error('saveProfilEdit (Passwort):', pwErr); showToast('Passwort-Fehler: ' + pwErr.message, 'error'); return; }
@@ -641,8 +649,8 @@ function eigenesBildHochladen(input){
   const r = new FileReader();
   r.onload = async e => {
     const bild = e.target.result;
-    const { error } = await sb.from('members').update({ bild }).eq('user_id', sbSession.user.id);
-    if(error){ console.error('eigenesBildHochladen:', error); showToast('Fehler: ' + error.message, 'error'); return; }
+    const res = await sbUpdateGeprueft('members', { bild }, 'user_id', sbSession.user.id);
+    if(!res.ok){ console.error('eigenesBildHochladen:', res.message); showToast('Fehler: ' + res.message, 'error'); return; }
     aktuellerBenutzer.bild = bild;
     showToast('Profilbild gespeichert');
     await clubDatenLaden();
@@ -822,10 +830,10 @@ async function strafeBezahltToggle(id){
   const st = strafen.find(x => x.id === id); if(!st) return;
   if(st.bezahlt){
     // bereits bezahlt -> wieder auf offen, Vermerk entfernen
-    const { error } = await sb.from('strafen').update({ bezahlt: false, bezahlt_art: null, bezahlt_datum: null }).eq('id', id);
-    if(error){
-      console.error('strafeBezahltToggle (offen) fehlgeschlagen:', error);
-      showToast('Fehler: ' + error.message, 'error');
+    const res = await sbUpdateGeprueft('strafen', { bezahlt: false, bezahlt_art: null, bezahlt_datum: null }, 'id', id);
+    if(!res.ok){
+      console.error('strafeBezahltToggle (offen) fehlgeschlagen:', res.message);
+      showToast('Fehler: ' + res.message, 'error');
       return;
     }
     await clubDatenLaden();
@@ -842,10 +850,10 @@ async function zahlungSpeichern(){
   if(!zahlungStrafeId){ closeZahlungModal(); return; }
   const art   = document.getElementById('zahlungArt').value;
   const datum = document.getElementById('zahlungDatum').value || new Date().toISOString().slice(0,10);
-  const { error } = await sb.from('strafen').update({ bezahlt: true, bezahlt_art: art, bezahlt_datum: datum }).eq('id', zahlungStrafeId);
-  if(error){
-    console.error('zahlungSpeichern fehlgeschlagen:', error);
-    showToast('Zahlung speichern fehlgeschlagen: ' + error.message, 'error');
+  const res = await sbUpdateGeprueft('strafen', { bezahlt: true, bezahlt_art: art, bezahlt_datum: datum }, 'id', zahlungStrafeId);
+  if(!res.ok){
+    console.error('zahlungSpeichern fehlgeschlagen:', res.message);
+    showToast('Zahlung speichern fehlgeschlagen: ' + res.message, 'error');
     return;
   }
   closeZahlungModal();
@@ -1085,8 +1093,8 @@ function koenigModalSchliessen(){
 async function koenigSpeichern(){
   if(!darfBearbeiten()){ showToast('Keine Berechtigung','error'); return; }
   const memberId = document.getElementById('koenigAuswahl').value || null;
-  const { error } = await sb.from('clubs').update({ koenig_member_id: memberId }).eq('id', sbClubId);
-  if(error){ console.error(error); showToast('Fehler: ' + error.message, 'error'); return; }
+  const res = await sbUpdateGeprueft('clubs', { koenig_member_id: memberId }, 'id', sbClubId);
+  if(!res.ok){ console.error(res.message); showToast('Fehler: ' + res.message, 'error'); return; }
   koenigModalSchliessen();
   showToast(memberId ? 'Neuer Zugkönig gekürt!' : 'Zugkönig entfernt');
   await clubDatenLaden();
@@ -1110,10 +1118,13 @@ async function tagesvollsterSpeichern(){
   if(!memberId){ showToast('Bitte ein Mitglied wählen','error'); return; }
   const heute = heuteLokalISO();
   const heutigerEintrag = tagesvollsterListe.find(t => t.datum === heute);
-  const { error } = heutigerEintrag
-    ? await sb.from('tagesvollster').update({ member_id: memberId }).eq('id', heutigerEintrag.id)
-    : await sb.from('tagesvollster').insert({ club_id: sbClubId, member_id: memberId, datum: heute });
-  if(error){ console.error(error); showToast('Fehler: ' + error.message, 'error'); return; }
+  if(heutigerEintrag){
+    const res = await sbUpdateGeprueft('tagesvollster', { member_id: memberId }, 'id', heutigerEintrag.id);
+    if(!res.ok){ console.error(res.message); showToast('Fehler: ' + res.message, 'error'); return; }
+  } else {
+    const { error } = await sb.from('tagesvollster').insert({ club_id: sbClubId, member_id: memberId, datum: heute });
+    if(error){ console.error(error); showToast('Fehler: ' + error.message, 'error'); return; }
+  }
   tagesvollsterModalSchliessen();
   showToast('Tagesvollster gespeichert');
   await clubDatenLaden();
@@ -1923,8 +1934,8 @@ async function zugnameSpeichern(){
   if(!darfBearbeiten()){ showToast('Keine Berechtigung','error'); return; }
   const name = document.getElementById('zugnameInput').value.trim();
   if(!name){ showToast('Bitte einen Namen eingeben','error'); return; }
-  const { error } = await sb.from('clubs').update({ name }).eq('id', sbClubId);
-  if(error){ console.error('zugnameSpeichern:', error); showToast('Fehler: ' + error.message, 'error'); return; }
+  const res = await sbUpdateGeprueft('clubs', { name }, 'id', sbClubId);
+  if(!res.ok){ console.error('zugnameSpeichern:', res.message); showToast('Fehler: ' + res.message, 'error'); return; }
   zugname = name;
   sbClubName = name;
   showToast('Zugname gespeichert');
@@ -2386,8 +2397,8 @@ async function umfrageErstellen(){
 
 async function umfrageSchliessen(id){
   if(!darfBearbeiten()){ showToast('Keine Berechtigung','error'); return; }
-  const { error } = await sb.from('umfragen').update({ geschlossen: true }).eq('id', id);
-  if(error){ console.error(error); showToast('Fehler: ' + error.message,'error'); return; }
+  const res = await sbUpdateGeprueft('umfragen', { geschlossen: true }, 'id', id);
+  if(!res.ok){ console.error(res.message); showToast('Fehler: ' + res.message,'error'); return; }
   showToast('Abstimmung geschlossen','info');
   await clubDatenLaden();
 }
