@@ -225,7 +225,7 @@ function seiteAnzeigen(seite){
   document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
   document.getElementById('nav-'+seite)?.classList.add('active');
   document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
-  document.getElementById('tab-'+seite)?.classList.add('active');
+  document.querySelectorAll('.tab[data-seite="'+seite+'"]').forEach(b => b.classList.add('active'));
 
   menueSchliessen();
   window.scrollTo({top:0, behavior:'smooth'});
@@ -234,6 +234,35 @@ function seiteAnzeigen(seite){
 function menueOeffnen(){ document.getElementById('menueOverlay').classList.remove('hidden'); }
 function menueSchliessen(){ document.getElementById('menueOverlay')?.classList.add('hidden'); }
 function schnellStrafe(){ seiteAnzeigen('strafen'); document.getElementById('schuetzeSelect')?.focus(); }
+
+/* Untere Navi: Chargierte behalten Strafen/+ wie gewohnt.
+   Normale Mitglieder (ohne Bearbeitungsrecht) bekommen an Position 2 das Ranking
+   und in der Mitte die Strafen-Übersicht statt der Schnellerfassung. */
+function tabbarAktualisieren(){
+  const tabZwei  = document.getElementById('tab-zwei');
+  const tabMitte = document.getElementById('tab-mitte');
+  if(!tabZwei || !tabMitte) return;
+  if(darfBearbeiten()){
+    tabZwei.dataset.seite = 'strafen';
+    tabZwei.innerHTML = '<span class="pill"><span class="tic"><i data-lucide="wallet"></i></span></span>Strafen';
+    tabZwei.onclick = () => seiteAnzeigen('strafen');
+    tabMitte.dataset.seite = 'strafen';
+    tabMitte.innerHTML = '<span class="pill"><span class="tic">＋</span></span>';
+    tabMitte.onclick = () => schnellStrafe();
+  } else {
+    tabZwei.dataset.seite = 'ranking';
+    tabZwei.innerHTML = '<span class="pill"><span class="tic"><i data-lucide="trophy"></i></span></span>Ranking';
+    tabZwei.onclick = () => seiteAnzeigen('ranking');
+    tabMitte.dataset.seite = 'strafen';
+    tabMitte.innerHTML = '<span class="pill"><span class="tic"><i data-lucide="wallet"></i></span></span>Strafen';
+    tabMitte.onclick = () => seiteAnzeigen('strafen');
+  }
+  if(aktuelleSeite === 'strafen' || aktuelleSeite === 'ranking'){
+    document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab[data-seite="'+aktuelleSeite+'"]').forEach(b => b.classList.add('active'));
+  }
+  lucide.createIcons();
+}
 function datenschutzAnzeigen(){ document.getElementById('datenschutzSeite').classList.remove('hidden'); }
 function datenschutzSchliessen(){ document.getElementById('datenschutzSeite').classList.add('hidden'); }
 
@@ -995,6 +1024,7 @@ async function schnellAnwesenheitSpeichern(){
 /* ============================================================
    KALENDER
    ============================================================ */
+let terminBearbeitenId = null;
 async function terminSpeichern(){
   if(!darfBearbeiten()){ showToast('Nur Chargierte dürfen Termine anlegen','error'); return; }
   const titel = document.getElementById('terminTitel').value.trim();
@@ -1004,14 +1034,42 @@ async function terminSpeichern(){
   const hinweis = document.getElementById('terminHinweis').value.trim();
   const antreten = document.getElementById('terminAntreten').checked;
   if(!titel || !datum){ showToast('Titel und Datum sind nötig','error'); return; }
-  const { error } = await sb.from('termine').insert({
-    club_id: sbClubId, titel, datum, zeit, ort, hinweis, antreten
-  });
-  if(error){ console.error('terminSpeichern:', error); showToast('Fehler: ' + error.message, 'error'); return; }
+  const werte = { titel, datum, zeit, ort, hinweis, antreten };
+  if(terminBearbeitenId){
+    const res = await sbUpdateGeprueft('termine', werte, 'id', terminBearbeitenId);
+    if(!res.ok){ console.error('terminSpeichern (bearbeiten):', res.message); showToast('Fehler: ' + res.message, 'error'); return; }
+    showToast('Termin aktualisiert');
+  } else {
+    const { error } = await sb.from('termine').insert({ club_id: sbClubId, ...werte });
+    if(error){ console.error('terminSpeichern:', error); showToast('Fehler: ' + error.message, 'error'); return; }
+    showToast('Termin gespeichert');
+  }
+  terminBearbeitenAbbrechen();
+  await clubDatenLaden();
+}
+function terminBearbeiten(id){
+  if(!darfBearbeiten()){ showToast('Keine Berechtigung','error'); return; }
+  const t = termine.find(x => x.id === id); if(!t) return;
+  terminBearbeitenId = id;
+  document.getElementById('terminTitel').value = t.titel || '';
+  document.getElementById('terminDatum').value = t.datum || '';
+  document.getElementById('terminZeit').value = t.zeit || '';
+  document.getElementById('terminOrt').value = t.ort || '';
+  document.getElementById('terminHinweis').value = t.hinweis || '';
+  document.getElementById('terminAntreten').checked = !!t.antreten;
+  document.getElementById('kalenderFormTitel').textContent = 'Termin bearbeiten';
+  document.getElementById('terminSpeichernBtn').textContent = 'Änderungen speichern';
+  document.getElementById('terminAbbrechenBtn').classList.remove('hidden');
+  document.getElementById('kalenderFormBereich').scrollIntoView({behavior:'smooth', block:'start'});
+}
+function terminBearbeitenAbbrechen(){
+  terminBearbeitenId = null;
   ['terminTitel','terminOrt','terminHinweis'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('terminDatum').value=''; document.getElementById('terminZeit').value='';
-  showToast('Termin gespeichert');
-  await clubDatenLaden();
+  document.getElementById('terminAntreten').checked = true;
+  document.getElementById('kalenderFormTitel').textContent = 'Termin hinzufügen';
+  document.getElementById('terminSpeichernBtn').textContent = 'Termin speichern';
+  document.getElementById('terminAbbrechenBtn').classList.add('hidden');
 }
 async function terminLoeschen(id){
   if(!darfBearbeiten()){ showToast('Keine Berechtigung','error'); return; }
@@ -1138,6 +1196,7 @@ function tagesvollsterVerlaufUmschalten(){
    RENDERN
    ============================================================ */
 function appAktualisieren(){
+  tabbarAktualisieren();
   // Kopf / Zugname
   document.getElementById('topbarZugname').textContent = zugname;
   document.getElementById('sidebarZugname').textContent = zugname;
@@ -1634,7 +1693,10 @@ function renderKalender(){
     return '<div class="kal-row"><div class="kal-date"><div class="d">'+d.tag+'</div><div class="m">'+d.monat+'</div></div>'+
       '<div class="kal-info"><b>'+escapeHtml(t.titel)+(t.antreten?' <span class="kal-badge">Antreten</span>':'')+'</b>'+
       '<span>'+(t.zeit?'<span class="an">'+t.zeit+' Uhr</span>':'')+(t.ort?' · '+escapeHtml(t.ort):'')+(t.hinweis?' · '+escapeHtml(t.hinweis):'')+'</span></div>'+
-      (darf?'<button class="mini-btn delete-button" onclick="terminLoeschen(\''+t.id+'\')">'+lcIcon('trash-2')+'</button>':'')+'</div>';
+      (darf?
+        '<button class="mini-btn btn-ghost" onclick="terminBearbeiten(\''+t.id+'\')" title="Bearbeiten">'+lcIcon('pencil')+'</button>'+
+        '<button class="mini-btn delete-button" onclick="terminLoeschen(\''+t.id+'\')" title="Löschen">'+lcIcon('trash-2')+'</button>'
+      :'')+'</div>';
   }).join('') || leerZustand(lcIcon('calendar'),'Noch keine Termine.','Termin anlegen','focusTerminHinzufuegen()');
   lucide.createIcons();
 }
@@ -1651,6 +1713,35 @@ function renderRanking(){
   }
 
   podiumRender(document.getElementById('rankingPodium'));
+
+  const tvZiel = document.getElementById('rankingTagesvollster');
+  if(tvZiel){
+    const tvHeute = tagesvollsterListe.find(t => t.datum === heuteLokalISO());
+    const tvHeuteMember = tvHeute ? findSchuetze(tvHeute.member_id) : null;
+    const tvHeuteHtml = '<div class="podium-zeile-row'+(tvHeuteMember?' platz1':'')+'" style="margin-bottom:8px">'+
+      (tvHeuteMember
+        ? avatarHTML(tvHeuteMember, 'mini', true)+'<div class="pz-name">'+escapeHtml(tvHeuteMember.name)+'</div><div class="pz-sum">Heute</div>'
+        : '<div class="pz-name" style="flex:1">Heute noch niemand gekürt</div>')+
+      '</div>';
+
+    const zaehlung = {};
+    tagesvollsterListe.forEach(t => { zaehlung[t.member_id] = (zaehlung[t.member_id]||0) + 1; });
+    const topTv = Object.entries(zaehlung)
+      .map(([memberId, anzahl]) => ({ s: findSchuetze(memberId), anzahl }))
+      .filter(x => x.s)
+      .sort((a,b) => b.anzahl - a.anzahl)
+      .slice(0,5);
+    const topTvHtml = topTv.length===0 ? '' : '<div class="podium-zeilen">'+topTv.map((r,i)=>
+      '<div class="podium-zeile-row">'+
+        '<div class="pz-rang">'+(i+1)+'</div>'+
+        avatarHTML(r.s, 'mini')+
+        '<div class="pz-name">'+escapeHtml(r.s.name)+'</div>'+
+        '<div class="pz-sum">'+r.anzahl+'×</div>'+
+      '</div>'
+    ).join('')+'</div>';
+
+    tvZiel.innerHTML = tvHeuteHtml + topTvHtml;
+  }
 
   const rang = rankingListe();
   const zugsauListe = document.getElementById('zugsauListe');

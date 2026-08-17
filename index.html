@@ -256,7 +256,7 @@
     <div id="kalenderNaechster"></div>
 
     <div id="kalenderFormBereich" class="unterkarte hidden">
-      <h3>Termin hinzufügen</h3>
+      <h3 id="kalenderFormTitel">Termin hinzufügen</h3>
       <div class="form-grid">
         <input id="terminTitel" type="text" placeholder="z. B. Festzug durchs Dorf">
         <div>
@@ -273,7 +273,8 @@
         <input id="terminHinweis" type="text" placeholder="Hinweis (z. B. Uniform & Hut)">
         <label class="check"><input id="terminAntreten" type="checkbox" checked> Antreten (Pflichttermin)</label>
       </div>
-      <button class="btn-gold" onclick="terminSpeichern()">Termin speichern</button>
+      <button id="terminSpeichernBtn" class="btn-gold" onclick="terminSpeichern()">Termin speichern</button>
+      <button id="terminAbbrechenBtn" class="btn-ghost hidden" onclick="terminBearbeitenAbbrechen()">Abbrechen</button>
     </div>
 
     <h3>Alle Termine</h3>
@@ -285,6 +286,8 @@
     <div class="seite-head"><h2><i data-lucide="trophy"></i> Ranking</h2></div>
     <div class="mini-label mb-10">🐷 Zugsau-Podium</div>
     <div id="rankingPodium" class="podium-zeilen" style="margin-bottom:20px"></div>
+    <div class="mini-label mb-10">🍺 Tagesvollster</div>
+    <div id="rankingTagesvollster" style="margin-bottom:20px"></div>
     <h3>Gesamtes Strafen-Ranking</h3>
     <div id="zugsauListe" class="strafen-list" style="margin-bottom:16px"></div>
     <h3>Offene Beträge</h3>
@@ -559,11 +562,11 @@
 
 <!-- Untere Leiste (mobil) -->
 <nav class="tabbar hidden" id="tabbar">
-  <button id="tab-dashboard" class="tab" onclick="seiteAnzeigen('dashboard')"><span class="pill"><span class="tic"><i data-lucide="home"></i></span></span>Start</button>
-  <button id="tab-strafen" class="tab" onclick="seiteAnzeigen('strafen')"><span class="pill"><span class="tic"><i data-lucide="wallet"></i></span></span>Strafen</button>
-  <button class="tab add" onclick="schnellStrafe()"><span class="pill"><span class="tic">＋</span></span></button>
-  <button id="tab-kalender" class="tab" onclick="seiteAnzeigen('kalender')"><span class="pill"><span class="tic"><i data-lucide="calendar"></i></span></span>Kalender</button>
-  <button id="tab-profil" class="tab" onclick="seiteAnzeigen('profil')"><span class="pill"><span class="tic"><i data-lucide="user"></i></span></span>Profil</button>
+  <button id="tab-dashboard" class="tab" data-seite="dashboard" onclick="seiteAnzeigen('dashboard')"><span class="pill"><span class="tic"><i data-lucide="home"></i></span></span>Start</button>
+  <button id="tab-zwei" class="tab" data-seite="strafen" onclick="seiteAnzeigen('strafen')"><span class="pill"><span class="tic"><i data-lucide="wallet"></i></span></span>Strafen</button>
+  <button id="tab-mitte" class="tab add" data-seite="strafen" onclick="schnellStrafe()"><span class="pill"><span class="tic">＋</span></span></button>
+  <button id="tab-kalender" class="tab" data-seite="kalender" onclick="seiteAnzeigen('kalender')"><span class="pill"><span class="tic"><i data-lucide="calendar"></i></span></span>Kalender</button>
+  <button id="tab-profil" class="tab" data-seite="profil" onclick="seiteAnzeigen('profil')"><span class="pill"><span class="tic"><i data-lucide="user"></i></span></span>Profil</button>
 </nav>
 
 <!-- DATENSCHUTZ-OVERLAY (ohne Login erreichbar) -->
