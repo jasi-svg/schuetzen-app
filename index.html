@@ -203,7 +203,7 @@
     <div class="seite-head"><h2>Strafen</h2></div>
 
     <div id="strafErfassenBereich" class="unterkarte hidden">
-      <div class="mini-label mb-10">＋ Strafe erfassen</div>
+      <div class="mini-label mb-10" id="strafErfassenTitel">＋ Strafe erfassen</div>
       <div class="form-grid">
         <select id="schuetzeSelect"></select>
         <select id="strafartSelect" onchange="betragAktualisieren()"></select>
@@ -212,7 +212,8 @@
       </div>
       <div id="betragInfo" style="display:none;color:var(--gruen-700);font-size:13px;font-weight:600;margin:-4px 0 4px"></div>
       <div id="betragOverrideLink" style="display:none;margin-bottom:10px"><a href="#" style="font-size:12px;color:var(--grau)" onclick="betragUeberschreiben();return false">Betrag manuell überschreiben</a></div>
-      <button onclick="strafeSpeichern()">＋ Strafe speichern</button>
+      <button id="strafeSpeichernBtn" onclick="strafeSpeichern()">＋ Strafe speichern</button>
+      <button id="strafeAbbrechenBtn" class="btn-ghost hidden" onclick="strafeBearbeitenAbbrechen()">Abbrechen</button>
     </div>
 
     <div id="mehrfachErfassenBereich" class="unterkarte hidden">

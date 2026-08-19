@@ -741,6 +741,7 @@ function betragUeberschreiben(){
   if(overrideEl) overrideEl.style.display = 'none';
   betragEl?.focus();
 }
+let strafeBearbeitenId = null;
 async function strafeSpeichern(){
   if(!darfBearbeiten()){ showToast('Nur Chargierte dürfen Strafen erfassen','error'); return; }
   if(!sbClubId){
@@ -756,20 +757,51 @@ async function strafeSpeichern(){
   if(!s || isNaN(basis)){ showToast('Schütze und Betrag wählen','error'); return; }
   const art = strafarten[ai] ? strafarten[ai].bezeichnung : 'Strafe';
   const endbetrag = istOffizier(s) ? basis*2 : basis;  // Offiziere zahlen doppelt
-  console.log('strafeSpeichern Insert:', { club_id: sbClubId, member_id: s.id, schuetze: s.name });
-  const { error } = await sb.from('strafen').insert({
-    club_id: sbClubId, member_id: s.id, schuetze: s.name, strafart: art,
-    basisbetrag: basis, betrag: endbetrag, kommentar,
-    datum: new Date().toISOString().slice(0,10), bezahlt: false
-  });
-  if(error){
-    console.error('strafeSpeichern fehlgeschlagen:', error);
-    showToast('Speichern fehlgeschlagen: ' + error.message, 'error');
-    return;
+  const werte = { member_id: s.id, schuetze: s.name, strafart: art, basisbetrag: basis, betrag: endbetrag, kommentar };
+
+  if(strafeBearbeitenId){
+    const res = await sbUpdateGeprueft('strafen', werte, 'id', strafeBearbeitenId);
+    if(!res.ok){ console.error('strafeSpeichern (bearbeiten):', res.message); showToast('Fehler: ' + res.message, 'error'); return; }
+    strafeBearbeitenAbbrechen();
+    showToast('Strafe aktualisiert');
+  } else {
+    const { error } = await sb.from('strafen').insert({
+      club_id: sbClubId, datum: new Date().toISOString().slice(0,10), bezahlt: false, ...werte
+    });
+    if(error){
+      console.error('strafeSpeichern fehlgeschlagen:', error);
+      showToast('Speichern fehlgeschlagen: ' + error.message, 'error');
+      return;
+    }
+    document.getElementById('kommentar').value='';
+    showToast('Strafe gespeichert' + (istOffizier(s)?' (Chargierter × 2)':''));
   }
-  document.getElementById('kommentar').value='';
-  showToast('Strafe gespeichert' + (istOffizier(s)?' (Chargierter × 2)':''));
   await clubDatenLaden();
+}
+function strafeBearbeiten(id){
+  if(!darfBearbeiten()){ showToast('Keine Berechtigung','error'); return; }
+  const x = strafen.find(v => v.id === id); if(!x) return;
+  strafeBearbeitenId = id;
+  document.getElementById('schuetzeSelect').value = x.schuetzeId;
+  const artIndex = strafarten.findIndex(a => a.bezeichnung === x.strafart);
+  document.getElementById('strafartSelect').value = artIndex >= 0 ? artIndex : '';
+  betragUeberschreiben();
+  document.getElementById('betrag').value = x.basisbetrag != null ? x.basisbetrag : x.betrag;
+  document.getElementById('kommentar').value = x.kommentar || '';
+  document.getElementById('strafErfassenTitel').textContent = '✎ Strafe bearbeiten';
+  document.getElementById('strafeSpeichernBtn').textContent = 'Änderungen speichern';
+  document.getElementById('strafeAbbrechenBtn').classList.remove('hidden');
+  document.getElementById('strafErfassenBereich').scrollIntoView({behavior:'smooth', block:'start'});
+}
+function strafeBearbeitenAbbrechen(){
+  strafeBearbeitenId = null;
+  document.getElementById('schuetzeSelect').value = '';
+  document.getElementById('strafartSelect').value = '';
+  document.getElementById('kommentar').value = '';
+  betragAktualisieren();
+  document.getElementById('strafErfassenTitel').textContent = '＋ Strafe erfassen';
+  document.getElementById('strafeSpeichernBtn').textContent = '＋ Strafe speichern';
+  document.getElementById('strafeAbbrechenBtn').classList.add('hidden');
 }
 async function strafeLoeschen(id){
   if(!darfBearbeiten()){ showToast('Keine Berechtigung','error'); return; }
@@ -1639,6 +1671,7 @@ function renderStrafen(){
     const avatarEl = sm ? avatarHTML(sm) : '<div class="mini-avatar">'+escapeHtml((x.schuetze||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase())+'</div>';
     const aktionen = darf
       ? '<div class="sz-aktionen">'+
+          '<button class="mini-btn btn-ghost" onclick="strafeBearbeiten(\''+x.id+'\')" title="Bearbeiten">'+lcIcon('pencil')+'</button>'+
           '<button class="mini-btn" onclick="strafeBezahltToggle(\''+x.id+'\')" title="'+(x.bezahlt?'Als offen markieren':'Als bezahlt markieren')+'">'+(x.bezahlt?'↩︎':'✓')+'</button>'+
           '<button class="mini-btn delete-button" onclick="strafeLoeschen(\''+x.id+'\')" title="Löschen">'+lcIcon('trash-2')+'</button>'+
         '</div>'
