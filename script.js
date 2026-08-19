@@ -1405,7 +1405,7 @@ function renderDashboard(){
   // Tagesvollster
   const tvHeute = tagesvollsterListe.find(t => t.datum === heuteLokalISO());
   const tvMember = tvHeute ? findSchuetze(tvHeute.member_id) : null;
-  const tagesvollsterKarteHtml = '<div class="card" style="margin-bottom:14px;cursor:pointer" onclick="seiteAnzeigen(\'einstellungen\')">'+
+  const tagesvollsterKarteHtml = '<div class="card" style="margin-bottom:14px;cursor:pointer" onclick="seiteAnzeigen(\'ranking\')">'+
     '<div class="mini-label mb-10">🍺 Tagesvollster</div>'+
     (tvMember
       ? '<div style="display:flex;align-items:center;gap:12px">'+avatarHTML(tvMember,'mini')+'<div style="font-weight:700;font-size:15px">'+escapeHtml(tvMember.name)+'</div></div>'
@@ -1417,7 +1417,7 @@ function renderDashboard(){
   let terminKarteHtml;
   if(nt){
     const d = datumKurz(nt.datum);
-    terminKarteHtml = '<div class="card" style="margin-bottom:14px">'+
+    terminKarteHtml = '<div class="card" style="margin-bottom:14px;cursor:pointer" onclick="seiteAnzeigen(\'kalender\')">'+
       '<div class="mini-label mb-12">Nächstes Antreten</div>'+
       '<div style="display:flex;align-items:center;gap:14px">'+
         '<div style="text-align:center;flex:none;min-width:44px">'+
@@ -1431,7 +1431,7 @@ function renderDashboard(){
       '</div>'+
     '</div>';
   } else {
-    terminKarteHtml = '<div class="card" style="margin-bottom:14px">'+
+    terminKarteHtml = '<div class="card" style="margin-bottom:14px;cursor:pointer" onclick="seiteAnzeigen(\'kalender\')">'+
       '<div class="mini-label mb-10">Nächstes Antreten</div>'+
       '<p class="leer">Keine kommenden Termine. Lege welche im Kalender an.</p>'+
     '</div>';
