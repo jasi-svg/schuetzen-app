@@ -378,6 +378,40 @@ async function authAktion(){
   }
 }
 
+async function neuesPasswortNachReset(){
+  let neuPw = '';
+  while(!neuPw || neuPw.length < 6){
+    neuPw = prompt('Neues Passwort festlegen (mind. 6 Zeichen):');
+    if(neuPw === null){ checkAppState(); return; }
+  }
+  const { error } = await sb.auth.updateUser({ password: neuPw });
+  if(error){ showToast(error.message,'error'); checkAppState(); return; }
+  showToast('Passwort geändert – du bist jetzt angemeldet.','info');
+  checkAppState();
+}
+
+async function authPasswortVergessen(){
+  const email = document.getElementById('authEmail').value.trim();
+  if(!email){ showToast('Bitte zuerst E-Mail-Adresse eingeben','error'); return; }
+  const { error } = await sb.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin + window.location.pathname
+  });
+  if(error){ showToast(error.message,'error'); return; }
+  showToast('Link zum Zurücksetzen wurde an ' + email + ' geschickt (auch Spam-Ordner prüfen)','info');
+}
+
+async function authBestaetigungErneutSenden(){
+  const email = document.getElementById('authEmail').value.trim();
+  if(!email){ showToast('Bitte zuerst E-Mail-Adresse eingeben','error'); return; }
+  const { error } = await sb.auth.resend({
+    type: 'signup',
+    email,
+    options: { emailRedirectTo: window.location.origin + window.location.pathname }
+  });
+  if(error){ showToast(error.message,'error'); return; }
+  showToast('Bestätigungsmail wurde erneut an ' + email + ' geschickt (auch Spam-Ordner prüfen)','info');
+}
+
 async function onboardingGruenden(){
   const club_name = document.getElementById('obVereinsname').value.trim();
   const mein_name = document.getElementById('obMeinName').value.trim();
@@ -399,6 +433,7 @@ async function onboardingBeitreten(){
 }
 
 async function ausloggen(){
+  menueSchliessen();
   datenGeladen = false;
   realtimeStoppen();
   await sb.auth.signOut();
@@ -2795,6 +2830,10 @@ document.addEventListener('DOMContentLoaded', () => {
   // onAuthStateChange reagiert auch auf den Initialzustand (INITIAL_SESSION-Event)
   sb.auth.onAuthStateChange((_event, session) => {
     sbSession = session;
+    if(_event === 'PASSWORD_RECOVERY'){
+      neuesPasswortNachReset();
+      return;
+    }
     checkAppState();
   });
   if('serviceWorker' in navigator && location.protocol.startsWith('http')){

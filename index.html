@@ -69,6 +69,7 @@
     <button class="menue-link" onclick="seiteAnzeigen('chronik')"><i data-lucide="history"></i> Chronik</button>
     <button class="menue-link" onclick="seiteAnzeigen('einstellungen')"><i data-lucide="settings"></i> Einstellungen</button>
     <button class="menue-link" onclick="seiteAnzeigen('hilfe')"><i data-lucide="circle-help"></i> Hilfe</button>
+    <button class="menue-link" onclick="ausloggen()"><i data-lucide="log-out"></i> Abmelden</button>
   </div>
 </div>
 
@@ -163,6 +164,8 @@
     <input id="authPasswort" type="password" placeholder="Passwort" autocomplete="current-password">
     <button class="btn-gold" id="authBtn" onclick="authAktion()">Einloggen</button>
     <button class="btn-ghost" id="authToggleBtn" onclick="authModeToggle()">Noch kein Konto? Registrieren</button>
+    <button class="btn-ghost" id="authResetBtn" onclick="authPasswortVergessen()">Passwort vergessen?</button>
+    <button class="btn-ghost" id="authResendBtn" onclick="authBestaetigungErneutSenden()">Bestätigungsmail erneut senden</button>
     <p class="auth-hinweis">Internes Tool des Schützenzuges Rhein(f)löten – Zugang nur auf Einladung.</p>
   </section>
 
