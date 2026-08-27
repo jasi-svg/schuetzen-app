@@ -34,6 +34,8 @@ function realtimeStarten(){
 }
 function realtimeStoppen(){
   if(realtimeChannel){ sb.removeChannel(realtimeChannel); realtimeChannel = null; }
+  clearTimeout(realtimeDebounceTimer);
+  realtimeDebounceTimer = null;
 }
 
 /* ---------- Zustand ---------- */
@@ -303,6 +305,7 @@ function showToast(text, typ='success'){
 /* ---------- App-Dialog ---------- */
 function appConfirm(text, onJa, danger=false, label='Ja, fortfahren'){
   const ov = document.getElementById('appDialog');
+  ov._abbrechbar = true;
   document.getElementById('appDialogText').textContent = text;
   const btn = document.getElementById('appDialogBestaetigen');
   btn.textContent = label;
@@ -313,10 +316,41 @@ function appConfirm(text, onJa, danger=false, label='Ja, fortfahren'){
   ov._esc = e => { if(e.key==='Escape') appDialogSchliessen(); };
   document.addEventListener('keydown', ov._esc);
 }
+function appDialogOverlayKlick(){
+  const ov = document.getElementById('appDialog');
+  if(ov._abbrechbar !== false) appDialogSchliessen();
+}
 function appDialogSchliessen(){
   const ov = document.getElementById('appDialog');
   ov.classList.add('hidden');
+  document.getElementById('appDialogInput').classList.add('hidden');
+  document.getElementById('appDialogAbbrechen').classList.remove('hidden');
   if(ov._esc){ document.removeEventListener('keydown', ov._esc); ov._esc = null; }
+}
+/* appPrompt ersetzt window.prompt(), das in installierten PWAs unzuverlässig ist */
+function appPrompt(text, onOk, {placeholder='', typ='text', minLaenge=0, abbrechbar=true, label='OK'} = {}){
+  const ov = document.getElementById('appDialog');
+  ov._abbrechbar = abbrechbar;
+  document.getElementById('appDialogText').textContent = text;
+  const input = document.getElementById('appDialogInput');
+  input.type = typ; input.placeholder = placeholder; input.value = '';
+  input.classList.remove('hidden');
+  document.getElementById('appDialogAbbrechen').classList.toggle('hidden', !abbrechbar);
+  const btn = document.getElementById('appDialogBestaetigen');
+  btn.textContent = label;
+  btn.className = 'app-dialog-btn';
+  const abschicken = () => {
+    const wert = input.value.trim();
+    if(wert.length < minLaenge){ input.focus(); return; }
+    appDialogSchliessen();
+    onOk(wert);
+  };
+  btn.onclick = abschicken;
+  input.onkeydown = e => { if(e.key === 'Enter') abschicken(); };
+  ov.classList.remove('hidden');
+  input.focus();
+  ov._esc = e => { if(e.key==='Escape' && abbrechbar) appDialogSchliessen(); };
+  document.addEventListener('keydown', ov._esc);
 }
 
 /* ============================================================
@@ -378,16 +412,13 @@ async function authAktion(){
   }
 }
 
-async function neuesPasswortNachReset(){
-  let neuPw = '';
-  while(!neuPw || neuPw.length < 6){
-    neuPw = prompt('Neues Passwort festlegen (mind. 6 Zeichen):');
-    if(neuPw === null){ checkAppState(); return; }
-  }
-  const { error } = await sb.auth.updateUser({ password: neuPw });
-  if(error){ showToast(error.message,'error'); checkAppState(); return; }
-  showToast('Passwort geändert – du bist jetzt angemeldet.','info');
-  checkAppState();
+function neuesPasswortNachReset(){
+  appPrompt('Neues Passwort festlegen (mind. 6 Zeichen):', async (neuPw) => {
+    const { error } = await sb.auth.updateUser({ password: neuPw });
+    if(error){ showToast(error.message,'error'); checkAppState(); return; }
+    showToast('Passwort geändert – du bist jetzt angemeldet.','info');
+    checkAppState();
+  }, { typ:'password', placeholder:'Neues Passwort', minLaenge:6, abbrechbar:false, label:'Passwort setzen' });
 }
 
 async function authPasswortVergessen(){
@@ -416,20 +447,26 @@ async function onboardingGruenden(){
   const club_name = document.getElementById('obVereinsname').value.trim();
   const mein_name = document.getElementById('obMeinName').value.trim();
   if(!club_name || !mein_name){ showToast('Vereinsname und Name eingeben','error'); return; }
-  const { error } = await sb.rpc('create_club', { club_name, mein_name });
-  if(error){ showToast(error.message || 'Fehler beim Gründen','error'); return; }
-  showToast('Verein „' + club_name + '" gegründet!');
-  await checkAppState();
+  const btn = document.getElementById('obGruendenBtn'); if(btn) btn.disabled = true;
+  try{
+    const { error } = await sb.rpc('create_club', { club_name, mein_name });
+    if(error){ showToast(error.message || 'Fehler beim Gründen','error'); return; }
+    showToast('Verein „' + club_name + '" gegründet!');
+    await checkAppState();
+  } finally { if(btn) btn.disabled = false; }
 }
 
 async function onboardingBeitreten(){
   const code      = document.getElementById('obCode').value.trim();
   const mein_name = document.getElementById('obBeitretenName').value.trim();
   if(!code || !mein_name){ showToast('Code und Name eingeben','error'); return; }
-  const { error } = await sb.rpc('join_club', { code, mein_name });
-  if(error){ showToast(error.message || 'Ungültiger Einladungscode','error'); return; }
-  showToast('Dem Verein beigetreten!');
-  await checkAppState();
+  const btn = document.getElementById('obBeitretenBtn'); if(btn) btn.disabled = true;
+  try{
+    const { error } = await sb.rpc('join_club', { code, mein_name });
+    if(error){ showToast(error.message || 'Ungültiger Einladungscode','error'); return; }
+    showToast('Dem Verein beigetreten!');
+    await checkAppState();
+  } finally { if(btn) btn.disabled = false; }
 }
 
 async function ausloggen(){
@@ -789,35 +826,45 @@ async function strafeSpeichern(){
   const basis = parseFloat(document.getElementById('betrag').value);
   const kommentar = document.getElementById('kommentar').value.trim();
   const s = findSchuetze(sid);
-  if(!s || isNaN(basis)){ showToast('Schütze und Betrag wählen','error'); return; }
+  if(!s || isNaN(basis) || basis <= 0){ showToast('Schütze und Betrag (> 0) wählen','error'); return; }
   const art = strafarten[ai] ? strafarten[ai].bezeichnung : 'Strafe';
   const endbetrag = istOffizier(s) ? basis*2 : basis;  // Offiziere zahlen doppelt
   const werte = { member_id: s.id, schuetze: s.name, strafart: art, basisbetrag: basis, betrag: endbetrag, kommentar };
 
-  if(strafeBearbeitenId){
-    const res = await sbUpdateGeprueft('strafen', werte, 'id', strafeBearbeitenId);
-    if(!res.ok){ console.error('strafeSpeichern (bearbeiten):', res.message); showToast('Fehler: ' + res.message, 'error'); return; }
-    strafeBearbeitenAbbrechen();
-    showToast('Strafe aktualisiert');
-  } else {
-    const { error } = await sb.from('strafen').insert({
-      club_id: sbClubId, datum: new Date().toISOString().slice(0,10), bezahlt: false, ...werte
-    });
-    if(error){
-      console.error('strafeSpeichern fehlgeschlagen:', error);
-      showToast('Speichern fehlgeschlagen: ' + error.message, 'error');
-      return;
+  const btn = document.getElementById('strafeSpeichernBtn'); if(btn) btn.disabled = true;
+  try{
+    if(strafeBearbeitenId){
+      const res = await sbUpdateGeprueft('strafen', werte, 'id', strafeBearbeitenId);
+      if(!res.ok){ console.error('strafeSpeichern (bearbeiten):', res.message); showToast('Fehler: ' + res.message, 'error'); return; }
+      strafeBearbeitenAbbrechen();
+      showToast('Strafe aktualisiert');
+    } else {
+      const { error } = await sb.from('strafen').insert({
+        club_id: sbClubId, datum: heuteLokalISO(), bezahlt: false, ...werte
+      });
+      if(error){
+        console.error('strafeSpeichern fehlgeschlagen:', error);
+        showToast('Speichern fehlgeschlagen: ' + error.message, 'error');
+        return;
+      }
+      document.getElementById('kommentar').value='';
+      showToast('Strafe gespeichert' + (istOffizier(s)?' (Chargierter × 2)':''));
     }
-    document.getElementById('kommentar').value='';
-    showToast('Strafe gespeichert' + (istOffizier(s)?' (Chargierter × 2)':''));
-  }
-  await clubDatenLaden();
+    await clubDatenLaden();
+  } finally { if(btn) btn.disabled = false; }
 }
 function strafeBearbeiten(id){
   if(!darfBearbeiten()){ showToast('Keine Berechtigung','error'); return; }
   const x = strafen.find(v => v.id === id); if(!x) return;
   strafeBearbeitenId = id;
-  document.getElementById('schuetzeSelect').value = x.schuetzeId;
+  const schuetzeSelect = document.getElementById('schuetzeSelect');
+  if(!schuetzeSelect.querySelector('option[value="'+CSS.escape(x.schuetzeId)+'"]')){
+    const opt = document.createElement('option');
+    opt.value = x.schuetzeId;
+    opt.textContent = x.schuetze + ' (inaktiv)';
+    schuetzeSelect.appendChild(opt);
+  }
+  schuetzeSelect.value = x.schuetzeId;
   const artIndex = strafarten.findIndex(a => a.bezeichnung === x.strafart);
   document.getElementById('strafartSelect').value = artIndex >= 0 ? artIndex : '';
   betragUeberschreiben();
@@ -905,19 +952,22 @@ async function mehrfachStrafeSpeichern(){
   const kommentar = document.getElementById('mehrfachKommentar').value.trim();
   if(isNaN(basis) || basis <= 0){ showToast('Betrag eingeben','error'); return; }
   const art = strafarten[ai] ? strafarten[ai].bezeichnung : 'Strafe';
-  const datum = new Date().toISOString().slice(0,10);
+  const datum = heuteLokalISO();
   const eintraege = [...mehrfachAusgewaehlt].map(id => {
     const s = findSchuetze(id); if(!s) return null;
     return { club_id: sbClubId, member_id: s.id, schuetze: s.name, strafart: art,
       basisbetrag: basis, betrag: istOffizier(s) ? basis*2 : basis, kommentar, datum, bezahlt: false };
   }).filter(Boolean);
   if(!eintraege.length){ showToast('Keine gültigen Mitglieder','error'); return; }
-  const { error } = await sb.from('strafen').insert(eintraege);
-  if(error){ console.error(error); showToast('Fehler: ' + error.message,'error'); return; }
-  mehrfachAusgewaehlt = new Set();
-  document.getElementById('mehrfachKommentar').value = '';
-  showToast(eintraege.length + (eintraege.length === 1 ? ' Strafe' : ' Strafen') + ' erfasst');
-  await clubDatenLaden();
+  const btn = document.getElementById('mehrfachSpeichernBtn'); if(btn) btn.disabled = true;
+  try{
+    const { error } = await sb.from('strafen').insert(eintraege);
+    if(error){ console.error(error); showToast('Fehler: ' + error.message,'error'); return; }
+    mehrfachAusgewaehlt = new Set();
+    document.getElementById('mehrfachKommentar').value = '';
+    showToast(eintraege.length + (eintraege.length === 1 ? ' Strafe' : ' Strafen') + ' erfasst');
+    await clubDatenLaden();
+  } finally { if(btn) btn.disabled = false; }
 }
 
 let zahlungStrafeId = null;
@@ -937,7 +987,7 @@ async function strafeBezahltToggle(id){
     // Bezahl-Fenster öffnen, um Art + Datum zu erfassen
     zahlungStrafeId = id;
     document.getElementById('zahlungArt').value = 'Bar';
-    document.getElementById('zahlungDatum').value = new Date().toISOString().slice(0,10);
+    document.getElementById('zahlungDatum').value = heuteLokalISO();
     document.getElementById('zahlungModal').classList.remove('hidden');
   }
 }
@@ -945,16 +995,19 @@ function closeZahlungModal(){ zahlungStrafeId = null; document.getElementById('z
 async function zahlungSpeichern(){
   if(!zahlungStrafeId){ closeZahlungModal(); return; }
   const art   = document.getElementById('zahlungArt').value;
-  const datum = document.getElementById('zahlungDatum').value || new Date().toISOString().slice(0,10);
-  const res = await sbUpdateGeprueft('strafen', { bezahlt: true, bezahlt_art: art, bezahlt_datum: datum }, 'id', zahlungStrafeId);
-  if(!res.ok){
-    console.error('zahlungSpeichern fehlgeschlagen:', res.message);
-    showToast('Zahlung speichern fehlgeschlagen: ' + res.message, 'error');
-    return;
-  }
-  closeZahlungModal();
-  showToast('Als bezahlt vermerkt ('+art+')');
-  await clubDatenLaden();
+  const datum = document.getElementById('zahlungDatum').value || heuteLokalISO();
+  const btn = document.getElementById('zahlungSpeichernBtn'); if(btn) btn.disabled = true;
+  try{
+    const res = await sbUpdateGeprueft('strafen', { bezahlt: true, bezahlt_art: art, bezahlt_datum: datum }, 'id', zahlungStrafeId);
+    if(!res.ok){
+      console.error('zahlungSpeichern fehlgeschlagen:', res.message);
+      showToast('Zahlung speichern fehlgeschlagen: ' + res.message, 'error');
+      return;
+    }
+    closeZahlungModal();
+    showToast('Als bezahlt vermerkt ('+art+')');
+    await clubDatenLaden();
+  } finally { if(btn) btn.disabled = false; }
 }
 
 /* ============================================================
@@ -970,34 +1023,37 @@ async function anwesenheitSpeichern(){
   const s = findSchuetze(sid);
   if(!s){ showToast('Bitte Schütze auswählen','error'); return; }
 
-  const datum = new Date().toISOString().slice(0,10);
+  const datum = heuteLokalISO();
 
-  const { error: anwErr } = await sb.from('anwesenheiten').insert({
-    club_id: sbClubId, member_id: s.id, schuetze: s.name,
-    tag, status, minuten, datum, kommentar: anwKommentar
-  });
-  if(anwErr){ console.error('anwesenheitSpeichern:', anwErr); showToast('Fehler: ' + anwErr.message, 'error'); return; }
-
-  // Automatische „Zu spät"-Strafe (Betrag aus Strafenkatalog, Rückfall 5 €, Offiziere doppelt)
-  if(status === 'Zu spät'){
-    const zuSpaetArt = strafarten.find(a => a.bezeichnung === 'Zu spät erschienen');
-    const basis = zuSpaetArt ? zuSpaetArt.betrag : 5;
-    const betrag = istOffizier(s) ? basis * 2 : basis;
-    const { error: strafErr } = await sb.from('strafen').insert({
+  const btn = document.getElementById('anwesenheitSpeichernBtn'); if(btn) btn.disabled = true;
+  try{
+    const { error: anwErr } = await sb.from('anwesenheiten').insert({
       club_id: sbClubId, member_id: s.id, schuetze: s.name,
-      strafart: 'Zu spät erschienen', basisbetrag: basis, betrag,
-      kommentar: minuten ? minuten + ' Min. Verspätung' : '',
-      datum, bezahlt: false
+      tag, status, minuten, datum, kommentar: anwKommentar
     });
-    if(strafErr){ console.error('anwesenheitSpeichern (Strafe):', strafErr); showToast('Anwesenheit gespeichert, Strafe fehlgeschlagen: ' + strafErr.message, 'error'); }
-    else { showToast('Anwesenheit + automatische Verspätungs-Strafe gespeichert', 'info'); }
-  } else {
-    showToast('Anwesenheit gespeichert');
-  }
+    if(anwErr){ console.error('anwesenheitSpeichern:', anwErr); showToast('Fehler: ' + anwErr.message, 'error'); return; }
 
-  document.getElementById('verspaetungMinuten').value = '';
-  if(document.getElementById('anwesenheitKommentar')) document.getElementById('anwesenheitKommentar').value = '';
-  await clubDatenLaden();
+    // Automatische „Zu spät"-Strafe (Betrag aus Strafenkatalog, Rückfall 5 €, Offiziere doppelt)
+    if(status === 'Zu spät'){
+      const zuSpaetArt = strafarten.find(a => a.bezeichnung === 'Zu spät erschienen');
+      const basis = zuSpaetArt ? zuSpaetArt.betrag : 5;
+      const betrag = istOffizier(s) ? basis * 2 : basis;
+      const { error: strafErr } = await sb.from('strafen').insert({
+        club_id: sbClubId, member_id: s.id, schuetze: s.name,
+        strafart: 'Zu spät erschienen', basisbetrag: basis, betrag,
+        kommentar: minuten ? minuten + ' Min. Verspätung' : '',
+        datum, bezahlt: false
+      });
+      if(strafErr){ console.error('anwesenheitSpeichern (Strafe):', strafErr); showToast('Anwesenheit gespeichert, Strafe fehlgeschlagen: ' + strafErr.message, 'error'); }
+      else { showToast('Anwesenheit + automatische Verspätungs-Strafe gespeichert', 'info'); }
+    } else {
+      showToast('Anwesenheit gespeichert');
+    }
+
+    document.getElementById('verspaetungMinuten').value = '';
+    if(document.getElementById('anwesenheitKommentar')) document.getElementById('anwesenheitKommentar').value = '';
+    await clubDatenLaden();
+  } finally { if(btn) btn.disabled = false; }
 }
 async function anwesenheitLoeschen(id){
   if(!darfBearbeiten()){ showToast('Keine Berechtigung','error'); return; }
@@ -1014,7 +1070,7 @@ function renderSchnellErfassung(){
   bereich.classList.remove('hidden');
 
   const datumInput = document.getElementById('schnellDatum');
-  if(datumInput && !datumInput.value) datumInput.value = new Date().toISOString().slice(0,10);
+  if(datumInput && !datumInput.value) datumInput.value = heuteLokalISO();
 
   const aktive = schuetzen.filter(s=>s.aktiv);
   const liste = document.getElementById('schnellMitgliederListe');
@@ -1049,7 +1105,7 @@ function schnellStatusWaehlen(btn){
 
 async function schnellAnwesenheitSpeichern(){
   if(!darfBearbeiten()){ showToast('Nur Chargierte dürfen Anwesenheit erfassen','error'); return; }
-  const datum = document.getElementById('schnellDatum').value || new Date().toISOString().slice(0,10);
+  const datum = document.getElementById('schnellDatum').value || heuteLokalISO();
   const tag   = document.getElementById('schnellTag').value;
   const zeilen = document.querySelectorAll('#schnellMitgliederListe .schnell-zeile');
   const eintraege = [];
@@ -1066,26 +1122,29 @@ async function schnellAnwesenheitSpeichern(){
   });
   if(eintraege.length === 0){ showToast('Kein Status ausgewählt','error'); return; }
 
-  const { error: anwErr } = await sb.from('anwesenheiten').insert(eintraege);
-  if(anwErr){ console.error('schnellAnwesenheitSpeichern:', anwErr); showToast('Fehler: '+anwErr.message,'error'); return; }
+  const btn = document.getElementById('schnellAnwesenheitBtn'); if(btn) btn.disabled = true;
+  try{
+    const { error: anwErr } = await sb.from('anwesenheiten').insert(eintraege);
+    if(anwErr){ console.error('schnellAnwesenheitSpeichern:', anwErr); showToast('Fehler: '+anwErr.message,'error'); return; }
 
-  if(verspaetete.length > 0){
-    const zuSpaetArt = strafarten.find(a => a.bezeichnung === 'Zu spät erschienen');
-    const basis = zuSpaetArt ? zuSpaetArt.betrag : 5;
-    const strafEintraege = verspaetete.map(({s, minuten})=>({
-      club_id:sbClubId, member_id:s.id, schuetze:s.name,
-      strafart:'Zu spät erschienen', basisbetrag:basis,
-      betrag: istOffizier(s) ? basis*2 : basis,
-      kommentar: minuten ? minuten+' Min. Verspätung' : '',
-      datum, bezahlt:false
-    }));
-    const { error: strafErr } = await sb.from('strafen').insert(strafEintraege);
-    if(strafErr){ console.error('schnellAnwesenheitSpeichern (Strafen):', strafErr); showToast(eintraege.length+' Anwesenheit(en) gespeichert, Strafen fehlgeschlagen: '+strafErr.message,'error'); }
-    else { showToast(eintraege.length+' Anwesenheit(en) + '+verspaetete.length+' Verspätungs-Strafe(n) gespeichert','info'); }
-  } else {
-    showToast(eintraege.length+' Anwesenheit(en) gespeichert');
-  }
-  await clubDatenLaden();
+    if(verspaetete.length > 0){
+      const zuSpaetArt = strafarten.find(a => a.bezeichnung === 'Zu spät erschienen');
+      const basis = zuSpaetArt ? zuSpaetArt.betrag : 5;
+      const strafEintraege = verspaetete.map(({s, minuten})=>({
+        club_id:sbClubId, member_id:s.id, schuetze:s.name,
+        strafart:'Zu spät erschienen', basisbetrag:basis,
+        betrag: istOffizier(s) ? basis*2 : basis,
+        kommentar: minuten ? minuten+' Min. Verspätung' : '',
+        datum, bezahlt:false
+      }));
+      const { error: strafErr } = await sb.from('strafen').insert(strafEintraege);
+      if(strafErr){ console.error('schnellAnwesenheitSpeichern (Strafen):', strafErr); showToast(eintraege.length+' Anwesenheit(en) gespeichert, Strafen fehlgeschlagen: '+strafErr.message,'error'); }
+      else { showToast(eintraege.length+' Anwesenheit(en) + '+verspaetete.length+' Verspätungs-Strafe(n) gespeichert','info'); }
+    } else {
+      showToast(eintraege.length+' Anwesenheit(en) gespeichert');
+    }
+    await clubDatenLaden();
+  } finally { if(btn) btn.disabled = false; }
 }
 
 /* ============================================================
@@ -1102,17 +1161,20 @@ async function terminSpeichern(){
   const antreten = document.getElementById('terminAntreten').checked;
   if(!titel || !datum){ showToast('Titel und Datum sind nötig','error'); return; }
   const werte = { titel, datum, zeit, ort, hinweis, antreten };
-  if(terminBearbeitenId){
-    const res = await sbUpdateGeprueft('termine', werte, 'id', terminBearbeitenId);
-    if(!res.ok){ console.error('terminSpeichern (bearbeiten):', res.message); showToast('Fehler: ' + res.message, 'error'); return; }
-    showToast('Termin aktualisiert');
-  } else {
-    const { error } = await sb.from('termine').insert({ club_id: sbClubId, ...werte });
-    if(error){ console.error('terminSpeichern:', error); showToast('Fehler: ' + error.message, 'error'); return; }
-    showToast('Termin gespeichert');
-  }
-  terminBearbeitenAbbrechen();
-  await clubDatenLaden();
+  const btn = document.getElementById('terminSpeichernBtn'); if(btn) btn.disabled = true;
+  try{
+    if(terminBearbeitenId){
+      const res = await sbUpdateGeprueft('termine', werte, 'id', terminBearbeitenId);
+      if(!res.ok){ console.error('terminSpeichern (bearbeiten):', res.message); showToast('Fehler: ' + res.message, 'error'); return; }
+      showToast('Termin aktualisiert');
+    } else {
+      const { error } = await sb.from('termine').insert({ club_id: sbClubId, ...werte });
+      if(error){ console.error('terminSpeichern:', error); showToast('Fehler: ' + error.message, 'error'); return; }
+      showToast('Termin gespeichert');
+    }
+    terminBearbeitenAbbrechen();
+    await clubDatenLaden();
+  } finally { if(btn) btn.disabled = false; }
 }
 function terminBearbeiten(id){
   if(!darfBearbeiten()){ showToast('Keine Berechtigung','error'); return; }
@@ -1146,7 +1208,7 @@ async function terminLoeschen(id){
   await clubDatenLaden();
 }
 function naechsterTermin(){
-  const heute = new Date().toISOString().slice(0,10);
+  const heute = heuteLokalISO();
   return termine.filter(t => t.datum >= heute).sort((a,b)=> (a.datum+a.zeit).localeCompare(b.datum+b.zeit))[0] || null;
 }
 function datumKurz(iso){
@@ -1218,11 +1280,14 @@ function koenigModalSchliessen(){
 async function koenigSpeichern(){
   if(!darfBearbeiten()){ showToast('Keine Berechtigung','error'); return; }
   const memberId = document.getElementById('koenigAuswahl').value || null;
-  const res = await sbUpdateGeprueft('clubs', { koenig_member_id: memberId }, 'id', sbClubId);
-  if(!res.ok){ console.error(res.message); showToast('Fehler: ' + res.message, 'error'); return; }
-  koenigModalSchliessen();
-  showToast(memberId ? 'Neuer Zugkönig gekürt!' : 'Zugkönig entfernt');
-  await clubDatenLaden();
+  const btn = document.getElementById('koenigSpeichernBtn'); if(btn) btn.disabled = true;
+  try{
+    const res = await sbUpdateGeprueft('clubs', { koenig_member_id: memberId }, 'id', sbClubId);
+    if(!res.ok){ console.error(res.message); showToast('Fehler: ' + res.message, 'error'); return; }
+    koenigModalSchliessen();
+    showToast(memberId ? 'Neuer Zugkönig gekürt!' : 'Zugkönig entfernt');
+    await clubDatenLaden();
+  } finally { if(btn) btn.disabled = false; }
 }
 
 function tagesvollsterModalOeffnen(){
@@ -2158,22 +2223,83 @@ function exportDataAsCSV(){
   showToast('CSV exportiert');
 }
 function importDataFromJSON(){
+  if(!darfBearbeiten()){ showToast('Nur Chargierte dürfen ein Backup einspielen','error'); return; }
   const f = document.getElementById('importInput').files[0];
   if(!f){ showToast('Bitte eine JSON-Datei wählen','error'); return; }
-  appConfirm('Backup einspielen? Vorhandene Daten werden ersetzt.', () => {
-    const r = new FileReader();
-    r.onload = e => {
-      try{
-        const d = JSON.parse(e.target.result);
-        schuetzen = d.schuetzen||[]; strafarten = d.strafarten||[]; strafen = d.strafen||[];
-        anwesenheiten = d.anwesenheiten||[]; termine = d.termine||[]; saisons = d.saisons||[];
-        zugname = d.zugname||zugname; logo = d.logo||'';
-        aktuellerBenutzer = null;
-        speichern(); showToast('Backup eingespielt'); appAktualisieren(); seiteAnzeigen('dashboard');
-      }catch(err){ showToast('Datei konnte nicht gelesen werden','error'); }
+  const r = new FileReader();
+  r.onload = e => {
+    let d;
+    try{ d = JSON.parse(e.target.result); }
+    catch(err){ showToast('Datei konnte nicht gelesen werden','error'); return; }
+
+    // Mitglieder werden NICHT wiederhergestellt (Backup-IDs sind nicht mit den
+    // echten Supabase-Auth-Konten der aktuellen Mitglieder verknüpft). Strafen/
+    // Anwesenheiten werden per Namensabgleich den heutigen Mitgliedern zugeordnet.
+    const nameZuId = new Map(schuetzen.map(s => [s.name, s.id]));
+    const backupStrafen = d.strafen || [];
+    const backupAnwesenheiten = d.anwesenheiten || [];
+    const uebersprungen = new Set();
+    const mappeStrafe = x => {
+      const memberId = nameZuId.get(x.schuetze);
+      if(!memberId){ uebersprungen.add(x.schuetze); return null; }
+      return { club_id: sbClubId, member_id: memberId, schuetze: x.schuetze, strafart: x.strafart,
+        basisbetrag: x.basisbetrag ?? x.betrag, betrag: x.betrag, kommentar: x.kommentar || '',
+        datum: x.datum || heuteLokalISO(), bezahlt: !!x.bezahlt,
+        bezahlt_art: x.bezahltArt || null, bezahlt_datum: x.bezahltDatum || null };
     };
-    r.readAsText(f);
-  }, true, 'Einspielen');
+    const mappeAnwesenheit = x => {
+      const memberId = nameZuId.get(x.schuetze);
+      if(!memberId){ uebersprungen.add(x.schuetze); return null; }
+      return { club_id: sbClubId, member_id: memberId, schuetze: x.schuetze,
+        status: x.status, datum: x.datum || heuteLokalISO(), kommentar: x.kommentar || '' };
+    };
+    const neueStrafen = backupStrafen.map(mappeStrafe).filter(Boolean);
+    const neueAnwesenheiten = backupAnwesenheiten.map(mappeAnwesenheit).filter(Boolean);
+    const neueStrafarten = (d.strafarten || []).map(a => ({ club_id: sbClubId, bezeichnung: a.bezeichnung, betrag: a.betrag }));
+    const neueTermine = (d.termine || []).map(t => ({ club_id: sbClubId, titel: t.titel, datum: t.datum, ort: t.ort || '', beschreibung: t.beschreibung || '' }));
+
+    const hinweis = 'Backup einspielen?\n\n' +
+      neueStrafen.length + ' Strafen, ' + neueAnwesenheiten.length + ' Anwesenheiten, ' +
+      neueStrafarten.length + ' Strafarten, ' + neueTermine.length + ' Termine werden übernommen.\n' +
+      'Bestehende Strafen/Anwesenheiten/Strafarten/Termine dieses Vereins werden dabei ERSETZT.\n' +
+      'Mitglieder werden nicht verändert.' +
+      (uebersprungen.size ? '\n\nÜbersprungen (kein aktuelles Mitglied mit diesem Namen): ' + [...uebersprungen].join(', ') : '');
+
+    appConfirm(hinweis, async () => {
+      try{
+        const delErrs = (await Promise.all([
+          sb.from('strafen').delete().eq('club_id', sbClubId),
+          sb.from('anwesenheiten').delete().eq('club_id', sbClubId),
+          sb.from('strafarten').delete().eq('club_id', sbClubId),
+          sb.from('termine').delete().eq('club_id', sbClubId),
+        ])).find(r => r.error);
+        if(delErrs){ throw delErrs.error; }
+
+        const inserts = [];
+        if(neueStrafen.length) inserts.push(sb.from('strafen').insert(neueStrafen));
+        if(neueAnwesenheiten.length) inserts.push(sb.from('anwesenheiten').insert(neueAnwesenheiten));
+        if(neueStrafarten.length) inserts.push(sb.from('strafarten').insert(neueStrafarten));
+        if(neueTermine.length) inserts.push(sb.from('termine').insert(neueTermine));
+        const insErr = (await Promise.all(inserts)).find(r => r.error);
+        if(insErr){ throw insErr.error; }
+
+        if(d.zugname || d.logo){
+          const clubWerte = {};
+          if(d.zugname) clubWerte.name = d.zugname;
+          if(d.logo) clubWerte.logo = d.logo;
+          await sb.from('clubs').update(clubWerte).eq('id', sbClubId);
+        }
+
+        showToast('Backup eingespielt');
+        await clubDatenLaden();
+        seiteAnzeigen('dashboard');
+      }catch(err){
+        console.error('importDataFromJSON:', err);
+        showToast('Einspielen fehlgeschlagen: ' + (err.message || err), 'error');
+      }
+    }, true, 'Einspielen');
+  };
+  r.readAsText(f);
 }
 
 /* ============================================================
@@ -2182,47 +2308,49 @@ function importDataFromJSON(){
    als Schnappschuss archiviert und danach geleert. Mitglieder,
    Strafarten und Termine bleiben erhalten.
    ============================================================ */
-async function saisonAbschliessen(){
+function saisonAbschliessen(){
   if(!darfBearbeiten()){ showToast('Nur Chargierte dürfen die Saison abschließen','error'); return; }
   if(strafen.length === 0 && anwesenheiten.length === 0){ showToast('Es gibt nichts zum Abschließen','info'); return; }
   const vorschlag = 'Saison ' + new Date().getFullYear();
-  const name = prompt('Name der Saison (zum Archivieren):', vorschlag);
-  if(name === null) return;
-  appConfirm('Saison „'+name+'" abschließen?\n\nAlle aktuellen Strafen und Anwesenheiten werden archiviert und danach geleert. Mitglieder und Strafarten bleiben.', async () => {
+  appPrompt('Name der Saison (zum Archivieren):', (name) => {
+    const saisonName = name || vorschlag;
+    appConfirm('Saison „'+saisonName+'" abschließen?\n\nAlle aktuellen Strafen und Anwesenheiten werden archiviert und danach geleert. Mitglieder und Strafarten bleiben.', async () => {
+      const btn = document.getElementById('saisonAbschliessenBtn'); if(btn) btn.disabled = true;
+      try{
+        const gesamt = strafen.reduce((a,x)=>a+x.betrag,0);
+        const bezahlt = strafen.filter(x=>x.bezahlt).reduce((a,x)=>a+x.betrag,0);
+        const sau = rankingListe().filter(r=>r.gesamt>0)[0];
 
-  const gesamt = strafen.reduce((a,x)=>a+x.betrag,0);
-  const bezahlt = strafen.filter(x=>x.bezahlt).reduce((a,x)=>a+x.betrag,0);
-  const sau = rankingListe().filter(r=>r.gesamt>0)[0];
-  const saisonName = name.trim() || vorschlag;
+        const daten = {
+          strafen: JSON.parse(JSON.stringify(strafen)),
+          anwesenheiten: JSON.parse(JSON.stringify(anwesenheiten)),
+          summary: {
+            gesamt, bezahlt, offen: gesamt-bezahlt,
+            anzahlStrafen: strafen.length,
+            anzahlAnwesenheiten: anwesenheiten.filter(a=>a.status==='Anwesend').length,
+            zugsau: sau ? { name: sau.s.name, sum: sau.gesamt } : null
+          }
+        };
 
-  const daten = {
-    strafen: JSON.parse(JSON.stringify(strafen)),
-    anwesenheiten: JSON.parse(JSON.stringify(anwesenheiten)),
-    summary: {
-      gesamt, bezahlt, offen: gesamt-bezahlt,
-      anzahlStrafen: strafen.length,
-      anzahlAnwesenheiten: anwesenheiten.filter(a=>a.status==='Anwesend').length,
-      zugsau: sau ? { name: sau.s.name, sum: sau.gesamt } : null
-    }
-  };
+        const { error: insertErr } = await sb.from('saisons').insert({
+          club_id: sbClubId,
+          name: saisonName,
+          abgeschlossen_am: heuteLokalISO(),
+          daten
+        });
+        if(insertErr){ console.error('saisonAbschliessen insert:', insertErr); showToast('Archivieren fehlgeschlagen: ' + insertErr.message, 'error'); return; }
 
-  const { error: insertErr } = await sb.from('saisons').insert({
-    club_id: sbClubId,
-    name: saisonName,
-    abgeschlossen_am: new Date().toISOString().slice(0,10),
-    daten
-  });
-  if(insertErr){ console.error('saisonAbschliessen insert:', insertErr); showToast('Archivieren fehlgeschlagen: ' + insertErr.message, 'error'); return; }
+        const { error: delSErr } = await sb.from('strafen').delete().eq('club_id', sbClubId);
+        if(delSErr){ console.error('saisonAbschliessen delete strafen:', delSErr); showToast('Archiv gespeichert, aber Strafen konnten nicht geleert werden: ' + delSErr.message, 'error'); return; }
+        const { error: delAErr } = await sb.from('anwesenheiten').delete().eq('club_id', sbClubId);
+        if(delAErr){ console.error('saisonAbschliessen delete anwesenheiten:', delAErr); showToast('Archiv gespeichert, aber Anwesenheiten konnten nicht geleert werden: ' + delAErr.message, 'error'); return; }
 
-  const { error: delSErr } = await sb.from('strafen').delete().eq('club_id', sbClubId);
-  if(delSErr){ console.error('saisonAbschliessen delete strafen:', delSErr); showToast('Archiv gespeichert, aber Strafen konnten nicht geleert werden: ' + delSErr.message, 'error'); return; }
-  const { error: delAErr } = await sb.from('anwesenheiten').delete().eq('club_id', sbClubId);
-  if(delAErr){ console.error('saisonAbschliessen delete anwesenheiten:', delAErr); showToast('Archiv gespeichert, aber Anwesenheiten konnten nicht geleert werden: ' + delAErr.message, 'error'); return; }
-
-  showToast('Saison „'+saisonName+'" archiviert – neue Saison gestartet 🎉');
-  await clubDatenLaden();
-  seiteAnzeigen('dashboard');
-  }, false, 'Abschließen');
+        showToast('Saison „'+saisonName+'" archiviert – neue Saison gestartet 🎉');
+        await clubDatenLaden();
+        seiteAnzeigen('dashboard');
+      } finally { if(btn) btn.disabled = false; }
+    }, false, 'Abschließen');
+  }, { placeholder: vorschlag, minLaenge: 0, label:'Weiter' });
 }
 
 function saisonLoeschen(id){
@@ -2472,7 +2600,7 @@ function renderAbstimmungen(){
       }).join('');
       abstimmHtml =
         '<div class="umfrage-optionen">' + controls + '</div>' +
-        '<button class="btn-gold" style="margin-top:10px;width:auto" onclick="umfrageAbstimmen(\'' + u.id + '\')">Abstimmen</button>';
+        '<button class="btn-gold" style="margin-top:10px;width:auto" onclick="umfrageAbstimmen(\'' + u.id + '\', this)">Abstimmen</button>';
     }
 
     // Status-Tag + Offizier-Aktionen
@@ -2570,7 +2698,7 @@ async function umfrageLoeschen(id){
   await clubDatenLaden();
 }
 
-async function umfrageAbstimmen(umfrageId){
+async function umfrageAbstimmen(umfrageId, btn){
   const myUserId = sbSession?.user?.id;
   if(!myUserId){ showToast('Nicht angemeldet','error'); return; }
   const umfrage = umfragen.find(u => u.id === umfrageId);
@@ -2580,20 +2708,23 @@ async function umfrageAbstimmen(umfrageId){
   const gewaehlte = Array.from(inputs).map(i => i.value);
   if(!gewaehlte.length){ showToast('Bitte mindestens eine Option wählen','error'); return; }
 
-  // Bei Einfachauswahl: eigene alte Stimmen löschen (Wahl ändern möglich)
-  if(!umfrage.mehrfachauswahl){
-    const { error: delErr } = await sb.from('umfrage_stimmen')
-      .delete().eq('umfrage_id', umfrageId).eq('user_id', myUserId);
-    if(delErr){ console.error(delErr); showToast('Fehler: ' + delErr.message,'error'); return; }
-  }
+  if(btn) btn.disabled = true;
+  try{
+    // Bei Einfachauswahl: eigene alte Stimmen löschen (Wahl ändern möglich)
+    if(!umfrage.mehrfachauswahl){
+      const { error: delErr } = await sb.from('umfrage_stimmen')
+        .delete().eq('umfrage_id', umfrageId).eq('user_id', myUserId);
+      if(delErr){ console.error(delErr); showToast('Fehler: ' + delErr.message,'error'); return; }
+    }
 
-  const inserts = gewaehlte.map(optionId => ({
-    umfrage_id: umfrageId, option_id: optionId, club_id: sbClubId, user_id: myUserId
-  }));
-  const { error } = await sb.from('umfrage_stimmen').insert(inserts);
-  if(error){ console.error(error); showToast('Fehler: ' + error.message,'error'); return; }
-  showToast('Stimme gespeichert ✓');
-  await clubDatenLaden();
+    const inserts = gewaehlte.map(optionId => ({
+      umfrage_id: umfrageId, option_id: optionId, club_id: sbClubId, user_id: myUserId
+    }));
+    const { error } = await sb.from('umfrage_stimmen').insert(inserts);
+    if(error){ console.error(error); showToast('Fehler: ' + error.message,'error'); return; }
+    showToast('Stimme gespeichert ✓');
+    await clubDatenLaden();
+  } finally { if(btn) btn.disabled = false; }
 }
 
 /* ============================================================
@@ -2631,7 +2762,7 @@ function renderKasse(){
 
   let formHtml = '';
   if(darf){
-    const heute = new Date().toISOString().slice(0,10);
+    const heute = heuteLokalISO();
     formHtml =
       '<div class="unterkarte">' +
       '<div class="mini-label mb-10">＋ Buchung erfassen</div>' +
@@ -2642,7 +2773,7 @@ function renderKasse(){
       '<input id="kasseBuchungDatum" type="date" value="' + heute + '">' +
       '</div>' +
       '<div class="btn-row" style="margin-top:10px">' +
-      '<button class="btn-gold" onclick="kassenbuchungHinzufuegen()">Buchung speichern</button>' +
+      '<button class="btn-gold" id="kassenbuchungBtn" onclick="kassenbuchungHinzufuegen(this)">Buchung speichern</button>' +
       '<button class="btn-ghost" style="width:auto" onclick="bezahlteStrafenUebernehmen()">'+lcIcon('wallet')+' Bezahlte Strafen übernehmen</button>' +
       '</div></div>';
   }
@@ -2677,20 +2808,23 @@ function renderKasse(){
   lucide.createIcons();
 }
 
-async function kassenbuchungHinzufuegen(){
+async function kassenbuchungHinzufuegen(btn){
   if(!darfBearbeiten()){ showToast('Keine Berechtigung','error'); return; }
   const typ    = document.getElementById('kasseBuchungTyp').value;
   const betrag = parseFloat(document.getElementById('kasseBuchungBetrag').value);
   const zweck  = document.getElementById('kasseBuchungZweck').value.trim();
-  const datum  = document.getElementById('kasseBuchungDatum').value || new Date().toISOString().slice(0,10);
+  const datum  = document.getElementById('kasseBuchungDatum').value || heuteLokalISO();
   if(isNaN(betrag) || betrag <= 0){ showToast('Gültigen Betrag eingeben','error'); return; }
   if(!zweck){ showToast('Bitte Zweck eingeben','error'); return; }
-  const { error } = await sb.from('kassenbuchungen').insert({ club_id: sbClubId, typ, betrag, zweck, datum });
-  if(error){ console.error(error); showToast('Fehler: ' + error.message, 'error'); return; }
-  document.getElementById('kasseBuchungBetrag').value = '';
-  document.getElementById('kasseBuchungZweck').value = '';
-  showToast((typ === 'einnahme' ? 'Einnahme' : 'Ausgabe') + ' gespeichert');
-  await clubDatenLaden();
+  if(btn) btn.disabled = true;
+  try{
+    const { error } = await sb.from('kassenbuchungen').insert({ club_id: sbClubId, typ, betrag, zweck, datum });
+    if(error){ console.error(error); showToast('Fehler: ' + error.message, 'error'); return; }
+    document.getElementById('kasseBuchungBetrag').value = '';
+    document.getElementById('kasseBuchungZweck').value = '';
+    showToast((typ === 'einnahme' ? 'Einnahme' : 'Ausgabe') + ' gespeichert');
+    await clubDatenLaden();
+  } finally { if(btn) btn.disabled = false; }
 }
 
 function kassenbuchungLoeschen(id){
@@ -2707,7 +2841,7 @@ function bezahlteStrafenUebernehmen(){
   if(!darfBearbeiten()){ showToast('Keine Berechtigung','error'); return; }
   const summe = strafen.filter(x => x.bezahlt).reduce((a, x) => a + x.betrag, 0);
   if(summe <= 0){ showToast('Keine bezahlten Strafen vorhanden','info'); return; }
-  const datum = new Date().toISOString().slice(0,10);
+  const datum = heuteLokalISO();
   const fmt = n => n.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' €';
   appConfirm('Bezahlte Strafen als Einnahme buchen?\n\nBetrag: ' + fmt(summe) + '\nZweck: „Strafen ' + datum + '"', async () => {
     const zweck = 'Strafen ' + datum;

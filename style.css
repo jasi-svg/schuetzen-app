@@ -500,6 +500,7 @@ img.mini-avatar{object-fit:cover;background:var(--green-soft)}
 .app-dialog-overlay{position:fixed;inset:0;background:rgba(14,63,49,.50);display:flex;align-items:center;justify-content:center;z-index:9000;padding:20px}
 .app-dialog-card{background:var(--white);border-radius:22px;padding:28px 28px 22px;max-width:380px;width:100%;box-shadow:var(--schatten);animation:dialogEin .18s ease}
 .app-dialog-text{font-size:15px;line-height:1.6;color:var(--ink);margin-bottom:20px;white-space:pre-line}
+#appDialogInput{margin-bottom:20px}
 .app-dialog-buttons{display:flex;gap:10px}
 .app-dialog-btn{flex:1}
 @keyframes dialogEin{from{transform:scale(.94);opacity:0}to{transform:none;opacity:1}}

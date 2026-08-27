@@ -108,7 +108,7 @@
     <label>Bezahlt am</label>
     <input id="zahlungDatum" type="date">
     <div class="modal-buttons">
-      <button class="btn-gold" onclick="zahlungSpeichern()">Speichern</button>
+      <button class="btn-gold" id="zahlungSpeichernBtn" onclick="zahlungSpeichern()">Speichern</button>
       <button class="btn-ghost" onclick="closeZahlungModal()">Abbrechen</button>
     </div>
   </div>
@@ -178,13 +178,13 @@
       <h3>Verein gründen</h3>
       <input id="obVereinsname" type="text" placeholder="Vereinsname (z. B. Jägerzug Immergrün)">
       <input id="obMeinName" type="text" placeholder="Dein Name">
-      <button class="btn-gold" onclick="onboardingGruenden()">Verein gründen</button>
+      <button class="btn-gold" id="obGruendenBtn" onclick="onboardingGruenden()">Verein gründen</button>
     </div>
     <div class="unterkarte">
       <h3>Verein beitreten</h3>
       <input id="obCode" type="text" placeholder="Einladungscode" autocomplete="off">
       <input id="obBeitretenName" type="text" placeholder="Dein Name">
-      <button class="btn-gold" onclick="onboardingBeitreten()">Beitreten</button>
+      <button class="btn-gold" id="obBeitretenBtn" onclick="onboardingBeitreten()">Beitreten</button>
     </div>
     <button class="btn-ghost" onclick="ausloggen()">Abmelden</button>
   </section>
@@ -229,7 +229,7 @@
         <input id="mehrfachKommentar" type="text" placeholder="Kommentar (optional)">
       </div>
       <div id="mehrfachBetragInfo" style="display:none;color:var(--gruen-700);font-size:13px;font-weight:600;margin:-4px 0 10px"></div>
-      <button class="btn-gold" onclick="mehrfachStrafeSpeichern()">Strafe für alle Ausgewählten erfassen</button>
+      <button class="btn-gold" id="mehrfachSpeichernBtn" onclick="mehrfachStrafeSpeichern()">Strafe für alle Ausgewählten erfassen</button>
     </div>
 
     <div id="strafenChips" class="chip-zeile"></div>
@@ -349,7 +349,7 @@
         </div>
       </div>
       <div id="schnellMitgliederListe"></div>
-      <button class="btn-gold" style="margin-top:14px" onclick="schnellAnwesenheitSpeichern()">Alle speichern</button>
+      <button class="btn-gold" id="schnellAnwesenheitBtn" style="margin-top:14px" onclick="schnellAnwesenheitSpeichern()">Alle speichern</button>
     </div>
 
     <hr class="trenner">
@@ -367,7 +367,7 @@
       <input id="verspaetungMinuten" type="number" placeholder="Verspätung in Minuten">
       <input id="anwesenheitKommentar" type="text" placeholder="Kommentar (optional)">
     </div>
-    <button class="btn-gold" onclick="anwesenheitSpeichern()">Anwesenheit speichern</button>
+    <button class="btn-gold" id="anwesenheitSpeichernBtn" onclick="anwesenheitSpeichern()">Anwesenheit speichern</button>
 
     <h3>Anwesenheitsübersicht</h3>
     <div class="tabelle-scroll">
@@ -437,7 +437,7 @@
     <div class="unterkarte hidden" id="einstellungSaison">
       <h3><i data-lucide="flag"></i> Saison</h3>
       <p class="muted">Schließt die laufende Saison ab: Strafen &amp; Anwesenheiten werden archiviert und danach geleert. Mitglieder, Strafarten und Termine bleiben erhalten.</p>
-      <button class="btn-gold" onclick="saisonAbschliessen()">Saison abschließen &amp; neu starten</button>
+      <button class="btn-gold" id="saisonAbschliessenBtn" onclick="saisonAbschliessen()">Saison abschließen &amp; neu starten</button>
       <h4 style="margin-top:16px">Archiv</h4>
       <div id="saisonListe"></div>
     </div>
@@ -548,7 +548,7 @@
       <button class="btn-ghost" style="width:auto" onclick="koenigModalSchliessen()">× Schließen</button>
     </div>
     <select id="koenigAuswahl" style="width:100%;margin-bottom:14px"></select>
-    <button class="btn-gold" style="width:100%" onclick="koenigSpeichern()">Speichern</button>
+    <button class="btn-gold" id="koenigSpeichernBtn" style="width:100%" onclick="koenigSpeichern()">Speichern</button>
   </div>
 </div>
 
@@ -683,11 +683,12 @@
 </div>
 
 <!-- App-Dialog (ersetzt browser confirm()) -->
-<div id="appDialog" class="app-dialog-overlay hidden" role="dialog" aria-modal="true" onclick="appDialogSchliessen()">
+<div id="appDialog" class="app-dialog-overlay hidden" role="dialog" aria-modal="true" onclick="appDialogOverlayKlick()">
   <div class="app-dialog-card" onclick="event.stopPropagation()">
     <p id="appDialogText" class="app-dialog-text"></p>
+    <input id="appDialogInput" class="hidden" type="text">
     <div class="app-dialog-buttons">
-      <button class="btn-ghost app-dialog-btn" onclick="appDialogSchliessen()">Abbrechen</button>
+      <button id="appDialogAbbrechen" class="btn-ghost app-dialog-btn" onclick="appDialogSchliessen()">Abbrechen</button>
       <button id="appDialogBestaetigen" class="app-dialog-btn"></button>
     </div>
   </div>
